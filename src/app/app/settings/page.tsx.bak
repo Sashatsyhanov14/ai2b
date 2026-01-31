@@ -1,0 +1,41 @@
+﻿export default function SettingsPage() {
+  return (
+    <div className="p-6 space-y-8">
+      <h1 className="text-xl font-semibold">РќР°СЃС‚СЂРѕР№РєРё</h1>
+
+      {/* РџСЂРѕС„РёР»СЊ */}
+      <section className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
+        <h2 className="font-medium mb-3">РџСЂРѕС„РёР»СЊ</h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <input className="rounded-lg bg-neutral-900 border border-neutral-800 px-3 py-2 text-sm" placeholder="РРјСЏ" />
+          <input className="rounded-lg bg-neutral-900 border border-neutral-800 px-3 py-2 text-sm" placeholder="Email" />
+        </div>
+        <div className="mt-3">
+          <button className="rounded-lg bg-neutral-800 hover:bg-neutral-700 px-4 py-2 text-sm">РЎРѕС…СЂР°РЅРёС‚СЊ</button>
+        </div>
+      </section>
+
+      {/* Р‘СЂРµРЅРґРёСЂРѕРІР°РЅРёРµ */}
+      <section className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
+        <h2 className="font-medium mb-3">Р‘СЂРµРЅРґРёСЂРѕРІР°РЅРёРµ</h2>
+        <div className="flex items-center gap-3">
+          <div className="h-12 w-12 rounded-lg bg-neutral-900 border border-neutral-800" />
+          <button className="rounded-lg bg-neutral-800 hover:bg-neutral-700 px-4 py-2 text-sm">Р—Р°РіСЂСѓР·РёС‚СЊ Р»РѕРіРѕС‚РёРї</button>
+        </div>
+      </section>
+
+      {/* РљР»СЋС‡Рё Рё Р»РёРјРёС‚С‹ */}
+      <section className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
+        <h2 className="font-medium mb-3">РРЅС‚РµРіСЂР°С†РёРё</h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <input className="rounded-lg bg-neutral-900 border border-neutral-800 px-3 py-2 text-sm" placeholder="OpenRouter API Key (вЂўвЂўвЂўвЂўвЂўвЂў)" />
+          <input className="rounded-lg bg-neutral-900 border border-neutral-800 px-3 py-2 text-sm" placeholder="Telegram Bot Token (вЂўвЂўвЂўвЂўвЂўвЂў)" />
+        </div>
+        <div className="mt-3">
+          <button className="rounded-lg bg-neutral-800 hover:bg-neutral-700 px-4 py-2 text-sm">РЎРѕС…СЂР°РЅРёС‚СЊ</button>
+        </div>
+      </section>
+    </div>
+  );
+}
+

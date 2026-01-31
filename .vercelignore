@@ -1,0 +1,16 @@
+ni .vercelignore -Force -Value @"
+node_modules/
+.next/
+dist/
+build/
+out/
+coverage/
+.env
+.env.*
+"@
+node_modules/
+.next/
+dist/
+build/
+out/
+coverage/
