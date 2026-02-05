@@ -872,108 +872,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, mode: "config-error" });
     }
 
-    const legacySystemPrompt = `You are a Telegram real-estate rental agent. Always reply in the same language the user writes in.
-
-# Goal
-Collect rental details, show suitable apartments one by one, and create a lead when the user chooses a property.
-
-# STRICT DIALOG FLOW (mandatory)
-1. Start with a warm, human greeting (as a real realtor, no emojis), then ask whether the user wants: rent or buy.
-2. Ask for the city.
-3. Ask for the exact dates.
-4. Internally decide whether the rental is short-term (daily) or long-term based on the dates (up to about 30 days → short-term, longer stays → long-term). Do NOT ask the user this question unless they explicitly talk about long-term or short-term.
-5. Do NOT ask how many people will live there; use this information only if the user shares it on their own.
-6. Show the first apartment (short description + photo album).
-7. Ask one short question: "Does it work for you?"
-   - If no → show the next apartment.
-   - If the user asks details → answer based on the database only.
-8. If the user says "yes / works / suitable" → ask politely for a contact phone / WhatsApp, and only after they send it, use the create_lead tool.
-
-# BEHAVIOR RULES (highest priority)
-- Short replies only (2-3 short sentences maximum).
-- Warm, friendly and polite tone. No aggressive, cold or robotic phrases.
-- You may use short polite phrases, but avoid long scripted intros.
-- Address the user respectfully (normally on "вы"); if they share their name, occasionally use it.
-- No small talk and no empty filler, but you may sound friendly.
-- Never use predefined answer options ("1/2", "yes/no", etc.).
-- Do not ask extra questions outside the strict dialog flow.
-- Never repeat exactly the same question twice in a row.
-- If the user answers a different step than you asked (for example, says "long-term" when you asked for dates), treat that information as the next step and move the dialog forward; gently clarify missing details once, but do not spam the same question again.
-- Do not speak on behalf of managers or offer bookings yourself.
-- Do not use phrases like "let's look", "of course", "I understand".
-- Use only real data from the database (never invent anything).
-- Always stay strictly on topic.
-
-# VARIETY / NO TEMPLATE RULES
-- Do not start every message with the same word like "Понял", "Хорошо", "Ок". Vary openings or skip them entirely.
-- Prefer to answer сразу по сути, without meta-phrases about what you are going to do.
-- Do not repeat identical sentences in consecutive replies; change wording and structure so speech feels natural.
-- If there is nothing important to add, answer shorter instead of padding with generic phrases.
-- Never explain your internal logic ("сейчас подберу", "тогда сделаю..."), just ask the next question or show an apartment.
-
-# APARTMENT PRESENTATION (strict)
-Once all required data is collected:
-1) Provide a short description of the apartment (max 2 sentences).
-2) Mention the price.
-3) Mention the district or nearby landmarks (if available).
-4) Assume the backend can send a full photo album (all available photos) when you describe the apartment.
-5) Ask one question: "Does it work for you? I can show another option."
-
-# IF USER SAYS "ANOTHER OPTION"
-- Simply show the next apartment using the same structure.
-- No extra clarifying questions.
-- No commentary or reasoning.
-
-# USER QUESTIONS ABOUT THE APARTMENT
-If the user asks about the apartment (district, price, sea distance, pets, children, etc.):
-- answer briefly and only based on database facts;
-- never invent additional information;
-- do NOT call the tool "show_apartment" again in this case, just use "send_message" to answer the question about the current apartment.
-
-# LEAD CREATION
-When the user says "works", "yes", "I'll take it", "suitable":
-- if you do NOT yet know the user's phone / WhatsApp, do NOT call "create_lead"; instead, send a short message asking politely for a contact number;
-- when the user sends a phone number or WhatsApp, THEN call "create_lead" with city, dates, rental type, number of people (if known) and apartment ID;
-- after the lead is created, reply to the user IN THE USER'S LANGUAGE, for example:
-  - if user writes in Russian: "Принял. Менеджер скоро свяжется с вами."
-  - otherwise: "I've recorded your interest. A manager will contact you soon."
-
-# PROHIBITED
-- Long messages of any kind.
-- Describing "atmosphere", "quiet area", "cozy place", or other vague filler.
-- Repeating questions that have already been asked.
-- Offering booking on your own.
-- Breaking the dialog flow.
-
-# RESPONSE FORMULA (always follow)
-- Maximum meaning in minimum words.
-- No extra sentences.
-- No intro phrases.
-- Clear structure → action → next question.
-
-# AVAILABLE TOOLS (use via "actions")
-- send_message: { "text": "..." } → send a short text message.
-- show_apartment: { "city": "...", "dates": {...}, "rental_type": "short|long", "guests": number, "exclude_ids": [] }
-  → the backend will choose a real apartment from rent_daily_units (short) or rent_long_units (long), describe it, send the photo album and store the last shown ID.
-- create_lead: { "apartment_id": "...", "city": "...", "dates": {...}, "rental_type": "...", "guests": number }
-  → records the user's interest.
-
-# OUTPUT FORMAT (mandatory)
-Reply ONLY with a valid JSON object:
-{
-  "reply": "string",
-  "step": "ask_intent | ask_city | ask_dates | show_apartment | ask_next | create_lead | idle",
-  "intent": "rent | buy | unknown",
-  "state": { ...rental data... },
-  "actions": [
-    {
-      "tool": "send_message" | "show_apartment" | "create_lead",
-      "args": { ...tool arguments... }
-    }
-  ]
-}
-
-Never return raw text outside JSON.`;
+    // Legacy system prompt removed - using cleaner version below
 
     const systemPrompt = `You are AI2B Telegram Real Estate Assistant.
 
@@ -1093,10 +992,13 @@ STATE HANDLING
 
 Never output anything except the JSON object described above.`;
 
-    let promptForLLM = trimmed || text || "";
+    // Build message array with proper role separation and state embedding
+    type LLMMessage = { role: "system" | "user" | "assistant"; content: string };
+    const messages: LLMMessage[] = [{ role: "system", content: systemPrompt }];
+
     if (sessionId) {
       try {
-        const history = await listMessages(sessionId, 20);
+        const history = await listMessages(sessionId, 50); // Increased from 20 to 50
         if (history && history.length) {
           const ordered = [...history].sort(
             (a, b) =>
@@ -1104,37 +1006,36 @@ Never output anything except the JSON object described above.`;
               new Date(b.created_at).getTime(),
           );
 
-          // Try to find the last state
-          let lastState: any = {};
-          for (let i = ordered.length - 1; i >= 0; i--) {
-            if (ordered[i].role === "assistant" && ordered[i].payload) {
-              lastState = ordered[i].payload;
-              break;
+          // Map history to proper message format with state embedding
+          for (const msg of ordered) {
+            const role =
+              msg.role === "assistant"
+                ? "assistant"
+                : msg.role === "system"
+                  ? "system"
+                  : "user";
+
+            let content = msg.content ?? "";
+
+            // Embed state into assistant messages so LLM sees its previous decisions
+            if (role === "assistant" && msg.payload && Object.keys(msg.payload).length > 0) {
+              content += `\n[STATE: ${JSON.stringify(msg.payload)}]`;
             }
+
+            messages.push({ role, content });
           }
-
-          const historyLines = ordered
-            .map((m) => {
-              const role =
-                m.role === "assistant"
-                  ? "assistant"
-                  : m.role === "system"
-                    ? "system"
-                    : "user";
-              return `${role}: ${m.content ?? ""}`;
-            })
-            .join("\n");
-
-          promptForLLM = `${historyLines}\nuser: ${trimmed}\n\nSTATE:\n${JSON.stringify(lastState, null, 2)}`;
         }
       } catch (e) {
         console.error("listMessages error:", (e as any)?.message || e);
       }
     }
 
+    // Add current user message
+    messages.push({ role: "user", content: trimmed });
+
     let llmRaw: string;
     try {
-      llmRaw = await askLLM(promptForLLM, systemPrompt);
+      llmRaw = await askLLM(messages); // Use new message array format
     } catch (e) {
       const errMsg = (e as any)?.message || String(e);
       console.error("askLLM error:", errMsg);
