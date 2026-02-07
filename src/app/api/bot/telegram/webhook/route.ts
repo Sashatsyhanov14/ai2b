@@ -1056,8 +1056,11 @@ Never output anything except the JSON object described above.`;
         jsonText = jsonText.slice(firstBrace, lastBrace + 1);
       }
       parsed = JSON.parse(jsonText);
+      console.log("[LLM] Raw response:", llmRaw.slice(0, 500));
+      console.log("[LLM] Parsed:", JSON.stringify(parsed, null, 2));
     } catch (e) {
       console.error("LLM JSON parse error:", e);
+      console.error("[LLM] Raw that failed to parse:", llmRaw);
       await sendMessage(token, chatId, llmRaw);
       return NextResponse.json({ ok: true, mode: "llm-text" });
     }
