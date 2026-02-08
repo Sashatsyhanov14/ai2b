@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Save, MapPin, Layout, DollarSign, FileText, Tag } from "lucide-react";
+import { ChevronLeft, Save, MapPin, Layout, DollarSign, FileText } from "lucide-react";
 import UploadImage from "@/components/UploadImage";
 import { Button } from "@/components/ui/Button";
 
@@ -59,7 +59,6 @@ export default function NewApartmentPage() {
     setError("");
 
     try {
-      // Collect all features: finish type + selected tags
       const allFeatures = Array.from(new Set([form.finish, ...selectedTags]));
 
       const payload = {
@@ -95,241 +94,238 @@ export default function NewApartmentPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6 md:px-6 md:py-8">
+    <div className="mx-auto max-w-3xl pb-24 md:pb-10">
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
+      <div className="sticky top-0 z-30 bg-neutral-950/80 backdrop-blur-md border-b border-neutral-800 px-4 py-4 md:px-6 mb-6">
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.back()}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-neutral-800 bg-neutral-900/50 hover:bg-neutral-800 hover:border-neutral-700 transition-colors"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-neutral-800 bg-neutral-900/50 hover:bg-neutral-800 transition-colors"
           >
             <ChevronLeft className="h-5 w-5 text-neutral-400" />
           </button>
-          <h1 className="text-xl font-semibold text-white">Новая квартира</h1>
+          <h1 className="text-lg md:text-xl font-semibold text-white">Новая квартира</h1>
         </div>
       </div>
 
-      <form onSubmit={submit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="px-4 md:px-6 space-y-8">
+        <form onSubmit={submit} className="space-y-8">
 
-        {/* LEFT COLUMN: Main Info */}
-        <div className="lg:col-span-2 space-y-6">
+          {/* 1. PHOTOS FIRST (Effect of ownership) */}
+          <section>
+            <div className="bg-neutral-900/40 rounded-2xl border border-neutral-800 p-4 transition-all hover:border-neutral-700">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
+                  1. Фотографии
+                </h2>
+                <span className="text-[10px] text-neutral-500">{photos.length} загружено</span>
+              </div>
 
-          {/* Main Card */}
-          <div className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-5 md:p-6 backdrop-blur-sm">
-            <h2 className="mb-4 flex items-center gap-2 text-sm font-medium text-neutral-400 uppercase tracking-wider">
-              <Layout className="h-4 w-4" /> Основная информация
-            </h2>
-
-            <div className="space-y-5">
-              {/* Location Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs text-neutral-500 font-medium ml-1">Город</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-3 h-4 w-4 text-neutral-600" />
-                    <input
-                      className="w-full rounded-xl border border-neutral-800 bg-neutral-950 pl-9 p-2.5 text-neutral-200 outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all placeholder:text-neutral-700"
-                      placeholder="Antalya"
-                      value={form.city}
-                      onChange={(e) => update("city", e.target.value)}
-                      required
-                    />
+              <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+                {photos.map((url, i) => (
+                  <div key={i} className="relative aspect-square group rounded-lg overflow-hidden border border-neutral-800">
+                    <img src={url} className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setPhotos(prev => prev.filter((_, idx) => idx !== i))}
+                      className="absolute top-1 right-1 bg-black/60 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                    {i === 0 && <div className="absolute bottom-0 inset-x-0 bg-emerald-600/90 text-white text-[9px] font-bold text-center py-0.5 uppercase tracking-wide">Главное</div>}
                   </div>
+                ))}
+                <div className="aspect-square">
+                  <UploadImage
+                    ownerUid="public"
+                    entity="units"
+                    entityId="new"
+                    onUploaded={(url) => setPhotos((p) => [...p, url])}
+                    multiple
+                    label="+"
+                  />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs text-neutral-500 font-medium ml-1">Адрес / Район</label>
+              </div>
+            </div>
+          </section>
+
+          {/* 2. UNIFIED INPUTS (One block, no stress) */}
+          <section>
+            <h2 className="mb-3 text-xs font-semibold text-neutral-400 uppercase tracking-wider ml-1">
+              2. Основное
+            </h2>
+            <div className="rounded-2xl border border-neutral-700 overflow-hidden bg-neutral-900/30">
+
+              {/* Row 1: PRICE (Big & Green) */}
+              <div className="relative border-b border-neutral-800 bg-neutral-900/60 p-4 flex items-center group focus-within:bg-neutral-900">
+                <DollarSign className="h-6 w-6 text-emerald-500 mr-3 shrink-0" />
+                <input
+                  type="number"
+                  className="w-full bg-transparent text-3xl font-bold text-emerald-400 placeholder:text-neutral-700 outline-none"
+                  placeholder="0"
+                  value={form.price}
+                  onChange={(e) => update("price", e.target.value)}
+                />
+                <span className="text-neutral-500 font-medium text-lg ml-2">EUR</span>
+              </div>
+
+              {/* Row 2: Location (City | Address) */}
+              <div className="flex border-b border-neutral-800">
+                <div className="flex-1 border-r border-neutral-800 p-3 relative group focus-within:bg-neutral-900/50">
+                  <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1">Город</label>
                   <input
-                    className="w-full rounded-xl border border-neutral-800 bg-neutral-950 p-2.5 text-neutral-200 outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all placeholder:text-neutral-700"
+                    className="w-full bg-transparent text-neutral-200 placeholder:text-neutral-700 outline-none text-sm font-medium"
+                    placeholder="Antalya"
+                    value={form.city}
+                    onChange={(e) => update("city", e.target.value)}
+                  />
+                </div>
+                <div className="flex-[2] p-3 relative group focus-within:bg-neutral-900/50">
+                  <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1">Адрес / Район</label>
+                  <input
+                    className="w-full bg-transparent text-neutral-200 placeholder:text-neutral-700 outline-none text-sm font-medium"
                     placeholder="Liman Mah., 25. Sk"
                     value={form.address}
                     onChange={(e) => update("address", e.target.value)}
-                    required
                   />
                 </div>
               </div>
 
-              {/* Price & Area Row */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs text-neutral-500 font-medium ml-1">Цена (€)</label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-3 top-3 h-4 w-4 text-emerald-600/70" />
-                    <input
-                      type="number"
-                      className="w-full rounded-xl border border-neutral-800 bg-neutral-950 pl-9 p-2.5 text-lg font-medium text-emerald-400 outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-neutral-800"
-                      placeholder="0"
-                      value={form.price}
-                      onChange={(e) => update("price", e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs text-neutral-500 font-medium ml-1">Площадь (м²)</label>
+              {/* Row 3: Specs (Grid of 4) */}
+              <div className="grid grid-cols-4 divide-x divide-neutral-800 border-b border-neutral-800">
+                <div className="p-3 text-center group focus-within:bg-neutral-900/50">
+                  <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1">Метраж</label>
                   <input
                     type="number"
-                    min="10"
-                    className="w-full rounded-xl border border-neutral-800 bg-neutral-950 p-2.5 text-neutral-200 outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all placeholder:text-neutral-700"
+                    className="w-full bg-transparent text-center text-neutral-200 placeholder:text-neutral-700 outline-none text-sm font-medium"
                     placeholder="65"
                     value={form.area_m2}
                     onChange={(e) => update("area_m2", e.target.value)}
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs text-neutral-500 font-medium ml-1">Комнат</label>
-                  <select
-                    className="w-full rounded-xl border border-neutral-800 bg-neutral-950 p-2.5 text-neutral-200 outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all cursor-pointer"
-                    value={form.rooms}
-                    onChange={(e) => update("rooms", e.target.value)}
-                  >
-                    <option value="0">Студия (1+0)</option>
-                    <option value="1">1+1</option>
-                    <option value="2">2+1</option>
-                    <option value="3">3+1</option>
-                    <option value="4">4+1</option>
-                    <option value="5">5+</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Details Row */}
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs text-neutral-500 font-medium ml-1">Этаж</label>
+                <div className="p-3 text-center group focus-within:bg-neutral-900/50">
+                  <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1">Этаж</label>
                   <input
                     type="number"
-                    className="w-full rounded-xl border border-neutral-800 bg-neutral-950 p-2.5 text-neutral-200 outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all placeholder:text-neutral-700"
+                    className="w-full bg-transparent text-center text-neutral-200 placeholder:text-neutral-700 outline-none text-sm font-medium"
                     placeholder="3"
                     value={form.floor}
                     onChange={(e) => update("floor", e.target.value)}
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs text-neutral-500 font-medium ml-1">Этажность</label>
+                <div className="p-3 text-center group focus-within:bg-neutral-900/50">
+                  <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1">Всего</label>
                   <input
                     type="number"
-                    className="w-full rounded-xl border border-neutral-800 bg-neutral-950 p-2.5 text-neutral-200 outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all placeholder:text-neutral-700"
+                    className="w-full bg-transparent text-center text-neutral-200 placeholder:text-neutral-700 outline-none text-sm font-medium"
                     placeholder="10"
                     value={form.floors_total}
                     onChange={(e) => update("floors_total", e.target.value)}
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs text-neutral-500 font-medium ml-1">Отделка</label>
+                <div className="p-3 text-center group focus-within:bg-neutral-900/50 relative">
+                  <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1">Комнат</label>
                   <select
-                    className="w-full rounded-xl border border-neutral-800 bg-neutral-950 p-2.5 text-neutral-200 outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all cursor-pointer text-sm"
-                    value={form.finish}
-                    onChange={(e) => update("finish", e.target.value)}
+                    className="w-full bg-transparent text-center text-neutral-200 outline-none text-sm font-medium appearance-none absolute inset-0 opacity-0 cursor-pointer"
+                    value={form.rooms}
+                    onChange={(e) => update("rooms", e.target.value)}
                   >
-                    <option value="renovated">С ремонтом</option>
-                    <option value="furniture">С мебелью</option>
-                    <option value="whitebox">Whitebox</option>
-                    <option value="shell">Черновая</option>
+                    <option value="0">Студия</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5+</option>
                   </select>
+                  <div className="text-sm font-medium text-neutral-200 pointer-events-none">
+                    {form.rooms === "0" ? "Студия" : form.rooms}
+                  </div>
                 </div>
               </div>
+              {/* Row 4: Finish */}
+              <div className="p-3 group focus-within:bg-neutral-900/50 flex items-center justify-between">
+                <label className="text-[10px] text-neutral-500 uppercase tracking-wider">Отделка</label>
+                <select
+                  className="bg-transparent text-right text-neutral-200 outline-none text-sm font-medium cursor-pointer"
+                  value={form.finish}
+                  onChange={(e) => update("finish", e.target.value)}
+                >
+                  <option value="renovated" className="bg-neutral-900">С ремонтом</option>
+                  <option value="furniture" className="bg-neutral-900">С мебелью</option>
+                  <option value="whitebox" className="bg-neutral-900">Whitebox</option>
+                  <option value="shell" className="bg-neutral-900">Черновая</option>
+                </select>
+              </div>
             </div>
-          </div>
+          </section>
 
-          {/* Description & Tags Card */}
-          <div className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-5 md:p-6 backdrop-blur-sm">
-            <h2 className="mb-4 flex items-center gap-2 text-sm font-medium text-neutral-400 uppercase tracking-wider">
-              <FileText className="h-4 w-4" /> Описание и теги <span className="text-neutral-600 normal-case tracking-normal">(опционально)</span>
+          {/* 3. TAGS (Victory) */}
+          <section>
+            <h2 className="mb-3 text-xs font-semibold text-neutral-400 uppercase tracking-wider ml-1">
+              3. Хештеги
             </h2>
-
-            <div className="space-y-4">
-              <textarea
-                className="w-full h-28 rounded-xl border border-neutral-800 bg-neutral-950 p-3 text-neutral-200 outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all resize-none placeholder:text-neutral-700 text-sm"
-                placeholder="Дополнительные детали: солнечная сторона, айдат, инфраструктура..."
-                value={form.description}
-                onChange={(e) => update("description", e.target.value)}
-              />
-
-              <div className="flex flex-wrap gap-2">
-                {COMMON_TAGS.map(tag => (
+            <div className="flex flex-wrap gap-2">
+              {COMMON_TAGS.map(tag => {
+                const isSelected = selectedTags.includes(tag);
+                return (
                   <button
                     key={tag}
                     type="button"
                     onClick={() => toggleTag(tag)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${selectedTags.includes(tag)
-                        ? "bg-blue-600/20 border-blue-600 text-blue-300"
-                        : "bg-neutral-950 border-neutral-800 text-neutral-400 hover:border-neutral-700 hover:text-neutral-300"
+                    className={`px-4 py-2 rounded-full text-xs font-medium transition-all transform active:scale-95 ${isSelected
+                      ? "bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.5)] border border-blue-500"
+                      : "bg-neutral-900/50 border border-neutral-800 text-neutral-400 hover:border-neutral-700 hover:text-neutral-200"
                       }`}
                   >
-                    {tag}
+                    {isSelected ? "✓ " : ""}{tag}
                   </button>
-                ))}
+                );
+              })}
+            </div>
+          </section>
+
+          {/* 4. OPTIONAL DESCRIPTION */}
+          <section>
+            <details className="group">
+              <summary className="list-none cursor-pointer flex items-center gap-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider ml-1 hover:text-neutral-300 transition-colors">
+                <span className="group-open:rotate-90 transition-transform">▸</span>
+                Добавить описание (необязательно)
+              </summary>
+              <div className="mt-3">
+                <textarea
+                  className="w-full h-24 rounded-xl border border-neutral-800 bg-neutral-900/30 p-4 text-neutral-200 outline-none focus:border-neutral-700 transition-all text-sm resize-none"
+                  placeholder="Любые заметки..."
+                  value={form.description}
+                  onChange={(e) => update("description", e.target.value)}
+                />
               </div>
-            </div>
-          </div>
+            </details>
+          </section>
 
-        </div>
+          {/* Spacer for mobile fixed button */}
+          <div className="h-20 md:hidden"></div>
 
-        {/* RIGHT COLUMN: Photos & Actions */}
-        <div className="space-y-6">
-
-          {/* Photos Card */}
-          <div className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-5 backdrop-blur-sm">
-            <h2 className="mb-4 text-sm font-medium text-neutral-400 uppercase tracking-wider">
-              Фотографии
-            </h2>
-            <div className="space-y-4">
-              <UploadImage
-                ownerUid="public"
-                entity="units"
-                entityId="new"
-                onUploaded={(url) => setPhotos((p) => [...p, url])}
-                multiple
-                label="Загрузить фото"
-              />
-
-              {photos.length > 0 ? (
-                <div className="grid grid-cols-2 gap-2">
-                  {photos.map((url, i) => (
-                    <div key={i} className="relative aspect-square group rounded-lg overflow-hidden border border-neutral-800">
-                      <img src={url} className="w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => setPhotos(prev => prev.filter((_, idx) => idx !== i))}
-                        className="absolute top-1 right-1 bg-black/60 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                      >
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                      </button>
-                      {i === 0 && <div className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[10px] text-center py-0.5">Главное</div>}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="h-32 rounded-xl border-2 border-dashed border-neutral-800 flex items-center justify-center text-neutral-600 text-sm">
-                  Нет фото
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="sticky top-6 rounded-2xl border border-neutral-800 bg-neutral-900/40 p-5 backdrop-blur-sm space-y-3">
+          {/* FIXED BOTTOM SAVE BUTTON */}
+          <div className="fixed bottom-0 left-0 right-0 p-4 bg-neutral-950/90 backdrop-blur-lg border-t border-neutral-800 md:static md:bg-transparent md:border-0 md:p-0 z-40">
             {error && (
-              <div className="p-3 rounded-lg bg-red-900/20 border border-red-900/50 text-red-200 text-xs">
+              <div className="mb-3 px-3 py-2 rounded-lg bg-red-900/20 border border-red-900/50 text-red-200 text-xs text-center">
                 {error}
               </div>
             )}
-
             <Button
               type="submit"
-              disabled={loading || !form.price || !form.address}
-              className="w-full py-6 text-base"
+              disabled={loading || !form.price}
+              className={`w-full py-4 text-base font-semibold shadow-lg transition-all ${loading || !form.price
+                ? "opacity-50 grayscale"
+                : "bg-blue-600 hover:bg-blue-500 shadow-blue-900/20"
+                }`}
             >
-              {loading ? "Сохранение..." : "Сохранить квартиру"}
+              {loading ? "Сохранение..." : "Сохранить объект"}
             </Button>
-
-            <p className="text-center text-[10px] text-neutral-500">
-              Квартира сразу появится в поиске бота
-            </p>
           </div>
-        </div>
 
-      </form>
+        </form>
+      </div>
     </div>
   );
 }
