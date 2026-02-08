@@ -23,7 +23,7 @@ function mapIncomingToDb(payload: any): Partial<Unit> {
   if (payload.price != null) out.price = Number(payload.price)
   if (payload.status != null) out.status = String(payload.status)
   if (payload.project_id != null) out.project_id = payload.project_id ? String(payload.project_id) : null
-  if (payload.is_rent != null) out.is_rent = !!payload.is_rent
+  // is_rent removed
   if (payload.description != null) out.description = String(payload.description)
   if (payload.type != null) out.type = String(payload.type)
   return out
@@ -40,14 +40,14 @@ async function enrich(u: Unit, sb: ReturnType<typeof getServerClient>) {
       u.photos_count = photos.length
       u.main_photo_url = (photos as any[])[0]?.url ?? null
     }
-  } catch {}
+  } catch { }
 
   try {
     if (u.project_id) {
       const { data } = await sb.from('developer_projects').select('name').eq('id', u.project_id).single()
       if (data) u.project_name = (data as any).name
     }
-  } catch {}
+  } catch { }
   return u
 }
 

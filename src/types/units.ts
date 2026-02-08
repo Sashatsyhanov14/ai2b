@@ -36,7 +36,7 @@ export type UnitCreatePayload = {
   price?: number
   status?: UnitStatus
   project_id?: string | null
-  is_rent?: boolean
+  // is_rent removed
   description?: string
   type?: string
 }
