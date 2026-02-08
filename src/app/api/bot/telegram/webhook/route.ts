@@ -12,60 +12,50 @@ import {
   findOrCreateSession,
   listMessages,
 } from "@/services/sessions";
-
 import { createLead } from "@/services/leads";
 
 export const maxDuration = 60;
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 type Lang = "ru" | "en";
 
+// =====================================================
+// TOOL ACTIONS - What the LLM can request
+// =====================================================
 type ToolAction =
   | {
     tool: "send_message";
     args: { text: string };
   }
   | {
-    tool: "show_apartment";
+    tool: "show_property";
     args: {
       city?: string | null;
-      dates?: { from?: string | null; to?: string | null } | null;
-      rental_type?: string | null;
-      guests?: number | null;
+      budget_min?: number | null;
+      budget_max?: number | null;
+      rooms?: number | null;
       exclude_ids?: string[] | null;
-      caption?: string | null;
     };
   }
   | {
     tool: "create_lead";
     args: {
       unit_id?: string | null;
-      apartment_id?: string | null; // backward compatibility
       name?: string | null;
       phone?: string | null;
       city?: string | null;
-      dates?: { from?: string | null; to?: string | null } | null;
-      rental_type?: string | null;
-      guests?: number | null;
+      budget_min?: number | null;
+      budget_max?: number | null;
     };
   };
 
-type ShowApartmentArgs = Extract<
-  ToolAction,
-  { tool: "show_apartment" }
->["args"];
-type CreateLeadArgs = Extract<ToolAction, { tool: "create_lead" }>["args"];
-
 type LlmPayload = {
   reply?: string;
-  step?: string;
-  intent?: string | null;
   state?: {
-    mode?: "rent" | "buy" | "unknown" | string;
     city?: string | null;
-    dates?: { from?: string | null; to?: string | null } | null;
-    rental_type?: "daily" | "long" | null | string;
-    guests?: number | null;
+    budget_min?: number | null;
+    budget_max?: number | null;
+    rooms?: number | null;
     current_unit_id?: string | null;
     shown_unit_ids?: string[];
     [key: string]: any;
@@ -73,8 +63,11 @@ type LlmPayload = {
   actions?: ToolAction[];
 };
 
+// =====================================================
+// HELPERS
+// =====================================================
 function detectLang(code?: string | null): Lang {
-  if (!code) return "en";
+  if (!code) return "ru";
   const c = code.toLowerCase();
   if (c.startsWith("ru") || c.startsWith("uk") || c.startsWith("be")) {
     return "ru";
@@ -82,15 +75,46 @@ function detectLang(code?: string | null): Lang {
   return "en";
 }
 
-export async function GET() {
-  return NextResponse.json({ ok: true });
+function formatPrice(price: number | null | undefined): string {
+  if (price == null) return "цена по запросу";
+  return `€${price.toLocaleString("ru-RU")}`;
 }
 
-async function sendUnitPhotos(
+function buildPropertyDescription(unit: any, lang: Lang): string {
+  const city = unit.city || "—";
+  const rooms = unit.rooms
+    ? unit.rooms === 1
+      ? lang === "ru"
+        ? "студия"
+        : "studio"
+      : lang === "ru"
+        ? `${unit.rooms}-комнатная`
+        : `${unit.rooms}-room`
+    : "";
+  const area = unit.area_m2 ? `${unit.area_m2} м²` : "";
+  const floor = unit.floor
+    ? unit.floors_total
+      ? `${unit.floor}/${unit.floors_total} этаж`
+      : `${unit.floor} этаж`
+    : "";
+  const price = formatPrice(unit.price);
+
+  const parts = [rooms, area, floor].filter(Boolean).join(", ");
+
+  if (lang === "ru") {
+    return `${city}. ${parts}. ${price}`;
+  }
+  return `${city}. ${parts}. ${price}`;
+}
+
+// =====================================================
+// SEND PROPERTY PHOTOS
+// =====================================================
+async function sendPropertyPhotos(
   token: string,
   chatId: string,
   unitId: string,
-  caption: string,
+  caption: string
 ) {
   const sb = getServerClient();
   const { data: photos } = await sb
@@ -101,492 +125,268 @@ async function sendUnitPhotos(
     .limit(10);
 
   if (!photos || photos.length === 0) {
+    // No photos, just send caption as text
+    await sendMessage(token, chatId, caption);
     return;
   }
 
   if (photos.length === 1) {
-    await sendPhoto(token, chatId, (photos[0] as any).url as string, caption);
+    await sendPhoto(token, chatId, photos[0].url, caption);
   } else {
-    const media = (photos as any[]).map(
-      (p: { url: string }, idx: number) => ({
-        type: "photo" as const,
-        media: p.url,
-        caption: idx === 0 ? caption : undefined,
-      }),
-    );
+    const media = photos.map((p: { url: string }, idx: number) => ({
+      type: "photo" as const,
+      media: p.url,
+      caption: idx === 0 ? caption : undefined,
+    }));
     await sendMediaGroup(token, chatId, media);
   }
 }
 
-function normalizeCity(raw: string): string {
-  const city = raw.trim();
-  const lc = city.toLowerCase();
-  if (lc.startsWith("антал")) return "Antalya";
-  if (lc.startsWith("алан") || lc.startsWith("алани")) return "Alanya";
-  if (lc.startsWith("стамбул")) return "Istanbul";
-  if (lc.startsWith("дубай")) return "Dubai";
-  return city;
-}
-
-function buildRentDescription(
-  unit: any,
-  lang: Lang,
-  rentalType?: string | null,
-): string {
-  const city = unit.city || "-";
-  const rooms =
-    typeof unit.rooms === "number"
-      ? unit.rooms === 1
-        ? lang === "ru"
-          ? "студия"
-          : "studio"
-        : lang === "ru"
-          ? `${unit.rooms}-комнатная квартира`
-          : `${unit.rooms}-room apartment`
-      : lang === "ru"
-        ? "квартира"
-        : "apartment";
-
-  const type = (rentalType ?? "").toString().toLowerCase();
-
-  let priceText: string;
-  if (type === "long") {
-    const priceMonth =
-      typeof unit.price_month === "number"
-        ? lang === "ru"
-          ? `${unit.price_month} €/месяц`
-          : `${unit.price_month} €/month`
-        : lang === "ru"
-          ? "цена по запросу"
-          : "price on request";
-
-    const minTermText =
-      typeof unit.min_term === "number" && unit.min_term > 1
-        ? lang === "ru"
-          ? `минимум ${unit.min_term} мес.`
-          : `minimum ${unit.min_term} months`
-        : "";
-
-    priceText = minTermText ? `${priceMonth}, ${minTermText}` : priceMonth;
-  } else {
-    const priceDay =
-      typeof unit.price_day === "number"
-        ? lang === "ru"
-          ? `${unit.price_day} €/день`
-          : `${unit.price_day} €/day`
-        : null;
-    const priceWeek =
-      typeof unit.price_week === "number"
-        ? lang === "ru"
-          ? `${unit.price_week} €/неделя`
-          : `${unit.price_week} €/week`
-        : null;
-
-    priceText =
-      priceDay && priceWeek
-        ? `${priceDay}, ${priceWeek}`
-        : priceDay || priceWeek || (lang === "ru" ? "цена по запросу" : "price on request");
-  }
-
-  const pets =
-    unit.allow_pets === true
-      ? lang === "ru"
-        ? "можно с питомцами"
-        : "pets allowed"
-      : lang === "ru"
-        ? "без животных"
-        : "no pets";
-
-  if (lang === "ru") {
-    return `${rooms} в ${city}. ${priceText}. ${pets}.`;
-  }
-  return `${rooms} in ${city}. ${priceText}. ${pets}.`;
-}
-
-async function handleShowApartment(
-  args: ShowApartmentArgs | undefined,
+// =====================================================
+// HANDLE SHOW PROPERTY
+// =====================================================
+async function handleShowProperty(
+  args: ToolAction extends { tool: "show_property"; args: infer A } ? A : never,
   lang: Lang,
   chatId: string,
   token: string,
   sessionId: string | null,
-  botId: string,
-) {
-  const rawCity = (args?.city ?? "").trim();
-  const cityFilter = rawCity ? normalizeCity(rawCity) : "";
-
-  let exclude: string[] =
-    Array.isArray(args?.exclude_ids) && args?.exclude_ids.length
-      ? args.exclude_ids.map((id) => String(id))
-      : [];
-
-  let rentalType: "short" | "long" = "short";
-  const requestedType = (args?.rental_type ?? "").toString().toLowerCase();
-  if (requestedType === "short" || requestedType === "long") {
-    rentalType = requestedType as "short" | "long";
-  } else {
-    const from = args?.dates?.from;
-    const to = args?.dates?.to;
-    if (from && to) {
-      const fromDate = new Date(from);
-      const toDate = new Date(to);
-      if (!Number.isNaN(fromDate.getTime()) && !Number.isNaN(toDate.getTime())) {
-        const diffMs = toDate.getTime() - fromDate.getTime();
-        const diffDays = diffMs / (1000 * 60 * 60 * 24);
-        if (diffDays >= 30) {
-          rentalType = "long";
-        }
-      }
-    }
-  }
-
+  botId: string
+): Promise<string | null> {
   const sb = getServerClient();
-  let data: any[] = [];
-  let error: any = null;
 
-  // Если LLM не передал exclude_ids, попробуем автоматически исключить
-  // последнюю показанную квартиру из этой же сессии и города.
-  if (!exclude.length && sessionId) {
-    try {
-      const history = await listMessages(sessionId, 50);
-      if (history && history.length) {
-        const exclSet = new Set<string>();
-        for (let i = history.length - 1; i >= 0; i -= 1) {
-          const m = history[i] as any;
-          if (m.role !== "assistant" || !m.payload) continue;
-          const payloadCity = (m.payload.city ?? "") as string;
-          const payloadUnitId = m.payload.unit_id;
-          if (!payloadUnitId) continue;
-          if (
-            cityFilter &&
-            payloadCity &&
-            normalizeCity(String(payloadCity)) !== cityFilter
-          ) {
-            continue;
-          }
-          exclSet.add(String(payloadUnitId));
-        }
-        if (exclSet.size) {
-          exclude = Array.from(exclSet);
-        }
-      }
-    } catch (e) {
-      console.error(
-        "handleShowApartment history exclude error:",
-        (e as any)?.message || e,
-      );
-    }
+  const city = args?.city?.trim() || null;
+  const budgetMin = args?.budget_min || null;
+  const budgetMax = args?.budget_max || null;
+  const rooms = args?.rooms || null;
+  const excludeIds = args?.exclude_ids || [];
+
+  // Build query
+  let query = sb
+    .from("units")
+    .select("*")
+    .eq("is_active", true)
+    .order("created_at", { ascending: false });
+
+  if (city) {
+    query = query.ilike("city", `%${city}%`);
+  }
+  if (budgetMin != null) {
+    query = query.gte("price", budgetMin);
+  }
+  if (budgetMax != null) {
+    query = query.lte("price", budgetMax);
+  }
+  if (rooms != null) {
+    query = query.eq("rooms", rooms);
+  }
+  if (excludeIds.length > 0) {
+    query = query.not("id", "in", `(${excludeIds.join(",")})`);
   }
 
-  if (rentalType === "long") {
-    try {
-      let query = sb
-        .from("rent_long_units")
-        .select(
-          "id, city, address, rooms, price_month, min_term, allow_pets, is_occupied, description, created_at",
-        )
-        .eq("is_occupied", false)
-        .order("created_at", { ascending: false });
-
-      if (cityFilter) {
-        query = query.ilike("city", `%${cityFilter}%`);
-      }
-
-      const result = await query.limit(10);
-      data = result.data ?? [];
-      error = result.error;
-    } catch (e) {
-      error = e;
-    }
-  } else {
-    try {
-      let query = sb
-        .from("rent_daily_units")
-        .select(
-          "id, city, address, rooms, price_day, price_week, allow_pets, description, created_at",
-        )
-        .order("created_at", { ascending: false });
-
-      if (cityFilter) {
-        query = query.ilike("city", `%${cityFilter}%`);
-      }
-
-      const result = await query.limit(10);
-      data = result.data ?? [];
-      error = result.error;
-    } catch (e) {
-      error = e;
-    }
-  }
+  const { data, error } = await query.limit(10);
 
   if (error) {
-    console.error("show_apartment query error:", (error as any)?.message || error);
+    console.error("show_property query error:", error.message);
     const msg =
       lang === "ru"
-        ? "Не удалось получить объекты из базы."
-        : "Failed to load apartments from the database.";
+        ? "Не удалось загрузить объекты из базы."
+        : "Failed to load properties from database.";
     await sendMessage(token, chatId, msg);
-    return;
+    return null;
   }
 
-  const list = (data ?? []).filter(
-    (unit: any) => !exclude.includes(String(unit.id)),
-  );
+  const list = data || [];
   const unit = list[0];
 
   if (!unit) {
     const msg =
       lang === "ru"
-        ? "По этим параметрам сейчас нет доступных вариантов."
-        : "No matching apartments for these parameters.";
+        ? "По вашим параметрам сейчас нет доступных объектов. Попробуйте изменить город или бюджет."
+        : "No properties match your criteria. Try different city or budget.";
     await sendMessage(token, chatId, msg);
-    return;
+    return null;
   }
 
-  const baseHeader = buildRentDescription(unit, lang, rentalType);
-
-  const descRaw =
-    typeof unit.description === "string" && unit.description.trim().length
-      ? unit.description.trim()
-      : null;
-  const shortDesc =
-    descRaw && descRaw.length > 220 ? `${descRaw.slice(0, 220)}…` : descRaw;
-
-  const addressLine =
-    unit.address && typeof unit.address === "string" && unit.address.trim().length
-      ? lang === "ru"
-        ? `Адрес: ${unit.address.trim()}.`
-        : `Address: ${unit.address.trim()}.`
-      : null;
+  // Build caption
+  const baseDesc = buildPropertyDescription(unit, lang);
+  const descRaw = unit.description?.trim() || "";
+  const shortDesc = descRaw.length > 200 ? `${descRaw.slice(0, 200)}…` : descRaw;
+  const addressLine = unit.address ? `Адрес: ${unit.address}.` : "";
 
   const question =
     lang === "ru"
-      ? "Подходит или показать другой вариант?"
-      : "Does this work for you, or should I show another option?";
+      ? "Интересует? Или показать другой вариант?"
+      : "Interested? Or shall I show another option?";
 
-  const headerParts = [baseHeader, addressLine, shortDesc, question].filter(
-    Boolean,
-  ) as string[];
-  const header = headerParts.join(" ");
+  const caption = [baseDesc, addressLine, shortDesc, question]
+    .filter(Boolean)
+    .join(" ");
 
-  await sendUnitPhotos(token, chatId, unit.id as string, header);
+  await sendPropertyPhotos(token, chatId, unit.id, caption);
 
+  // Save to session
   if (sessionId) {
     try {
       await appendMessage({
         session_id: sessionId,
         bot_id: botId,
         role: "assistant",
-        content: header,
-        payload: { unit_id: unit.id, city: unit.city, rental_type: rentalType },
+        content: caption,
+        payload: { unit_id: unit.id, city: unit.city },
       });
     } catch (e) {
-      console.error(
-        "appendMessage show_apartment error:",
-        (e as any)?.message || e,
-      );
+      console.error("appendMessage show_property error:", (e as any)?.message);
     }
   }
+
+  return unit.id;
 }
 
-async function notifyManagersAboutLead(
-  lang: Lang,
-  token: string,
-  leadId: string,
-  payload: {
-    city?: string | null;
-    dates?: { from?: string | null; to?: string | null } | null;
-    rentalType?: string | null;
-    apartmentId?: string | null;
-    chatId: string;
-  },
-) {
-  try {
-    const sb = getServerClient();
-    const { data: managers, error } = await sb
-      .from("telegram_managers")
-      .select("telegram_id, name, is_active")
-      .eq("is_active", true);
-
-    if (error || !managers || managers.length === 0) {
-      return;
-    }
-
-    const city = payload.city ?? null;
-    const dates = payload.dates ?? null;
-    const rentalType = (payload.rentalType ?? "").toString().toLowerCase();
-    const apartmentId = payload.apartmentId ?? null;
-    const chatId = payload.chatId;
-
-    const datesText =
-      dates && dates.from
-        ? dates.to
-          ? `${dates.from}–${dates.to}`
-          : `${dates.from}`
-        : null;
-
-    for (const m of managers as any[]) {
-      const mgrId = m.telegram_id;
-      if (!mgrId) continue;
-
-      const baseRu = [
-        "Новый лид из Telegram.",
-        city ? `Город: ${city}.` : null,
-        rentalType ? `Тип аренды: ${rentalType}.` : null,
-        datesText ? `Даты: ${datesText}.` : null,
-        apartmentId ? `Квартира: ${apartmentId}.` : null,
-        `Чат клиента: ${chatId}.`,
-        `ID лида: ${leadId}.`,
-      ]
-        .filter(Boolean)
-        .join(" ");
-
-      const baseEn = [
-        "New lead from Telegram.",
-        city ? `City: ${city}.` : null,
-        rentalType ? `Rental type: ${rentalType}.` : null,
-        datesText ? `Dates: ${datesText}.` : null,
-        apartmentId ? `Apartment: ${apartmentId}.` : null,
-        `Client chat: ${chatId}.`,
-        `Lead id: ${leadId}.`,
-      ]
-        .filter(Boolean)
-        .join(" ");
-
-      const msg = lang === "ru" ? baseRu : baseEn;
-      await sendMessage(token, String(mgrId), msg);
-    }
-  } catch (e) {
-    console.error(
-      "notifyManagersAboutLead error:",
-      (e as any)?.message || e,
-    );
-  }
-}
-
-async function handleCreateLeadWithContracts(
-  args: CreateLeadArgs | undefined,
+// =====================================================
+// HANDLE CREATE LEAD
+// =====================================================
+async function handleCreateLead(
+  args: ToolAction extends { tool: "create_lead"; args: infer A } ? A : never,
   lang: Lang,
   chatId: string,
-  token: string,
+  token: string
 ) {
-  const unitId = args?.unit_id ?? args?.apartment_id ?? null;
-
-  if (!unitId) {
-    const msg =
-      lang === "ru"
-        ? "Не удалось создать лид: отсутствует apartment_id."
-        : "Cannot create lead: apartment_id is missing.";
-    await sendMessage(token, chatId, msg);
-    return;
-  }
-
   try {
     const lead = await createLead({
       source_bot_id: "telegram",
       source: "telegram",
-      name: args?.name ?? null,
-      phone: args?.phone ?? null,
+      name: args?.name || null,
+      phone: args?.phone || null,
       email: null,
       data: {
-        apartment_id: unitId,
-        unit_id: unitId,
-        city: args?.city ?? null,
-        dates: args?.dates ?? null,
-        rental_type: args?.rental_type ?? null,
-        guests: args?.guests ?? null,
+        unit_id: args?.unit_id || null,
+        city: args?.city || null,
+        budget_min: args?.budget_min || null,
+        budget_max: args?.budget_max || null,
         chat_id: chatId,
       },
       status: "new",
     });
 
-    const rentalType = (args?.rental_type ?? "").toString().toLowerCase();
-    if (rentalType === "long") {
-      try {
-        const sb = getServerClient();
-
-        await sb
-          .from("rent_long_units")
-          .update({ is_occupied: true })
-          .eq("id", unitId);
-
-        const fromRaw = args?.dates?.from ?? null;
-        if (fromRaw) {
-          const start = new Date(fromRaw);
-          if (!Number.isNaN(start.getTime())) {
-            const startStr = start.toISOString().slice(0, 10);
-
-            let months = 1;
-            try {
-              const { data: unitRows } = await sb
-                .from("rent_long_units")
-                .select("min_term")
-                .eq("id", unitId)
-                .limit(1);
-              const minTerm = unitRows?.[0]?.min_term;
-              if (typeof minTerm === "number" && minTerm > 0) {
-                months = minTerm;
-              }
-            } catch (e) {
-              console.error(
-                "rent_long_units min_term fetch error:",
-                (e as any)?.message || e,
-              );
-            }
-
-            const review = new Date(start);
-            review.setMonth(review.getMonth() + months);
-            const reviewStr = review.toISOString().slice(0, 10);
-
-            const meta: any = {
-              rental_type: rentalType,
-              dates: args?.dates ?? null,
-              guests: args?.guests ?? null,
-            };
-
-            const { error: contractError } = await sb
-              .from("rent_long_contracts")
-              .insert({
-                unit_id: unitId,
-                lead_id: lead.id,
-                tenant_name: null,
-                telegram_id: chatId,
-                start_date: startStr,
-                review_date: reviewStr,
-                status: "active",
-                meta,
-              });
-
-            if (contractError) {
-              console.error(
-                "create rent_long_contract error:",
-                contractError.message,
-              );
-            }
-          }
-        }
-      } catch (e) {
-        console.error(
-          "mark rent_long_units occupied / contract error:",
-          (e as any)?.message || e,
-        );
-      }
-    }
-
-    await notifyManagersAboutLead(lang, token, lead.id as string, {
-      city: args?.city ?? null,
-      dates: args?.dates ?? null,
-      rentalType: args?.rental_type ?? null,
-      apartmentId: unitId,
+    // Notify managers
+    await notifyManagers(lang, token, lead.id, {
+      city: args?.city || null,
+      unitId: args?.unit_id || null,
       chatId,
     });
-  } catch (e) {
-    console.error("createLeadWithContracts error:", (e as any)?.message || e);
+
     const msg =
-      lang === "ru" ? "Не удалось создать лид." : "Failed to create lead.";
+      lang === "ru"
+        ? "Отлично! Я записал вашу заявку. Менеджер свяжется с вами в ближайшее время."
+        : "Great! I've recorded your inquiry. A manager will contact you shortly.";
+    await sendMessage(token, chatId, msg);
+  } catch (e) {
+    console.error("createLead error:", (e as any)?.message || e);
+    const msg =
+      lang === "ru"
+        ? "Не удалось создать заявку. Попробуйте позже."
+        : "Failed to create inquiry. Please try again later.";
     await sendMessage(token, chatId, msg);
   }
 }
 
+// =====================================================
+// NOTIFY MANAGERS
+// =====================================================
+async function notifyManagers(
+  lang: Lang,
+  token: string,
+  leadId: string,
+  payload: { city?: string | null; unitId?: string | null; chatId: string }
+) {
+  try {
+    const sb = getServerClient();
+    const { data: managers } = await sb
+      .from("telegram_managers")
+      .select("telegram_id, name")
+      .eq("is_active", true);
+
+    if (!managers || managers.length === 0) return;
+
+    for (const m of managers) {
+      if (!m.telegram_id) continue;
+
+      const msg =
+        lang === "ru"
+          ? `🔔 Новая заявка!\nГород: ${payload.city || "—"}\nОбъект: ${payload.unitId || "—"}\nЧат: ${payload.chatId}\nID: ${leadId}`
+          : `🔔 New lead!\nCity: ${payload.city || "—"}\nUnit: ${payload.unitId || "—"}\nChat: ${payload.chatId}\nID: ${leadId}`;
+
+      await sendMessage(token, String(m.telegram_id), msg);
+    }
+  } catch (e) {
+    console.error("notifyManagers error:", (e as any)?.message || e);
+  }
+}
+
+// =====================================================
+// SYSTEM PROMPT - SALES ONLY
+// =====================================================
+const systemPrompt = `You are AI2B - a friendly real estate sales assistant for Turkey.
+
+You help users find and buy apartments. You speak Russian and English, matching the user's language.
+
+IMPORTANT: You ONLY output a JSON object. No other text.
+
+JSON FORMAT:
+{
+  "reply": "text to send to user",
+  "state": {
+    "city": string | null,
+    "budget_min": number | null,
+    "budget_max": number | null,
+    "rooms": number | null,
+    "current_unit_id": string | null,
+    "shown_unit_ids": string[]
+  },
+  "actions": [
+    { "tool": "send_message", "args": { "text": "..." } },
+    { "tool": "show_property", "args": { "city": "...", "budget_max": 100000 } },
+    { "tool": "create_lead", "args": { "unit_id": "...", "name": "...", "phone": "..." } }
+  ]
+}
+
+TOOLS:
+- send_message: Send text to user
+- show_property: Show a property from database. Args: city, budget_min, budget_max, rooms, exclude_ids
+- create_lead: Create a customer inquiry when they want the property
+
+CONVERSATION FLOW:
+1. Greet warmly, ask what city they're interested in
+2. Ask about budget (in EUR)
+3. Once you have city and budget, call show_property
+4. If user likes it, ask for their name and phone
+5. When you have contact info, call create_lead
+6. If user wants another option, call show_property with exclude_ids containing shown_unit_ids
+
+STYLE:
+- Warm, professional, helpful
+- Short messages (1-3 sentences)
+- In user's language
+- No emoji unless user uses them
+
+STATE:
+- Read previous state from conversation
+- Update and return new state
+- Track shown_unit_ids to avoid repetition
+
+NEVER output anything except the JSON object.`;
+
+// =====================================================
+// GET HANDLER
+// =====================================================
+export async function GET() {
+  return NextResponse.json({ ok: true });
+}
+
+// =====================================================
+// POST HANDLER - Main webhook
+// =====================================================
 export async function POST(req: NextRequest) {
   try {
     const update = (await req.json().catch(() => ({}))) as any;
@@ -598,28 +398,20 @@ export async function POST(req: NextRequest) {
       null;
 
     const chatIdRaw =
-      message?.chat?.id ??
-      update?.chat?.id ??
-      update?.message?.from?.id ??
-      null;
+      message?.chat?.id ?? update?.chat?.id ?? update?.message?.from?.id ?? null;
 
     const chatId =
-      chatIdRaw !== null && chatIdRaw !== undefined
-        ? String(chatIdRaw)
-        : null;
+      chatIdRaw !== null && chatIdRaw !== undefined ? String(chatIdRaw) : null;
 
     const text: string =
       message?.text ??
       update?.message?.text ??
       update?.edited_message?.text ??
       update?.callback_query?.data ??
-      update?.text ??
       "";
 
     const langCode: string | null =
-      message?.from?.language_code ??
-      update?.message?.from?.language_code ??
-      null;
+      message?.from?.language_code ?? update?.message?.from?.language_code ?? null;
 
     const token = process.env.TELEGRAM_BOT_TOKEN;
     if (!token || !chatId) {
@@ -628,14 +420,16 @@ export async function POST(req: NextRequest) {
 
     const lang = detectLang(langCode);
     const trimmed = text.trim();
-    const botId = process.env.TELEGRAM_BOT_ID || "telegram-single";
+    const botId = process.env.TELEGRAM_BOT_ID || "telegram";
 
+    // Send typing indicator
     try {
       await sendTyping(token, chatId);
     } catch {
       // ignore
     }
 
+    // Find or create session
     let sessionId: string | null = null;
     try {
       const session = await findOrCreateSession(botId, chatId);
@@ -651,362 +445,37 @@ export async function POST(req: NextRequest) {
       console.error("session/appendMessage error:", (e as any)?.message || e);
     }
 
-    const photoCmd = trimmed.match(/^\/photo\s+([A-Za-z0-9-]+)$/i);
-
-    if (photoCmd) {
-      const unitId = photoCmd[1];
-
-      try {
-        const sb = getServerClient();
-        const { data: photos, error } = await sb
-          .from("unit_photos")
-          .select("url")
-          .eq("unit_id", unitId)
-          .order("sort_order", { ascending: true })
-          .limit(10);
-
-        if (error || !photos || photos.length === 0) {
-          const msg =
-            lang === "ru"
-              ? "Фото для этого объекта не найдены."
-              : "No photos found for this listing.";
-          await sendMessage(token, chatId, msg);
-        } else if (photos.length === 1) {
-          await sendPhoto(token, chatId, photos[0].url as string, undefined);
-        } else {
-          const media = (photos as { url: string }[]).map((p, idx) => ({
-            type: "photo" as const,
-            media: p.url,
-            caption:
-              idx === 0
-                ? lang === "ru"
-                  ? `Фото по объекту #${unitId}`
-                  : `Photos for listing #${unitId}`
-                : undefined,
-          }));
-          await sendMediaGroup(token, chatId, media);
-        }
-      } catch (e) {
-        const errMsg = (e as any)?.message || e;
-        console.error("photo album error:", errMsg);
-        const msg =
-          lang === "ru"
-            ? "Не удалось загрузить фотографии для этого объекта."
-            : "Failed to load photos for this listing.";
-        await sendMessage(token, chatId, msg);
-      }
-
-      return NextResponse.json({ ok: true, mode: "photo" });
+    // Check for phone/contact in message
+    const phoneMatch = trimmed.match(/(\+?[\d\s\-()]{7,})/);
+    if (phoneMatch) {
+      // User sent phone number - might be responding to contact request
+      // Continue to LLM to handle context
     }
 
-    // "Хочу предыдущий" — показать прошлый вариант ещё раз
-    const lower = trimmed.toLowerCase();
-    const wantsPrevious =
-      lower.includes("предыдущ") || lower.includes("previous");
-
-    if (wantsPrevious && sessionId) {
-      try {
-        const history = await listMessages(sessionId, 30);
-        if (history && history.length) {
-          const assistants = history
-            .filter((m: any) => m.role === "assistant" && m.payload)
-            .sort(
-              (a: any, b: any) =>
-                new Date(a.created_at).getTime() -
-                new Date(b.created_at).getTime(),
-            );
-
-          const lastTwo = assistants.slice(-2);
-          const previousPayload =
-            lastTwo.length === 2
-              ? (lastTwo[0] as any).payload
-              : lastTwo.length === 1
-                ? (lastTwo[0] as any).payload
-                : null;
-
-          if (previousPayload?.unit_id) {
-            const prevUnitId = String(previousPayload.unit_id);
-            const rentalType =
-              (previousPayload.rental_type ?? "short").toString().toLowerCase();
-            const tableName =
-              rentalType === "long" ? "rent_long_units" : "rent_daily_units";
-
-            const sb = getServerClient();
-            const { data: rows, error } = await sb
-              .from(tableName)
-              .select(
-                "id, city, address, rooms, price_day, price_week, price_month, min_term, allow_pets, description",
-              )
-              .eq("id", prevUnitId)
-              .limit(1);
-
-            if (!error && rows && rows[0]) {
-              const unit = rows[0] as any;
-              const header = buildRentDescription(
-                unit,
-                lang,
-                rentalType === "long" ? "long" : "short",
-              );
-              const caption =
-                lang === "ru"
-                  ? `${header} Это тот предыдущий вариант. Подходит или показать другой?`
-                  : `${header} This is the previous option. Does it work for you, or should I show another one?`;
-
-              await sendUnitPhotos(token, chatId, prevUnitId, caption);
-
-              try {
-                await appendMessage({
-                  session_id: sessionId,
-                  bot_id: botId,
-                  role: "assistant",
-                  content: caption,
-                  payload: {
-                    unit_id: prevUnitId,
-                    city: unit.city,
-                    rental_type: rentalType,
-                  },
-                });
-              } catch (e) {
-                console.error(
-                  "appendMessage previous apartment error:",
-                  (e as any)?.message || e,
-                );
-              }
-
-              return NextResponse.json({ ok: true, mode: "previous" });
-            }
-          }
-        }
-      } catch (e) {
-        console.error(
-          "previous apartment handler error:",
-          (e as any)?.message || e,
-        );
-      }
-
-      const msg =
-        lang === "ru"
-          ? "Предыдущий вариант не найден, но могу подобрать ещё квартиры по тем же параметрам."
-          : "I couldn't find the previous option, but I can show more apartments for the same request.";
-      await sendMessage(token, chatId, msg);
-      return NextResponse.json({ ok: true, mode: "previous-miss" });
-    }
-
-    const phoneMatch = trimmed.match(/(\+?\d[\d\s\-()]{6,}\d)/);
-    const emailMatch = trimmed.match(
-      /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i,
-    );
-
-    if (phoneMatch || emailMatch) {
-      const phone = phoneMatch ? phoneMatch[1].trim() : null;
-      const email = emailMatch ? emailMatch[0].trim() : null;
-      let leadId: string | null = null;
-      try {
-        const sb = getServerClient();
-
-        const { data: existing, error } = await sb
-          .from("leads")
-          .select("id, phone, email, data")
-          .eq("source", "telegram")
-          .contains("data", { chat_id: chatId })
-          .order("created_at", { ascending: false })
-          .limit(1);
-
-        if (!error && existing && existing.length) {
-          const target = existing[0] as any;
-          const update: any = {};
-          if (phone) update.phone = phone;
-          if (email) update.email = email;
-          const { error: updError } = await sb
-            .from("leads")
-            .update(update)
-            .eq("id", target.id);
-          if (updError) {
-            console.error("update lead phone error:", updError.message);
-          } else {
-            leadId = String(target.id);
-          }
-        } else {
-          const newLead = await createLead({
-            source_bot_id: botId,
-            source: "telegram",
-            name: null,
-            phone,
-            email,
-            data: { text, chat_id: chatId },
-            status: "new",
-          });
-          leadId = String(newLead.id);
-        }
-
-        if (leadId) {
-          await notifyManagersAboutLead(lang, token, leadId, {
-            city: null,
-            dates: null,
-            rentalType: null,
-            apartmentId: null,
-            chatId,
-          });
-        }
-
-        const confirm =
-          lang === "ru"
-            ? "Принял. Менеджер скоро свяжется с вами."
-            : "I've recorded your interest. A manager will contact you soon.";
-        await sendMessage(token, chatId, confirm);
-        return NextResponse.json({ ok: true, mode: "lead-with-contact" });
-      } catch (e) {
-        console.error(
-          "lead phone/email handling error:",
-          (e as any)?.message || e,
-        );
-      }
-    }
-
+    // Check OpenRouter API key
     if (!process.env.OPENROUTER_API_KEY) {
       const msg =
         lang === "ru"
-          ? "LLM ошибка конфигурации: переменная OPENROUTER_API_KEY не установлена на сервере."
-          : "LLM config error: environment variable OPENROUTER_API_KEY is not set on the server.";
+          ? "Ошибка конфигурации: OPENROUTER_API_KEY не установлен."
+          : "Config error: OPENROUTER_API_KEY not set.";
       await sendMessage(token, chatId, msg);
       return NextResponse.json({ ok: true, mode: "config-error" });
     }
 
-    // Legacy system prompt removed - using cleaner version below
-
-    const systemPrompt = `You are AI2B Telegram Real Estate Assistant.
-
-You are a friendly, human-like rental agent that talks with users in Telegram and uses server tools to:
-- send text messages,
-- show apartments with photo albums,
-- create leads in CRM.
-
-You NEVER talk to the user directly by yourself.
-Instead, you return a JSON object that describes:
-- what you want to say to the user,
-- which tools should be called,
-- and how the current dialog state should change.
-
-Your JSON format MUST ALWAYS be:
-
-{
-  "reply": "text you want to send to user (in user language)",
-  "state": {
-    "mode": "rent" | "buy" | "unknown",
-    "city": string | null,
-    "dates": { "from": string | null, "to": string | null } | null,
-    "rental_type": "daily" | "long" | null,
-    "guests": number | null,
-    "current_unit_id": string | null,
-    "shown_unit_ids": string[]
-  },
-  "actions": [
-    {
-      "tool": "send_message" | "show_apartment" | "create_lead",
-      "args": object
-    }
-  ]
-}
-
-- If you don’t need any tools in this turn, return "actions": [].
-- If some field is unknown, set it to null.
-- NEVER output anything except this single JSON object.
-- NO markdown, NO comments, NO explanations around JSON.
-
-LANGUAGE & STYLE
-
-- ALWAYS answer in the same language the user writes in (Russian, English, etc.).
-- Tone: warm, polite, calm, like a good real estate agent.
-- Messages must be short and natural: 1–3 short sentences.
-- No emoji by default.
-- No reply options or lists of suggested answers.
-
-TOOLS (SERVER SIDE)
-
-You can request these tools via the "actions" array:
-
-1) send_message
-   - Use to send plain text to the user.
-   - Args: { "text": string }
-
-2) show_apartment
-   - Use to show one apartment from the database with a photo album and a caption.
-   - The server will pick a unit from rent_daily_units or rent_long_units using your filters,
-     load photos from unit_photos, send an album with your caption,
-     and remember current_unit_id and add it to shown_unit_ids.
-   - Args (all optional except city):
-     {
-       "city": string | null,
-       "rental_type": "daily" | "long" | null,
-       "dates": { "from": string | null, "to": string | null } | null,
-       "guests": number | null,
-       "exclude_ids": string[] | null,
-       "caption": string | null
-     }
-
-3) create_lead
-   - Use when the user clearly confirms that the apartment suits them and shares phone/contacts.
-   - The server will create a lead, mark long‑term units as occupied if needed, and notify managers.
-   - Args:
-     {
-       "unit_id": string | null,
-       "name": string | null,
-       "phone": string | null,
-       "city": string | null,
-       "rental_type": "daily" | "long" | null,
-       "dates": { "from": string | null, "to": string | null } | null,
-       "guests": number | null
-     }
-
-DIALOG FLOW (RENT FIRST)
-
-- Greet politely, say you help with rentals and sales, and ask whether the user wants to rent or buy.
-- For rent:
-  - Ask city if unknown.
-  - Ask dates. If the user writes about a long stay without an end date, treat it as long‑term with only start date.
-  - Infer rental_type: short date range → "daily", long stay → "long". Only ask explicitly if still unclear.
-  - Guests are optional; ask only if really needed.
-  - As soon as mode="rent", city is known, and dates or rental_type are known, call show_apartment using state.
-- For “ещё вариант / другой / next one”:
-  - Call show_apartment again with the same filters and exclude_ids = shown_unit_ids.
-- For questions about the current apartment:
-  - Answer briefly with send_message, do not call show_apartment again.
-- When the user chooses an apartment (“подходит”, “беру” etc.):
-  - First ask for name and phone/WhatsApp if you don’t have them yet.
-  - After user sends contacts, call create_lead with current_unit_id and state.
-  - In reply, give a short confirmation that a manager will contact them.
-
-CAPTION QUALITY
-- When you call show_apartment, include a lively caption (2–3 short sentences) that:
-  - mentions type/rooms, area/city,
-  - price (per day for daily, per month for long-term),
-  - 1–2 concrete features (furnished, balcony, near sea, pets ok, etc.),
-  - ends with a soft question like “Подходит или показать другой?”.
-  - no templates, no “варианты ответов”.
-
-STATE HANDLING
-
-- You receive previous state from the server (as JSON in the prompt under the "STATE:" section).
-- Always read it, update it according to the new user message, and return updated state.
-- Maintain shown_unit_ids to avoid repeating the same apartment.
-
-Never output anything except the JSON object described above.`;
-
-    // Build message array with proper role separation and state embedding
+    // Build message array for LLM
     type LLMMessage = { role: "system" | "user" | "assistant"; content: string };
     const messages: LLMMessage[] = [{ role: "system", content: systemPrompt }];
 
+    // Load conversation history
     if (sessionId) {
       try {
-        const history = await listMessages(sessionId, 50); // Increased from 20 to 50
+        const history = await listMessages(sessionId, 30);
         if (history && history.length) {
           const ordered = [...history].sort(
             (a, b) =>
-              new Date(a.created_at).getTime() -
-              new Date(b.created_at).getTime(),
+              new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
           );
 
-          // Map history to proper message format with state embedding
           for (const msg of ordered) {
             const role =
               msg.role === "assistant"
@@ -1017,8 +486,11 @@ Never output anything except the JSON object described above.`;
 
             let content = msg.content ?? "";
 
-            // Embed state into assistant messages so LLM sees its previous decisions
-            if (role === "assistant" && msg.payload && Object.keys(msg.payload).length > 0) {
+            if (
+              role === "assistant" &&
+              msg.payload &&
+              Object.keys(msg.payload).length > 0
+            ) {
               content += `\n[STATE: ${JSON.stringify(msg.payload)}]`;
             }
 
@@ -1033,20 +505,21 @@ Never output anything except the JSON object described above.`;
     // Add current user message
     messages.push({ role: "user", content: trimmed });
 
+    // Call LLM
     let llmRaw: string;
     try {
-      llmRaw = await askLLM(messages); // Use new message array format
+      llmRaw = await askLLM(messages);
+      console.log("[LLM] Raw:", llmRaw.slice(0, 500));
     } catch (e) {
       const errMsg = (e as any)?.message || String(e);
       console.error("askLLM error:", errMsg);
       const msg =
-        lang === "ru"
-          ? "Ошибка LLM: " + errMsg
-          : "LLM error: " + errMsg;
+        lang === "ru" ? "Ошибка LLM: " + errMsg : "LLM error: " + errMsg;
       await sendMessage(token, chatId, msg);
       return NextResponse.json({ ok: true, mode: "llm-error" });
     }
 
+    // Parse LLM response
     let parsed: LlmPayload | null = null;
     try {
       let jsonText = llmRaw.trim();
@@ -1056,15 +529,15 @@ Never output anything except the JSON object described above.`;
         jsonText = jsonText.slice(firstBrace, lastBrace + 1);
       }
       parsed = JSON.parse(jsonText);
-      console.log("[LLM] Raw response:", llmRaw.slice(0, 500));
       console.log("[LLM] Parsed:", JSON.stringify(parsed, null, 2));
     } catch (e) {
-      console.error("LLM JSON parse error:", e);
-      console.error("[LLM] Raw that failed to parse:", llmRaw);
+      console.error("LLM JSON parse error:", e, "Raw:", llmRaw);
+      // Send raw response if JSON parse fails
       await sendMessage(token, chatId, llmRaw);
       return NextResponse.json({ ok: true, mode: "llm-text" });
     }
 
+    // Execute actions
     let sentReply = false;
     let finalReply: string | null = null;
     const actions: ToolAction[] = Array.isArray(parsed?.actions)
@@ -1079,30 +552,28 @@ Never output anything except the JSON object described above.`;
           typeof action.args?.text === "string"
             ? action.args.text
             : parsed?.reply ?? "";
-        if (typeof textToSend === "string") {
-          const t = textToSend.trim();
-          if (t) {
-            await sendMessage(token, chatId, t);
-            sentReply = true;
-            finalReply = t;
-          }
+        if (textToSend.trim()) {
+          await sendMessage(token, chatId, textToSend.trim());
+          sentReply = true;
+          finalReply = textToSend.trim();
         }
-      } else if (action.tool === "show_apartment") {
-        await handleShowApartment(
-          action.args,
+      } else if (action.tool === "show_property") {
+        await handleShowProperty(
+          action.args as any,
           lang,
           chatId,
           token,
           sessionId,
-          botId,
+          botId
         );
         sentReply = true;
       } else if (action.tool === "create_lead") {
-        await handleCreateLeadWithContracts(action.args, lang, chatId, token);
+        await handleCreateLead(action.args as any, lang, chatId, token);
         sentReply = true;
       }
     }
 
+    // If no actions sent a reply, use the reply field
     if (!sentReply) {
       const candidate =
         typeof parsed?.reply === "string" ? parsed.reply.trim() : "";
@@ -1111,34 +582,24 @@ Never output anything except the JSON object described above.`;
       } else {
         finalReply =
           lang === "ru"
-            ? "Принял. Напиши, пожалуйста, город и примерные даты, когда планируешь заехать."
-            : "Got it. Please tell me the city and approximate dates when you plan to move in.";
+            ? "Здравствуйте! Я помогу вам найти недвижимость в Турции. В каком городе вы ищете?"
+            : "Hello! I'll help you find property in Turkey. Which city are you looking in?";
       }
       await sendMessage(token, chatId, finalReply);
-      sentReply = true;
     }
 
-    if (sessionId && (finalReply || parsed?.reply)) {
+    // Save assistant response to session
+    if (sessionId && finalReply) {
       try {
-        const contentToStore =
-          finalReply ?? (parsed && typeof parsed.reply === "string"
-            ? parsed.reply
-            : "");
-        if (!contentToStore) {
-          return NextResponse.json({ ok: true });
-        }
         await appendMessage({
           session_id: sessionId,
           bot_id: botId,
           role: "assistant",
-          content: contentToStore,
+          content: finalReply,
           payload: parsed?.state ?? {},
         });
       } catch (e) {
-        console.error(
-          "appendMessage assistant error:",
-          (e as any)?.message || e,
-        );
+        console.error("appendMessage assistant error:", (e as any)?.message);
       }
     }
 
