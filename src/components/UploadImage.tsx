@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
-type UploadEntity = "units" | "developer_projects" | "rent_units";
+type UploadEntity = "units" | "developer_projects" | "rent_units" | "company";
 
 type UploadImageProps = {
   ownerUid: string;
