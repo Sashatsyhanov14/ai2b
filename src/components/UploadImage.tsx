@@ -33,8 +33,10 @@ export default function UploadImage({
     try {
       for (const file of files) {
         const ts = Date.now();
-        const safeName = file.name.replaceAll(" ", "_");
-        const key = `${ownerUid}/${entity}/${entityId}/${ts}-${safeName}`;
+        const ext = file.name.split('.').pop() || 'bin';
+        const randomStr = Math.random().toString(36).substring(2, 10);
+        const safeName = `${ts}-${randomStr}.${ext}`;
+        const key = `${ownerUid}/${entity}/${entityId}/${safeName}`;
         const { error } = await supabase.storage
           .from("property-images")
           .upload(key, file, { upsert: true });
