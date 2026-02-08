@@ -19,11 +19,10 @@ function SidebarLink({
 }) {
   const pathname = usePathname();
   const active = href ? pathname?.startsWith(href) : false;
-  const cls = `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
-    active
+  const cls = `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${active
       ? "bg-zinc-800 text-white light:bg-zinc-200 light:text-zinc-900"
       : "text-zinc-400 hover:text-white hover:bg-zinc-900 light:text-zinc-600 light:hover:text-zinc-900 light:hover:bg-zinc-100"
-  }`;
+    }`;
   return href ? (
     <Link href={href} className={cls}>
       <Icon className="h-4 w-4" />
@@ -48,7 +47,6 @@ export default function Sidebar() {
       </div>
       <div className="flex-1 flex flex-col justify-between border-t border-zinc-800 light:border-zinc-200">
         <nav className="px-2 pt-2 pb-4 space-y-1">
-          <SidebarLink href="/app/rent" label={t("nav.rent")} icon={Home} />
           <SidebarLink href="/app/sales" label={t("nav.sales")} icon={DollarSign} />
           <SidebarLink
             href="/app/developer-projects"
@@ -56,6 +54,7 @@ export default function Sidebar() {
             icon={Building2}
           />
           <SidebarLink href="/app/leads" label={t("nav.leads")} icon={Users} />
+          <SidebarLink href="/app/company" label="О компании" icon={Home} />
           <SidebarLink href="/app/bots" label={t("nav.bots")} icon={Bot} />
         </nav>
 
