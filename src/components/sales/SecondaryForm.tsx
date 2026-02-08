@@ -118,7 +118,7 @@ export default function SecondaryForm() {
       price_total: form.price_total === '' ? undefined : Number(form.price_total),
       description: form.description?.trim() || undefined,
       status: form.status,
-      is_rent: false,
+      // is_rent removed
       type: 'apartment',
     };
 
@@ -378,11 +378,10 @@ export default function SecondaryForm() {
                   <button
                     type="button"
                     onClick={() => markMain(p.id)}
-                    className={`rounded px-2 py-0.5 text-xs ${
-                      p.is_main
+                    className={`rounded px-2 py-0.5 text-xs ${p.is_main
                         ? 'bg-emerald-600 text-white'
                         : 'bg-black/50 text-white/80 hover:bg-black/70'
-                    }`}
+                      }`}
                   >
                     Главное
                   </button>

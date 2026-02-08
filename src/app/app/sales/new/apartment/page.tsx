@@ -34,7 +34,7 @@ export default function NewApartmentPage() {
 
     try {
       const payload = {
-        is_rent: false,
+        // is_rent removed
         type: "apartment",
         city: form.city || null,
         address: form.address || null,
@@ -44,7 +44,7 @@ export default function NewApartmentPage() {
         area_m2: form.area_m2 ? Number(form.area_m2) : null,
         price_total: form.price_total ? Number(form.price_total) : null,
         description: form.description || null,
-         photos: photos.length ? photos : undefined,
+        photos: photos.length ? photos : undefined,
         meta: photos.length ? { photos } : {},
       };
 

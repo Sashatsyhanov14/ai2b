@@ -13,7 +13,7 @@ export type Unit = {
   price?: number | null
   status?: UnitStatus | null
   project_id?: string | null
-  is_rent?: boolean | null
+  // is_rent removed
   description?: string | null
   created_at?: string
   updated_at?: string | null

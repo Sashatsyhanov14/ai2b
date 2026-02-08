@@ -16,8 +16,7 @@ export async function GET(req: Request) {
       .order("created_at", { ascending: false });
 
     if (id) query = query.eq("id", id);
-    if (type === "sale") query = query.eq("is_rent", false);
-    if (type === "rent") query = query.eq("is_rent", true);
+    // is_rent removed from schema. Filter by type if needed, but for now units table is all sales.
 
     const { data, error } = await query;
 
@@ -46,8 +45,11 @@ export async function POST(req: Request) {
       area_m2: body.area_m2 ?? body.area ?? null,
       price: body.price_total ?? body.price ?? null,
       description: body.description ?? null,
-      is_rent: body.is_rent ?? false,
-      meta: body.meta ?? {},
+      // is_rent removed
+      // meta: body.meta ?? {}, // meta removed from schema? No, checked schema, it doesn't have meta.
+      // Schema has: title, description, features[], project_id, is_active.
+      // Payload should match schema.
+      features: body.features ?? [],
     };
 
     const { data, error } = await supabase
@@ -65,8 +67,8 @@ export async function POST(req: Request) {
     const rawPhotos = Array.isArray(body.photos)
       ? body.photos
       : Array.isArray(body.meta?.photos)
-      ? body.meta.photos
-      : [];
+        ? body.meta.photos
+        : [];
 
     if (unit?.id && Array.isArray(rawPhotos) && rawPhotos.length) {
       const rows = (rawPhotos as unknown[])
