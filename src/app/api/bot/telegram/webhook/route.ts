@@ -29,25 +29,29 @@ type ToolAction =
   }
   | {
     tool: "show_property";
-    args: {
-      city?: string | null;
-      budget_min?: number | null;
-      budget_max?: number | null;
-      rooms?: number | null;
-      exclude_ids?: string[] | null;
-    };
+    args: ShowPropertyArgs;
   }
   | {
     tool: "create_lead";
-    args: {
-      unit_id?: string | null;
-      name?: string | null;
-      phone?: string | null;
-      city?: string | null;
-      budget_min?: number | null;
-      budget_max?: number | null;
-    };
+    args: CreateLeadArgs;
   };
+
+type ShowPropertyArgs = {
+  city?: string | null;
+  budget_min?: number | null;
+  budget_max?: number | null;
+  rooms?: number | null;
+  exclude_ids?: string[] | null;
+};
+
+type CreateLeadArgs = {
+  unit_id?: string | null;
+  name?: string | null;
+  phone?: string | null;
+  city?: string | null;
+  budget_min?: number | null;
+  budget_max?: number | null;
+};
 
 type LlmPayload = {
   reply?: string;
@@ -146,7 +150,7 @@ async function sendPropertyPhotos(
 // HANDLE SHOW PROPERTY
 // =====================================================
 async function handleShowProperty(
-  args: ToolAction extends { tool: "show_property"; args: infer A } ? A : never,
+  args: ShowPropertyArgs | undefined,
   lang: Lang,
   chatId: string,
   token: string,
@@ -247,7 +251,7 @@ async function handleShowProperty(
 // HANDLE CREATE LEAD
 // =====================================================
 async function handleCreateLead(
-  args: ToolAction extends { tool: "create_lead"; args: infer A } ? A : never,
+  args: CreateLeadArgs | undefined,
   lang: Lang,
   chatId: string,
   token: string
