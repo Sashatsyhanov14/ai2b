@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import {
     Plus, Trash2, FileText, Image as ImageIcon, Video, File,
     Pencil, Users, BarChart3, Settings as SettingsIcon, Database,
-    LayoutDashboard
+    LayoutDashboard, Building2
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/Button";
@@ -43,14 +43,14 @@ type TelegramManager = {
     created_at: string;
 };
 
-type Tab = "dashboard" | "knowledge" | "managers";
+type Tab = "dashboard" | "knowledge" | "company" | "managers";
 
 const CATEGORIES = [
     { value: "about", label: "О компании" },
+    { value: "general", label: "Знания" },
     { value: "license", label: "Лицензии" },
     { value: "certificate", label: "Сертификаты" },
     { value: "presentation", label: "Презентации" },
-    { value: "general", label: "Прочее" },
 ];
 
 function getFileIcon(type: string | null) {
@@ -154,7 +154,7 @@ export default function UnifiedBotPage() {
                     name: file.name,
                     url: publicUrl,
                     file_type: type,
-                    category: 'general',
+                    category: form.category || 'general',
                     is_active: true,
                     sort_order: 0
                 }).select().single();
@@ -272,13 +272,20 @@ export default function UnifiedBotPage() {
             </header>
 
             {/* Tabs */}
-            <div className="mb-8 flex gap-1 rounded-xl bg-neutral-900/50 p-1 w-fit border border-neutral-800">
+            <div className="mb-8 flex flex-wrap gap-1 rounded-xl bg-neutral-900/50 p-1 w-fit border border-neutral-800">
                 <button
                     onClick={() => setActiveTab("dashboard")}
                     className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${activeTab === "dashboard" ? "bg-zinc-800 text-white shadow-sm" : "text-neutral-400 hover:text-neutral-200"
                         }`}
                 >
-                    <LayoutDashboard className="h-4 w-4" /> Статистика и лиды
+                    <LayoutDashboard className="h-4 w-4" /> Главная
+                </button>
+                <button
+                    onClick={() => setActiveTab("company")}
+                    className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${activeTab === "company" ? "bg-zinc-800 text-white shadow-sm" : "text-neutral-400 hover:text-neutral-200"
+                        }`}
+                >
+                    <Building2 className="h-4 w-4" /> О компании
                 </button>
                 <button
                     onClick={() => setActiveTab("knowledge")}
@@ -353,8 +360,8 @@ export default function UnifiedBotPage() {
                 </div>
             )}
 
-            {/* Tab: Knowledge Base */}
-            {activeTab === "knowledge" && (
+            {/* Tab: Company or Knowledge Base */}
+            {(activeTab === "company" || activeTab === "knowledge") && (
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
                     <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <label className={`
@@ -366,12 +373,19 @@ export default function UnifiedBotPage() {
                             </div>
                             <span className="font-medium text-neutral-200">Загрузить файлы</span>
                             <span className="text-xs text-neutral-500 mt-1">PDF, DOCX, TXT, Images</span>
-                            <input type="file" multiple className="hidden" onChange={handleQuickUpload} disabled={saving} />
+                            <input type="file" multiple className="hidden"
+                                onChange={(e) => {
+                                    // Set category based on active tab
+                                    setForm(prev => ({ ...prev, category: activeTab === 'company' ? 'about' : 'general' }));
+                                    handleQuickUpload(e);
+                                }}
+                                disabled={saving}
+                            />
                         </label>
 
                         <button
                             onClick={() => {
-                                setForm({ name: "", description: "", file_type: "text", url: "text-note", category: "general" });
+                                setForm({ name: "", description: "", file_type: "text", url: "text-note", category: activeTab === 'company' ? 'about' : 'general' });
                                 setEditingContent({ id: "new", name: "Новая заметка", content: "" });
                             }}
                             disabled={saving}
@@ -380,58 +394,62 @@ export default function UnifiedBotPage() {
                             <div className="h-12 w-12 rounded-full bg-neutral-800 group-hover:bg-neutral-700 flex items-center justify-center mb-3 transition-colors">
                                 <FileText className="h-6 w-6 text-neutral-400" />
                             </div>
-                            <span className="font-medium text-neutral-200">Написать заметку</span>
-                            <span className="text-xs text-neutral-500 mt-1">Инструкции, ответы на вопросы</span>
+                            <span className="font-medium text-neutral-200">Написать замеку</span>
+                            <span className="text-xs text-neutral-500 mt-1">
+                                {activeTab === 'company' ? 'История компании, описание услуг...' : 'Инструкции, ответы на вопросы...'}
+                            </span>
                         </button>
                     </section>
 
                     <div className="space-y-6">
-                        {groupedFiles.map((group) => (
-                            <div key={group.value}>
-                                {group.files.length > 0 && <h3 className="text-sm font-semibold text-neutral-400 uppercase tracking-widest mb-4">{group.label}</h3>}
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {group.files.map((file) => {
-                                        const Icon = getFileIcon(file.file_type);
-                                        return (
-                                            <div key={file.id} className="group relative rounded-xl border border-neutral-800 bg-neutral-900/50 p-4 hover:bg-neutral-900 transition-all">
-                                                <div className="flex gap-3 mb-3">
-                                                    <div className="shrink-0">
-                                                        {file.file_type === "image" ? (
-                                                            <img src={file.url} alt="" className="w-12 h-12 rounded object-cover" />
-                                                        ) : (
-                                                            <div className="w-12 h-12 rounded bg-neutral-800 flex items-center justify-center text-neutral-500">
-                                                                <Icon className="h-6 w-6" />
+                        {groupedFiles
+                            .filter(g => activeTab === 'company' ? g.value === 'about' : g.value !== 'about')
+                            .map((group) => (
+                                <div key={group.value}>
+                                    {group.files.length > 0 && <h3 className="text-sm font-semibold text-neutral-400 uppercase tracking-widest mb-4">{group.label}</h3>}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {group.files.map((file) => {
+                                            const Icon = getFileIcon(file.file_type);
+                                            return (
+                                                <div key={file.id} className="group relative rounded-xl border border-neutral-800 bg-neutral-900/50 p-4 hover:bg-neutral-900 transition-all">
+                                                    <div className="flex gap-3 mb-3">
+                                                        <div className="shrink-0">
+                                                            {file.file_type === "image" ? (
+                                                                <img src={file.url} alt="" className="w-12 h-12 rounded object-cover" />
+                                                            ) : (
+                                                                <div className="w-12 h-12 rounded bg-neutral-800 flex items-center justify-center text-neutral-500">
+                                                                    <Icon className="h-6 w-6" />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className="min-w-0 pr-12">
+                                                            <div className="font-medium text-neutral-200 truncate text-sm">{file.name}</div>
+                                                            <div className="text-[10px] text-neutral-500 mt-1 uppercase tracking-tighter">
+                                                                {file.file_type === 'text' ? 'Заметка' : 'Файл'}
                                                             </div>
-                                                        )}
-                                                    </div>
-                                                    <div className="min-w-0 pr-12">
-                                                        <div className="font-medium text-neutral-200 truncate text-sm">{file.name}</div>
-                                                        <div className="text-[10px] text-neutral-500 mt-1 uppercase tracking-tighter">
-                                                            {file.file_type === 'text' ? 'Заметка' : 'Файл'}
+                                                        </div>
+                                                        <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <button
+                                                                onClick={() => setEditingContent({ id: file.id, name: file.name, content: file.content_text || "" })}
+                                                                className="p-1.5 rounded hover:bg-neutral-800 text-neutral-400 hover:text-blue-400"
+                                                            ><Pencil className="h-3.5 w-3.5" /></button>
+                                                            <button
+                                                                onClick={() => handleDeleteFile(file.id)}
+                                                                className="p-1.5 rounded hover:bg-red-900/30 text-neutral-500 hover:text-red-400"
+                                                            ><Trash2 className="h-3.5 w-3.5" /></button>
                                                         </div>
                                                     </div>
-                                                    <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button
-                                                            onClick={() => setEditingContent({ id: file.id, name: file.name, content: file.content_text || "" })}
-                                                            className="p-1.5 rounded hover:bg-neutral-800 text-neutral-400 hover:text-blue-400"
-                                                        ><Pencil className="h-3.5 w-3.5" /></button>
-                                                        <button
-                                                            onClick={() => handleDeleteFile(file.id)}
-                                                            className="p-1.5 rounded hover:bg-red-900/30 text-neutral-500 hover:text-red-400"
-                                                        ><Trash2 className="h-3.5 w-3.5" /></button>
-                                                    </div>
+                                                    {file.content_text && (
+                                                        <div className="mt-2 p-2 bg-neutral-950/50 rounded text-[10px] text-neutral-500 font-mono line-clamp-2 border border-neutral-800/30 leading-relaxed">
+                                                            {file.content_text}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                {file.content_text && (
-                                                    <div className="mt-2 p-2 bg-neutral-950/50 rounded text-[10px] text-neutral-500 font-mono line-clamp-2 border border-neutral-800/30 leading-relaxed">
-                                                        {file.content_text}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
+                                            );
+                                        })}
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))}
                     </div>
                 </div>
             )}
