@@ -25,6 +25,7 @@ function mapIncomingToDb(payload: any): Partial<Unit> {
   if (payload.project_id != null) out.project_id = payload.project_id ? String(payload.project_id) : null
   if (payload.title != null) out.title = String(payload.title)
   if (payload.description != null) out.description = String(payload.description)
+  if (payload.ai_instructions != null) (out as any).ai_instructions = String(payload.ai_instructions)
   // is_rent removed
   if (payload.features != null) out.features = payload.features
   return out

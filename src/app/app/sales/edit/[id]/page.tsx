@@ -45,6 +45,7 @@ export default function EditApartmentPage({ params }: { params: { id: string } }
         price: "",
         currency: "EUR",
         description: "",
+        ai_instructions: "",
     });
 
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -82,6 +83,7 @@ export default function EditApartmentPage({ params }: { params: { id: string } }
                     price: u.price != null ? String(u.price) : "",
                     currency,
                     description: u.description || "",
+                    ai_instructions: u.ai_instructions || "",
                 });
                 setSelectedTags(tags);
 
@@ -132,6 +134,7 @@ export default function EditApartmentPage({ params }: { params: { id: string } }
                 area_m2: form.area_m2 ? Number(form.area_m2) : null,
                 price: form.price ? Number(form.price) : null,
                 description: form.description.trim() || null,
+                ai_instructions: form.ai_instructions.trim() || null,
                 features: allFeatures,
                 photos: photos, // Send full array to replace
             };
@@ -377,7 +380,7 @@ export default function EditApartmentPage({ params }: { params: { id: string } }
                     </section>
 
                     {/* 4. OPTIONAL DESCRIPTION */}
-                    <section>
+                    <section className="space-y-4">
                         <details className="group" open={!!form.description}>
                             <summary className="list-none cursor-pointer flex items-center gap-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider ml-1 hover:text-neutral-300 transition-colors">
                                 <span className="group-open:rotate-90 transition-transform text-neutral-600">▸</span>
@@ -390,6 +393,22 @@ export default function EditApartmentPage({ params }: { params: { id: string } }
                                     value={form.description}
                                     onChange={(e) => update("description", e.target.value)}
                                 />
+                            </div>
+                        </details>
+
+                        <details className="group" open={!!form.ai_instructions}>
+                            <summary className="list-none cursor-pointer flex items-center gap-2 text-xs font-semibold text-rose-500/80 uppercase tracking-wider ml-1 hover:text-rose-400 transition-colors">
+                                <span className="group-open:rotate-90 transition-transform text-rose-600">▸</span>
+                                Секретные данные для ИИ
+                            </summary>
+                            <div className="mt-3">
+                                <textarea
+                                    className="w-full h-24 rounded-xl border border-rose-900/20 bg-rose-900/5 p-4 text-neutral-200 outline-none focus:border-rose-800/40 transition-all text-sm resize-none placeholder:text-neutral-700"
+                                    placeholder="То, что должен знать только ИИ (например: реальный торг, нюансы по документам...)"
+                                    value={form.ai_instructions}
+                                    onChange={(e) => update("ai_instructions", e.target.value)}
+                                />
+                                <p className="mt-2 text-[10px] text-neutral-500 ml-1 italic">Эти данные не видит клиент, они используются только ботом для ответов.</p>
                             </div>
                         </details>
                     </section>

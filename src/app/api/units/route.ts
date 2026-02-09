@@ -50,6 +50,7 @@ export async function POST(req: Request) {
       // Schema has: title, description, features[], project_id, is_active.
       // Payload should match schema.
       features: body.features ?? [],
+      ai_instructions: body.ai_instructions ?? null,
     };
 
     const { data, error } = await supabase
