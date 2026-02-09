@@ -43,7 +43,7 @@ type TelegramManager = {
     created_at: string;
 };
 
-type Tab = "dashboard" | "knowledge" | "company" | "managers";
+type Tab = "dashboard" | "knowledge" | "managers";
 
 const CATEGORIES = [
     { value: "about", label: "О компании" },
@@ -281,13 +281,6 @@ export default function UnifiedBotPage() {
                     <LayoutDashboard className="h-4 w-4" /> Главная
                 </button>
                 <button
-                    onClick={() => setActiveTab("company")}
-                    className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${activeTab === "company" ? "bg-zinc-800 text-white shadow-sm" : "text-neutral-400 hover:text-neutral-200"
-                        }`}
-                >
-                    <Building2 className="h-4 w-4" /> О компании
-                </button>
-                <button
                     onClick={() => setActiveTab("knowledge")}
                     className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${activeTab === "knowledge" ? "bg-zinc-800 text-white shadow-sm" : "text-neutral-400 hover:text-neutral-200"
                         }`}
@@ -360,8 +353,8 @@ export default function UnifiedBotPage() {
                 </div>
             )}
 
-            {/* Tab: Company or Knowledge Base */}
-            {(activeTab === "company" || activeTab === "knowledge") && (
+            {/* Tab: Knowledge Base */}
+            {activeTab === "knowledge" && (
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
                     <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <label className={`
@@ -375,8 +368,7 @@ export default function UnifiedBotPage() {
                             <span className="text-xs text-neutral-500 mt-1">PDF, DOCX, TXT, Images</span>
                             <input type="file" multiple className="hidden"
                                 onChange={(e) => {
-                                    // Set category based on active tab
-                                    setForm(prev => ({ ...prev, category: activeTab === 'company' ? 'about' : 'general' }));
+                                    setForm(prev => ({ ...prev, category: 'general' }));
                                     handleQuickUpload(e);
                                 }}
                                 disabled={saving}
@@ -385,7 +377,7 @@ export default function UnifiedBotPage() {
 
                         <button
                             onClick={() => {
-                                setForm({ name: "", description: "", file_type: "text", url: "text-note", category: activeTab === 'company' ? 'about' : 'general' });
+                                setForm({ name: "", description: "", file_type: "text", url: "text-note", category: "about" });
                                 setEditingContent({ id: "new", name: "Новая заметка", content: "" });
                             }}
                             disabled={saving}
@@ -394,24 +386,19 @@ export default function UnifiedBotPage() {
                             <div className="h-12 w-12 rounded-full bg-neutral-800 group-hover:bg-neutral-700 flex items-center justify-center mb-3 transition-colors">
                                 <FileText className="h-6 w-6 text-neutral-400" />
                             </div>
-                            <span className="font-medium text-neutral-200">Написать замеку</span>
-                            <span className="text-xs text-neutral-500 mt-1">
-                                {activeTab === 'company' ? 'История компании, описание услуг...' : 'Инструкции, ответы на вопросы...'}
-                            </span>
+                            <span className="font-medium text-neutral-200">Добавить информацию</span>
+                            <span className="text-xs text-neutral-500 mt-1">История компании, правила, инструкции</span>
                         </button>
                     </section>
 
                     <div className="space-y-6">
                         {groupedFiles
-                            .filter(g => activeTab === 'company' ? g.value === 'about' : g.value !== 'about')
                             .map((group) => (
                                 <div key={group.value}>
                                     {group.files.length > 0 && <h3 className="text-sm font-semibold text-neutral-400 uppercase tracking-widest mb-4">{group.label}</h3>}
                                     <div className="grid grid-cols-1 gap-6">
                                         {group.files.map((file) => {
                                             const Icon = getFileIcon(file.file_type);
-                                            const isBeingCustomEdited = editingContent?.id === file.id;
-
                                             return (
                                                 <div key={file.id} className="group relative rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6 transition-all border-l-4 border-l-blue-500/30">
                                                     <div className="flex items-start justify-between mb-4">
@@ -431,6 +418,12 @@ export default function UnifiedBotPage() {
                                                                     <span className="px-2 py-0.5 rounded bg-neutral-800">{file.file_type === 'text' ? 'Инструкция' : 'Файл'}</span>
                                                                     <span>•</span>
                                                                     <span>{new Date(file.created_at).toLocaleDateString()}</span>
+                                                                    {file.category === 'about' && (
+                                                                        <>
+                                                                            <span>•</span>
+                                                                            <span className="text-blue-400 font-bold">О компании</span>
+                                                                        </>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -470,6 +463,7 @@ export default function UnifiedBotPage() {
                     </div>
                 </div>
             )}
+
 
             {/* Tab: Managers */}
             {activeTab === "managers" && (
