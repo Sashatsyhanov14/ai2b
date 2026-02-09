@@ -182,9 +182,8 @@ export default function SalesApartmentsPage() {
                     </td>
                     <td className="px-3 py-3 align-top text-sm">
                       {u.floor != null
-                        ? `${u.floor}${
-                            u.floors_total ? ` / ${u.floors_total}` : ""
-                          }`
+                        ? `${u.floor}${u.floors_total ? ` / ${u.floors_total}` : ""
+                        }`
                         : "—"}
                     </td>
                     <td className="px-3 py-3 align-top text-sm">
@@ -202,11 +201,7 @@ export default function SalesApartmentsPage() {
                           type="button"
                           aria-label="Редактировать объект"
                           className="inline-flex items-center justify-center rounded-full border border-neutral-700 bg-neutral-900/70 p-1.5 text-neutral-300 hover:bg-neutral-800 hover:text-emerald-300"
-                          onClick={() =>
-                            alert(
-                              "Редактирование объекта будет добавлено позже.",
-                            )
-                          }
+                          onClick={() => router.push(`/app/sales/edit/${u.id}`)}
                         >
                           <Pencil className="h-4 w-4" />
                         </button>

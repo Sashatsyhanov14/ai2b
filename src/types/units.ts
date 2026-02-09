@@ -3,6 +3,7 @@ export type UnitStatus = 'available' | 'reserved' | 'sold' | string
 // Canonical Unit type matching public.units as closely as possible.
 export type Unit = {
   id: string
+  title?: string | null
   type?: string | null
   city: string
   address: string
@@ -17,6 +18,7 @@ export type Unit = {
   description?: string | null
   created_at?: string
   updated_at?: string | null
+  features?: string[] | null
 
   // Computed fields
   photos_count?: number
@@ -36,9 +38,10 @@ export type UnitCreatePayload = {
   price?: number
   status?: UnitStatus
   project_id?: string | null
-  // is_rent removed
   description?: string
   type?: string
+  features?: string[]
+  photos?: string[]
 }
 
 // Partial updates; same mapping rules as create

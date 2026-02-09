@@ -23,9 +23,10 @@ function mapIncomingToDb(payload: any): Partial<Unit> {
   if (payload.price != null) out.price = Number(payload.price)
   if (payload.status != null) out.status = String(payload.status)
   if (payload.project_id != null) out.project_id = payload.project_id ? String(payload.project_id) : null
-  // is_rent removed
+  if (payload.title != null) out.title = String(payload.title)
   if (payload.description != null) out.description = String(payload.description)
-  if (payload.type != null) out.type = String(payload.type)
+  // is_rent removed
+  if (payload.features != null) out.features = payload.features
   return out
 }
 
@@ -70,8 +71,28 @@ export async function PATCH(req: Request, { params }: Params) {
   }
   const sb = getServerClient()
   const patch = mapIncomingToDb(payload)
+
   const { data, error } = await sb.from('units').update(patch).eq('id', params.unitId).select('*').single()
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 400 })
+
+  // Handle photos update if present
+  if (payload.photos && Array.isArray(payload.photos)) {
+    // Delete existing photos
+    await sb.from('unit_photos').delete().eq('unit_id', params.unitId)
+
+    // Insert new photos
+    const rows = payload.photos.map((url, i) => ({
+      unit_id: params.unitId,
+      url,
+      is_main: i === 0,
+      sort_order: i
+    }))
+
+    if (rows.length > 0) {
+      await sb.from('unit_photos').insert(rows)
+    }
+  }
+
   return NextResponse.json({ ok: true, data })
 }
 

@@ -468,7 +468,28 @@ export async function POST(req: NextRequest) {
 
     // Build message array for LLM
     type LLMMessage = { role: "system" | "user" | "assistant"; content: string };
-    const messages: LLMMessage[] = [{ role: "system", content: systemPrompt }];
+
+    // Load Company Knowledge
+    let companyContext = "";
+    try {
+      const sb = getServerClient();
+      // Check if content_text column exists by trying to select it. If fails, fallback to description.
+      // Or just try select with error handling? 
+      // Safest: select all, check fields in code? NO, select specific fields.
+      // Assuming migration applied or will be applied.
+      const { data: files } = await sb.from("company_files").select("name, description, content_text").eq("is_active", true);
+      if (files && files.length > 0) {
+        companyContext = "\n\nCOMPANY KNOWLEDGE BASE:\n" + files.map((f: any) => {
+          const content = f.content_text || f.description || "";
+          if (!content) return "";
+          return `[${f.name}]: ${content.slice(0, 1000)}`; // limit context size per file
+        }).filter(Boolean).join("\n\n");
+      }
+    } catch (e) {
+      console.error("Failed to load company context:", e);
+    }
+
+    const messages: LLMMessage[] = [{ role: "system", content: systemPrompt + companyContext }];
 
     // Load conversation history
     if (sessionId) {
