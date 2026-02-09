@@ -571,7 +571,7 @@ export default function UnifiedBotPage() {
                                             name: form.name,
                                             file_type: "text",
                                             url: "manual-entry",
-                                            category: "general",
+                                            category: form.category || "general",
                                             content_text: editingContent?.content,
                                             is_active: true
                                         });
