@@ -34,6 +34,19 @@ function getFileIcon(type: string | null) {
 }
 
 export default function CompanyPage() {
+    const [files, setFiles] = useState<CompanyFile[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [showForm, setShowForm] = useState(false);
+    const [saving, setSaving] = useState(false);
+
+    const [form, setForm] = useState({
+        name: "",
+        description: "",
+        file_type: "document",
+        url: "",
+        category: "about",
+    });
+
     const [editingContent, setEditingContent] = useState<{ id: string; name: string; content: string } | null>(null);
 
     async function loadFiles() {
@@ -78,9 +91,56 @@ export default function CompanyPage() {
         }
     }
 
-    // ... handleSave unchanged ...
+    async function handleSave() {
+        if (!form.name || !form.url) {
+            alert("Укажите название и файл/ссылку");
+            return;
+        }
 
-    // ... handleDelete unchanged ...
+        setSaving(true);
+        try {
+            const { data: inserted, error } = await supabase.from("company_files").insert({
+                name: form.name,
+                description: form.description || null,
+                file_type: form.file_type,
+                url: form.url,
+                category: form.category,
+                sort_order: files.length,
+                is_active: true,
+            }).select().single();
+
+            if (error) throw error;
+
+            // Trigger AI processing
+            if (inserted) {
+                fetch('/api/company/process', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: inserted.id })
+                }).catch(console.error); // don't block UI
+            }
+
+            setForm({ name: "", description: "", file_type: "document", url: "", category: "about" });
+            setShowForm(false);
+            loadFiles();
+        } catch (e: any) {
+            alert("Ошибка сохранения: " + e.message);
+        } finally {
+            setSaving(false);
+        }
+    }
+
+    async function handleDelete(id: string) {
+        if (!confirm("Удалить файл?")) return;
+
+        try {
+            const { error } = await supabase.from("company_files").delete().eq("id", id);
+            if (error) throw error;
+            setFiles((prev) => prev.filter((f) => f.id !== id));
+        } catch (e: any) {
+            alert("Ошибка удаления: " + e.message);
+        }
+    }
 
     const groupedFiles = CATEGORIES.map((cat) => ({
         ...cat,
