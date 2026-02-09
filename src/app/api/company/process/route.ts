@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getServerClient } from '@/lib/supabaseClient'
+import { askLLM } from '@/lib/openrouter'
 
 // Try importing parse libraries dynamically or assume they exist
 // Since this is server-side, we can use these if installed
@@ -62,6 +63,29 @@ export async function POST(req: Request) {
         // Fallback if empty and not image
         if (!textForIndex.trim()) {
             textForIndex = file.description || ''
+        }
+
+        // --- AI Synthesis ---
+        // If we have text, let's refine it into a knowledge base entry
+        if (textForIndex.trim().length > 50) {
+            try {
+                const prompt = `Это сырой текст, извлеченный из файла/заметки "${name}". 
+Твоя задача: превратить его в структурированную базу знаний для ИИ-ассистента по недвижимости.
+Используй четкие заголовки, списки и выделяй ключевые факты. 
+Удали весь мусор, повторы и неважные детали.
+Результат будет использоваться ботом для ответов клиентам.
+Верни только очищенный структурированный текст.
+
+СЫРОЙ ТЕКСТ:
+${textForIndex.substring(0, 10000)}` // Limit to avoid context issues
+
+                const refinedText = await askLLM(prompt, "Ты ассистент, который создает идеальную базу знаний для ИИ-ботов. Твоя задача - структурировать информацию максимально эффективно.", true);
+                if (refinedText && refinedText.length > 10) {
+                    textForIndex = refinedText;
+                }
+            } catch (e) {
+                console.error('AI Synthesis failed, using raw text:', e);
+            }
         }
 
         // Update DB

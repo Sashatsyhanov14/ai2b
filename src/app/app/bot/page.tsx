@@ -407,43 +407,60 @@ export default function UnifiedBotPage() {
                             .map((group) => (
                                 <div key={group.value}>
                                     {group.files.length > 0 && <h3 className="text-sm font-semibold text-neutral-400 uppercase tracking-widest mb-4">{group.label}</h3>}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    <div className="grid grid-cols-1 gap-6">
                                         {group.files.map((file) => {
                                             const Icon = getFileIcon(file.file_type);
+                                            const isBeingCustomEdited = editingContent?.id === file.id;
+
                                             return (
-                                                <div key={file.id} className="group relative rounded-xl border border-neutral-800 bg-neutral-900/50 p-4 hover:bg-neutral-900 transition-all">
-                                                    <div className="flex gap-3 mb-3">
-                                                        <div className="shrink-0">
-                                                            {file.file_type === "image" ? (
-                                                                <img src={file.url} alt="" className="w-12 h-12 rounded object-cover" />
-                                                            ) : (
-                                                                <div className="w-12 h-12 rounded bg-neutral-800 flex items-center justify-center text-neutral-500">
-                                                                    <Icon className="h-6 w-6" />
+                                                <div key={file.id} className="group relative rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6 transition-all border-l-4 border-l-blue-500/30">
+                                                    <div className="flex items-start justify-between mb-4">
+                                                        <div className="flex gap-4">
+                                                            <div className="shrink-0">
+                                                                {file.file_type === "image" ? (
+                                                                    <img src={file.url} alt="" className="w-16 h-16 rounded-xl object-cover border border-neutral-800" />
+                                                                ) : (
+                                                                    <div className="w-16 h-16 rounded-xl bg-neutral-800 flex items-center justify-center text-neutral-500 border border-neutral-700">
+                                                                        <Icon className="h-8 w-8" />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <div>
+                                                                <div className="font-semibold text-neutral-100 text-lg">{file.name}</div>
+                                                                <div className="text-xs text-neutral-500 mt-1 uppercase tracking-wider flex items-center gap-2">
+                                                                    <span className="px-2 py-0.5 rounded bg-neutral-800">{file.file_type === 'text' ? 'Инструкция' : 'Файл'}</span>
+                                                                    <span>•</span>
+                                                                    <span>{new Date(file.created_at).toLocaleDateString()}</span>
                                                                 </div>
-                                                            )}
-                                                        </div>
-                                                        <div className="min-w-0 pr-12">
-                                                            <div className="font-medium text-neutral-200 truncate text-sm">{file.name}</div>
-                                                            <div className="text-[10px] text-neutral-500 mt-1 uppercase tracking-tighter">
-                                                                {file.file_type === 'text' ? 'Заметка' : 'Файл'}
                                                             </div>
                                                         </div>
-                                                        <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <div className="flex gap-2">
                                                             <button
                                                                 onClick={() => setEditingContent({ id: file.id, name: file.name, content: file.content_text || "" })}
-                                                                className="p-1.5 rounded hover:bg-neutral-800 text-neutral-400 hover:text-blue-400"
-                                                            ><Pencil className="h-3.5 w-3.5" /></button>
+                                                                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-sm transition-colors"
+                                                            >
+                                                                <Pencil className="h-3.5 w-3.5" /> Редактировать
+                                                            </button>
                                                             <button
                                                                 onClick={() => handleDeleteFile(file.id)}
-                                                                className="p-1.5 rounded hover:bg-red-900/30 text-neutral-500 hover:text-red-400"
-                                                            ><Trash2 className="h-3.5 w-3.5" /></button>
+                                                                className="p-1.5 rounded-lg hover:bg-red-900/20 text-neutral-500 hover:text-red-400 transition-colors"
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </button>
                                                         </div>
                                                     </div>
-                                                    {file.content_text && (
-                                                        <div className="mt-2 p-2 bg-neutral-950/50 rounded text-[10px] text-neutral-500 font-mono line-clamp-2 border border-neutral-800/30 leading-relaxed">
-                                                            {file.content_text}
+
+                                                    <div className="relative group/text">
+                                                        <div className={`
+                                                            p-4 rounded-xl bg-neutral-950/50 border border-neutral-800/50 text-sm text-neutral-300 leading-relaxed font-sans whitespace-pre-wrap
+                                                            ${!file.content_text ? 'italic text-neutral-600' : ''}
+                                                        `}>
+                                                            {file.content_text || "Текст еще не извлечен или пуст. Нажмите редактировать, чтобы добавить информацию вручную."}
                                                         </div>
-                                                    )}
+                                                        {file.content_text && file.content_text.length > 500 && (
+                                                            <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-neutral-900/20 to-transparent opacity-0 group-hover/text:opacity-100 transition-opacity" />
+                                                        )}
+                                                    </div>
                                                 </div>
                                             );
                                         })}

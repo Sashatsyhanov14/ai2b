@@ -10,7 +10,8 @@
  */
 export async function askLLM(
   promptOrMessages: string | Message[],
-  system?: string
+  system?: string,
+  noJson: boolean = false
 ): Promise<string> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set");
@@ -43,7 +44,7 @@ export async function askLLM(
 
   // Add JSON response format for models that support it
   // This helps ensure consistent JSON output
-  if (!model.includes("o1") && !model.includes("o3")) {
+  if (!model.includes("o1") && !model.includes("o3") && !noJson) {
     requestBody.response_format = { type: "json_object" };
   }
 
