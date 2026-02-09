@@ -179,7 +179,6 @@ export default function NewApartmentPage() {
                   <input
                     type="number"
                     className="w-full bg-transparent text-3xl font-bold text-emerald-400 placeholder:text-neutral-700 outline-none tabular-nums"
-                    placeholder="0"
                     value={form.price}
                     onChange={(e) => update("price", e.target.value)}
                   />
@@ -252,9 +251,12 @@ export default function NewApartmentPage() {
                     <option value="4">4</option>
                     <option value="5">5+</option>
                   </select>
-                  <div className="text-sm font-medium text-neutral-200 pointer-events-none">
-                    {form.rooms === "0" ? "Студия" : form.rooms}
-                  </div>
+                  <input
+                    readOnly
+                    tabIndex={-1}
+                    className="w-full bg-transparent text-center text-neutral-200 outline-none text-sm font-medium pointer-events-none"
+                    value={form.rooms === "0" ? "Студия" : form.rooms}
+                  />
                 </div>
                 <div className="p-3 text-center group focus-within:bg-neutral-900/50 transition-colors">
                   <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1 font-semibold">Этаж</label>
