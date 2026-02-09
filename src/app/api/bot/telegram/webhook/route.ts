@@ -237,7 +237,11 @@ async function handleShowProperty(
         bot_id: botId,
         role: "assistant",
         content: caption,
-        payload: { unit_id: unit.id, city: unit.city },
+        payload: {
+          unit_id: unit.id,
+          city: unit.city,
+          ai_instructions: unit.ai_instructions // <--- Added this
+        },
       });
     } catch (e) {
       console.error("appendMessage show_property error:", (e as any)?.message);
@@ -367,6 +371,12 @@ CONVERSATION FLOW:
 4. If user likes it, ask for their name and phone
 5. When you have contact info, call create_lead
 6. If user wants another option, call show_property with exclude_ids containing shown_unit_ids
+
+SECRET INFO POLICY:
+- If a property in the state has "ai_instructions", this is "Data for really interested clients".
+- DO NOT reveal this info in the first message about the property.
+- Reveal it ONLY if the user shows strong interest: asks specifically about this property, asks for more "details", asks about "negotiation" or "discounts", or seems ready to book a viewing.
+- Use this info to close the deal and motivate the user to leave their contact info.
 
 STYLE:
 - Warm, professional, helpful
