@@ -21,6 +21,14 @@ const COMMON_TAGS = [
   "Меблированная",
   "ВНЖ",
   "Гражданство",
+  "С ремонтом",
+  "Whitebox",
+  "Черновая",
+  "Новостройка",
+  "Сдача в этом году",
+  "Сдача через 1 год",
+  "Сдача через 2 года",
+  "На этапе котлована",
 ];
 
 export default function NewApartmentPage() {
@@ -33,8 +41,8 @@ export default function NewApartmentPage() {
     floor: "",
     floors_total: "",
     area_m2: "",
-    finish: "renovated",
     price: "",
+    currency: "EUR", // Default currency
     description: "",
   });
 
@@ -59,7 +67,15 @@ export default function NewApartmentPage() {
     setError("");
 
     try {
-      const allFeatures = Array.from(new Set([form.finish, ...selectedTags]));
+      // Collect all features: selected tags + currency tag
+      const allFeatures = [...selectedTags];
+
+      // Add currency tag if it's not EUR (or always add it to be safe)
+      // Format: "currency:USD" or just "Цена в USD" to be human readable?
+      // Let's use a systematic tag "currency:USD" for machine reading, and maybe rely on that.
+      // But for the bot to read it easily, maybe "Цена в долларах"?
+      // Let's settle on technical tag "currency:USD"
+      allFeatures.push(`currency:${form.currency}`);
 
       const payload = {
         type: "apartment",
@@ -111,9 +127,9 @@ export default function NewApartmentPage() {
       <div className="px-4 md:px-6 space-y-8">
         <form onSubmit={submit} className="space-y-8">
 
-          {/* 1. PHOTOS FIRST (Effect of ownership) */}
+          {/* 1. PHOTOS FIRST */}
           <section>
-            <div className="bg-neutral-900/40 rounded-2xl border border-neutral-800 p-4 transition-all hover:border-neutral-700">
+            <div className="bg-neutral-900/40 rounded-2xl border border-neutral-800 p-4 transition-all hover:border-neutral-700 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
                   1. Фотографии
@@ -121,18 +137,18 @@ export default function NewApartmentPage() {
                 <span className="text-[10px] text-neutral-500">{photos.length} загружено</span>
               </div>
 
-              <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+              <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
                 {photos.map((url, i) => (
-                  <div key={i} className="relative aspect-square group rounded-lg overflow-hidden border border-neutral-800">
-                    <img src={url} className="w-full h-full object-cover" />
+                  <div key={i} className="relative aspect-square group rounded-xl overflow-hidden border border-neutral-800 bg-neutral-950">
+                    <img src={url} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
                     <button
                       type="button"
                       onClick={() => setPhotos(prev => prev.filter((_, idx) => idx !== i))}
-                      className="absolute top-1 right-1 bg-black/60 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600"
+                      className="absolute top-1.5 right-1.5 bg-black/60 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600 backdrop-blur-sm"
                     >
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
-                    {i === 0 && <div className="absolute bottom-0 inset-x-0 bg-emerald-600/90 text-white text-[9px] font-bold text-center py-0.5 uppercase tracking-wide">Главное</div>}
+                    {i === 0 && <div className="absolute bottom-0 inset-x-0 bg-emerald-600/90 text-white text-[9px] font-bold text-center py-1 uppercase tracking-wide backdrop-blur-md">Главное</div>}
                   </div>
                 ))}
                 <div className="aspect-square">
@@ -149,30 +165,48 @@ export default function NewApartmentPage() {
             </div>
           </section>
 
-          {/* 2. UNIFIED INPUTS (One block, no stress) */}
+          {/* 2. MAIN INFO - FIXED LAYOUT */}
           <section>
             <h2 className="mb-3 text-xs font-semibold text-neutral-400 uppercase tracking-wider ml-1">
               2. Основное
             </h2>
-            <div className="rounded-2xl border border-neutral-700 overflow-hidden bg-neutral-900/30">
+            <div className="rounded-2xl border border-neutral-700 overflow-hidden bg-neutral-900/30 shadow-sm">
 
-              {/* Row 1: PRICE (Big & Green) */}
-              <div className="relative border-b border-neutral-800 bg-neutral-900/60 p-4 flex items-center group focus-within:bg-neutral-900">
-                <DollarSign className="h-6 w-6 text-emerald-500 mr-3 shrink-0" />
-                <input
-                  type="number"
-                  className="w-full bg-transparent text-3xl font-bold text-emerald-400 placeholder:text-neutral-700 outline-none"
-                  placeholder="0"
-                  value={form.price}
-                  onChange={(e) => update("price", e.target.value)}
-                />
-                <span className="text-neutral-500 font-medium text-lg ml-2">EUR</span>
+              {/* Row 1: PRICE + CURRENCY - FLEXBOX */}
+              <div className="relative border-b border-neutral-800 bg-neutral-900/60 p-4 flex items-center justify-between group focus-within:bg-neutral-900 transition-colors">
+                <div className="flex items-center flex-1">
+                  <DollarSign className={`h-6 w-6 mr-3 shrink-0 transition-colors ${form.price ? 'text-emerald-500' : 'text-neutral-600'}`} />
+                  <input
+                    type="number"
+                    className="w-full bg-transparent text-3xl font-bold text-emerald-400 placeholder:text-neutral-700 outline-none tabular-nums"
+                    placeholder="0"
+                    value={form.price}
+                    onChange={(e) => update("price", e.target.value)}
+                  />
+                </div>
+
+                {/* Currency Selector */}
+                <div className="relative ml-4">
+                  <select
+                    className="appearance-none bg-neutral-950 border border-neutral-700 text-neutral-200 py-2 pl-4 pr-8 rounded-lg text-sm font-medium outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer"
+                    value={form.currency}
+                    onChange={(e) => update("currency", e.target.value)}
+                  >
+                    <option value="EUR">EUR (€)</option>
+                    <option value="USD">USD ($)</option>
+                    <option value="TRY">TRY (₺)</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-neutral-400">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                  </div>
+                </div>
               </div>
 
-              {/* Row 2: Location (City | Address) */}
-              <div className="flex border-b border-neutral-800">
-                <div className="flex-1 border-r border-neutral-800 p-3 relative group focus-within:bg-neutral-900/50">
-                  <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1">Город</label>
+              {/* Row 2: Location - GRID (12 columns) */}
+              <div className="grid grid-cols-1 md:grid-cols-12 border-b border-neutral-800">
+                {/* City: 4 cols */}
+                <div className="md:col-span-4 p-3 border-b md:border-b-0 md:border-r border-neutral-800 relative group focus-within:bg-neutral-900/50 transition-colors">
+                  <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1 font-semibold">Город</label>
                   <input
                     className="w-full bg-transparent text-neutral-200 placeholder:text-neutral-700 outline-none text-sm font-medium"
                     placeholder="Antalya"
@@ -180,8 +214,9 @@ export default function NewApartmentPage() {
                     onChange={(e) => update("city", e.target.value)}
                   />
                 </div>
-                <div className="flex-[2] p-3 relative group focus-within:bg-neutral-900/50">
-                  <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1">Адрес / Район</label>
+                {/* Address: 8 cols */}
+                <div className="md:col-span-8 p-3 relative group focus-within:bg-neutral-900/50 transition-colors">
+                  <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1 font-semibold">Адрес / Район</label>
                   <input
                     className="w-full bg-transparent text-neutral-200 placeholder:text-neutral-700 outline-none text-sm font-medium"
                     placeholder="Liman Mah., 25. Sk"
@@ -191,42 +226,22 @@ export default function NewApartmentPage() {
                 </div>
               </div>
 
-              {/* Row 3: Specs (Grid of 4) */}
-              <div className="grid grid-cols-4 divide-x divide-neutral-800 border-b border-neutral-800">
-                <div className="p-3 text-center group focus-within:bg-neutral-900/50">
-                  <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1">Метраж</label>
+              {/* Row 3: Specs - GRID (4 equal cols) */}
+              <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-neutral-800">
+                <div className="p-3 text-center group focus-within:bg-neutral-900/50 transition-colors">
+                  <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1 font-semibold">Площадь м²</label>
                   <input
                     type="number"
-                    className="w-full bg-transparent text-center text-neutral-200 placeholder:text-neutral-700 outline-none text-sm font-medium"
+                    className="w-full bg-transparent text-center text-neutral-200 placeholder:text-neutral-700 outline-none text-sm font-medium tabular-nums"
                     placeholder="65"
                     value={form.area_m2}
                     onChange={(e) => update("area_m2", e.target.value)}
                   />
                 </div>
-                <div className="p-3 text-center group focus-within:bg-neutral-900/50">
-                  <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1">Этаж</label>
-                  <input
-                    type="number"
-                    className="w-full bg-transparent text-center text-neutral-200 placeholder:text-neutral-700 outline-none text-sm font-medium"
-                    placeholder="3"
-                    value={form.floor}
-                    onChange={(e) => update("floor", e.target.value)}
-                  />
-                </div>
-                <div className="p-3 text-center group focus-within:bg-neutral-900/50">
-                  <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1">Всего</label>
-                  <input
-                    type="number"
-                    className="w-full bg-transparent text-center text-neutral-200 placeholder:text-neutral-700 outline-none text-sm font-medium"
-                    placeholder="10"
-                    value={form.floors_total}
-                    onChange={(e) => update("floors_total", e.target.value)}
-                  />
-                </div>
-                <div className="p-3 text-center group focus-within:bg-neutral-900/50 relative">
-                  <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1">Комнат</label>
+                <div className="p-3 text-center group focus-within:bg-neutral-900/50 relative transition-colors">
+                  <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1 font-semibold">Комнат</label>
                   <select
-                    className="w-full bg-transparent text-center text-neutral-200 outline-none text-sm font-medium appearance-none absolute inset-0 opacity-0 cursor-pointer"
+                    className="w-full bg-transparent text-center text-neutral-200 outline-none text-sm font-medium appearance-none absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
                     value={form.rooms}
                     onChange={(e) => update("rooms", e.target.value)}
                   >
@@ -241,25 +256,31 @@ export default function NewApartmentPage() {
                     {form.rooms === "0" ? "Студия" : form.rooms}
                   </div>
                 </div>
-              </div>
-              {/* Row 4: Finish */}
-              <div className="p-3 group focus-within:bg-neutral-900/50 flex items-center justify-between">
-                <label className="text-[10px] text-neutral-500 uppercase tracking-wider">Отделка</label>
-                <select
-                  className="bg-transparent text-right text-neutral-200 outline-none text-sm font-medium cursor-pointer"
-                  value={form.finish}
-                  onChange={(e) => update("finish", e.target.value)}
-                >
-                  <option value="renovated" className="bg-neutral-900">С ремонтом</option>
-                  <option value="furniture" className="bg-neutral-900">С мебелью</option>
-                  <option value="whitebox" className="bg-neutral-900">Whitebox</option>
-                  <option value="shell" className="bg-neutral-900">Черновая</option>
-                </select>
+                <div className="p-3 text-center group focus-within:bg-neutral-900/50 transition-colors">
+                  <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1 font-semibold">Этаж</label>
+                  <input
+                    type="number"
+                    className="w-full bg-transparent text-center text-neutral-200 placeholder:text-neutral-700 outline-none text-sm font-medium tabular-nums"
+                    placeholder="3"
+                    value={form.floor}
+                    onChange={(e) => update("floor", e.target.value)}
+                  />
+                </div>
+                <div className="p-3 text-center group focus-within:bg-neutral-900/50 transition-colors">
+                  <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1 font-semibold">Всего этажей</label>
+                  <input
+                    type="number"
+                    className="w-full bg-transparent text-center text-neutral-200 placeholder:text-neutral-700 outline-none text-sm font-medium tabular-nums"
+                    placeholder="10"
+                    value={form.floors_total}
+                    onChange={(e) => update("floors_total", e.target.value)}
+                  />
+                </div>
               </div>
             </div>
           </section>
 
-          {/* 3. TAGS (Victory) */}
+          {/* 3. TAGS */}
           <section>
             <h2 className="mb-3 text-xs font-semibold text-neutral-400 uppercase tracking-wider ml-1">
               3. Хештеги
@@ -272,9 +293,9 @@ export default function NewApartmentPage() {
                     key={tag}
                     type="button"
                     onClick={() => toggleTag(tag)}
-                    className={`px-4 py-2 rounded-full text-xs font-medium transition-all transform active:scale-95 ${isSelected
-                      ? "bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.5)] border border-blue-500"
-                      : "bg-neutral-900/50 border border-neutral-800 text-neutral-400 hover:border-neutral-700 hover:text-neutral-200"
+                    className={`px-4 py-2 rounded-full text-xs font-medium transition-all transform active:scale-95 border ${isSelected
+                      ? "bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)] border-blue-500"
+                      : "bg-neutral-900/50 border-neutral-800 text-neutral-400 hover:border-neutral-700 hover:text-neutral-200"
                       }`}
                   >
                     {isSelected ? "✓ " : ""}{tag}
@@ -288,13 +309,13 @@ export default function NewApartmentPage() {
           <section>
             <details className="group">
               <summary className="list-none cursor-pointer flex items-center gap-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider ml-1 hover:text-neutral-300 transition-colors">
-                <span className="group-open:rotate-90 transition-transform">▸</span>
+                <span className="group-open:rotate-90 transition-transform text-neutral-600">▸</span>
                 Добавить описание (необязательно)
               </summary>
               <div className="mt-3">
                 <textarea
-                  className="w-full h-24 rounded-xl border border-neutral-800 bg-neutral-900/30 p-4 text-neutral-200 outline-none focus:border-neutral-700 transition-all text-sm resize-none"
-                  placeholder="Любые заметки..."
+                  className="w-full h-24 rounded-xl border border-neutral-800 bg-neutral-900/30 p-4 text-neutral-200 outline-none focus:border-neutral-700 transition-all text-sm resize-none placeholder:text-neutral-700"
+                  placeholder="Заметки для бота..."
                   value={form.description}
                   onChange={(e) => update("description", e.target.value)}
                 />
@@ -302,8 +323,8 @@ export default function NewApartmentPage() {
             </details>
           </section>
 
-          {/* Spacer for mobile fixed button */}
-          <div className="h-20 md:hidden"></div>
+          {/* 5. SPACER for Mobile */}
+          <div className="h-24 md:hidden"></div>
 
           {/* FIXED BOTTOM SAVE BUTTON */}
           <div className="fixed bottom-0 left-0 right-0 p-4 bg-neutral-950/90 backdrop-blur-lg border-t border-neutral-800 md:static md:bg-transparent md:border-0 md:p-0 z-40">
@@ -315,12 +336,12 @@ export default function NewApartmentPage() {
             <Button
               type="submit"
               disabled={loading || !form.price}
-              className={`w-full py-4 text-base font-semibold shadow-lg transition-all ${loading || !form.price
+              className={`w-full py-4 text-base font-semibold shadow-xl transition-all ${loading || !form.price
                 ? "opacity-50 grayscale"
-                : "bg-blue-600 hover:bg-blue-500 shadow-blue-900/20"
+                : "bg-blue-600 hover:bg-blue-500 shadow-blue-900/30"
                 }`}
             >
-              {loading ? "Сохранение..." : "Сохранить объект"}
+              {loading ? "Сохранение..." : "Сохранить квартиру"}
             </Button>
           </div>
 
