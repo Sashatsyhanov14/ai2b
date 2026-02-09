@@ -231,7 +231,7 @@ export default function NewApartmentPage() {
                   <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1 font-semibold">Площадь м²</label>
                   <input
                     type="number"
-                    className="w-full bg-transparent text-center text-neutral-200 placeholder:text-neutral-700 outline-none text-sm font-medium tabular-nums"
+                    className="w-full bg-transparent text-center text-neutral-200 placeholder:text-neutral-700 outline-none text-sm font-medium tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     placeholder="65"
                     value={form.area_m2}
                     onChange={(e) => update("area_m2", e.target.value)}
@@ -254,7 +254,7 @@ export default function NewApartmentPage() {
                   <input
                     readOnly
                     tabIndex={-1}
-                    className="w-full bg-transparent text-center text-neutral-200 outline-none text-sm font-medium pointer-events-none"
+                    className="w-full bg-transparent text-center text-neutral-200 outline-none text-sm font-medium pointer-events-none tabular-nums"
                     value={form.rooms === "0" ? "Студия" : form.rooms}
                   />
                 </div>
@@ -262,7 +262,7 @@ export default function NewApartmentPage() {
                   <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1 font-semibold">Этаж</label>
                   <input
                     type="number"
-                    className="w-full bg-transparent text-center text-neutral-200 placeholder:text-neutral-700 outline-none text-sm font-medium tabular-nums"
+                    className="w-full bg-transparent text-center text-neutral-200 placeholder:text-neutral-700 outline-none text-sm font-medium tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     placeholder="3"
                     value={form.floor}
                     onChange={(e) => update("floor", e.target.value)}
@@ -272,7 +272,7 @@ export default function NewApartmentPage() {
                   <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1 font-semibold">Всего этажей</label>
                   <input
                     type="number"
-                    className="w-full bg-transparent text-center text-neutral-200 placeholder:text-neutral-700 outline-none text-sm font-medium tabular-nums"
+                    className="w-full bg-transparent text-center text-neutral-200 placeholder:text-neutral-700 outline-none text-sm font-medium tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     placeholder="10"
                     value={form.floors_total}
                     onChange={(e) => update("floors_total", e.target.value)}
