@@ -212,11 +212,18 @@ export default function UnifiedBotPage() {
     async function handleDeleteFile(id: string) {
         if (!confirm("Удалить файл?")) return;
         try {
-            const { error } = await supabase.from("company_files").delete().eq("id", id);
-            if (error) throw error;
-            setFiles(prev => prev.filter(f => f.id !== id));
+            console.log("Attempting to delete file:", id);
+            const res = await fetch(`/api/company/files?id=${id}`, { method: 'DELETE' });
+            const json = await res.json().catch(() => ({}));
+
+            if (res.ok && json.ok) {
+                setFiles(prev => prev.filter(f => f.id !== id));
+            } else {
+                throw new Error(json.error || "Failed to delete file on server");
+            }
         } catch (e: any) {
-            alert(e.message);
+            console.error("Delete file error:", e);
+            alert("Ошибка при удалении файла: " + e.message);
         }
     }
 
@@ -251,9 +258,15 @@ export default function UnifiedBotPage() {
         if (!confirm("Удалить менеджера?")) return;
         try {
             const res = await fetch(`/api/telegram-managers/${id}`, { method: "DELETE" });
-            if (res.ok) setManagers(prev => prev.filter(m => m.id !== id));
-        } catch (err) {
-            console.error(err);
+            if (res.ok) {
+                setManagers(prev => prev.filter(m => m.id !== id));
+            } else {
+                const json = await res.json().catch(() => ({}));
+                alert("Ошибка при удалении менеджера: " + (json.error || "Неизвестная ошибка"));
+            }
+        } catch (err: any) {
+            console.error("Delete manager error:", err);
+            alert("Ошибка при удалении менеджера: " + err.message);
         }
     }
 
@@ -267,9 +280,13 @@ export default function UnifiedBotPage() {
             const json = await res.json().catch(() => ({}));
             if (res.ok && json?.ok && json.data) {
                 setManagers(prev => prev.map(m => m.id === json.data.id ? json.data : m));
+            } else {
+                const errorText = json?.error || "Не удалось обновить статус";
+                alert(errorText);
             }
-        } catch (err) {
-            console.error(err);
+        } catch (err: any) {
+            console.error("Toggle manager error:", err);
+            alert("Ошибка при переключении статуса: " + err.message);
         }
     }
 
@@ -575,20 +592,25 @@ export default function UnifiedBotPage() {
                                         <td className="px-4 py-3 font-medium">{m.name || "Без имени"}</td>
                                         <td className="px-4 py-3 text-neutral-500 font-mono">{m.telegram_id}</td>
                                         <td className="px-4 py-3">
-                                            <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    handleToggleManager(m);
-                                                }}
-                                                className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${m.is_active ? "bg-emerald-500" : "bg-neutral-700"
-                                                    }`}
-                                            >
-                                                <span
-                                                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${m.is_active ? "translate-x-4" : "translate-x-0"
-                                                        }`}
-                                                />
-                                            </button>
+                                            <div className="flex items-center justify-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        console.log("Toggle manager clicked:", m.id);
+                                                        handleToggleManager(m);
+                                                    }}
+                                                    className={`
+                                                        w-10 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 outline-none
+                                                        ${m.is_active ? "bg-emerald-500" : "bg-neutral-600"}
+                                                    `}
+                                                >
+                                                    <div className={`
+                                                        bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200
+                                                        ${m.is_active ? "translate-x-4" : "translate-x-0"}
+                                                    `} />
+                                                </button>
+                                            </div>
                                         </td>
                                         <td className="px-4 py-3 text-right">
                                             <button
