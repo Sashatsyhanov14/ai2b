@@ -36,12 +36,21 @@ export async function PATCH(req: Request, { params }: Params) {
     .update(update)
     .eq("id", id)
     .select("id, telegram_id, name, is_active, created_at")
-    .single();
+    .maybeSingle();
 
   if (error) {
+    console.error("PATCH telegram-manager error:", error);
     return NextResponse.json(
       { ok: false, error: error.message },
       { status: 400 },
+    );
+  }
+
+  if (!data) {
+    console.warn(`No manager found with ID: ${id}`);
+    return NextResponse.json(
+      { ok: false, error: "Менеджер не найден или доступ запрещен (RLS)" },
+      { status: 404 },
     );
   }
 
@@ -51,15 +60,25 @@ export async function PATCH(req: Request, { params }: Params) {
 export async function DELETE(_req: Request, { params }: Params) {
   const { id } = params;
   const sb = getServerClient();
-  const { error } = await sb
+  // We specify '*' or 'id' to get back what was deleted, which helps confirm it worked
+  const { data, error } = await sb
     .from("telegram_managers")
     .delete()
-    .eq("id", id);
+    .eq("id", id)
+    .select();
 
   if (error) {
+    console.error("DELETE telegram-manager error:", error);
     return NextResponse.json(
       { ok: false, error: error.message },
       { status: 400 },
+    );
+  }
+
+  if (!data || data.length === 0) {
+    return NextResponse.json(
+      { ok: false, error: "Удаление не выполнено. Возможно, у вас нет прав (RLS) или запись уже удалена." },
+      { status: 403 },
     );
   }
 

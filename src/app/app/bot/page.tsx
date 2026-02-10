@@ -591,22 +591,21 @@ export default function UnifiedBotPage() {
                                     <tr key={m.id} className="hover:bg-white/5 transition-colors">
                                         <td className="px-4 py-3 font-medium">{m.name || "Без имени"}</td>
                                         <td className="px-4 py-3 text-neutral-500 font-mono">{m.telegram_id}</td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center justify-center">
+                                        <td className="px-4 py-3 align-middle">
+                                            <div className="flex items-center">
                                                 <button
                                                     type="button"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        console.log("Toggle manager clicked:", m.id);
                                                         handleToggleManager(m);
                                                     }}
                                                     className={`
-                                                        w-10 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 outline-none
+                                                        w-9 h-5 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 outline-none
                                                         ${m.is_active ? "bg-emerald-500" : "bg-neutral-600"}
                                                     `}
                                                 >
                                                     <div className={`
-                                                        bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200
+                                                        bg-white w-3 h-3 rounded-full shadow-sm transform transition-transform duration-200
                                                         ${m.is_active ? "translate-x-4" : "translate-x-0"}
                                                     `} />
                                                 </button>
