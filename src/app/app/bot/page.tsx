@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/Button";
 import UploadImage from "@/components/UploadImage";
 import { useI18n } from "@/i18n";
+import { Sparkles, Loader2 } from "lucide-react";
 
 // --- Types ---
 type CompanyFile = {
@@ -70,6 +71,9 @@ export default function UnifiedBotPage() {
     const [saving, setSaving] = useState(false);
     const [editingContent, setEditingContent] = useState<{ id: string; name: string; content: string } | null>(null);
     const [form, setForm] = useState({ name: "", description: "", file_type: "document", url: "", category: "about" });
+    const [totalSummary, setTotalSummary] = useState("");
+    const [loadingSummary, setLoadingSummary] = useState(false);
+    const [quickNote, setQuickNote] = useState("");
 
     // --- State: Dashboard & Managers ---
     const [sessionsCount, setSessionsCount] = useState<number | null>(null);
@@ -98,8 +102,22 @@ export default function UnifiedBotPage() {
                 .order("sort_order");
             if (error) throw error;
             setFiles(data || []);
+            loadTotalSummary();
         } finally {
             setLoadingFiles(false);
+        }
+    }
+
+    async function loadTotalSummary() {
+        setLoadingSummary(true);
+        try {
+            const res = await fetch("/api/company/summary");
+            const json = await res.json();
+            if (json.ok) setTotalSummary(json.summary);
+        } catch (e) {
+            console.error("Failed to load summary", e);
+        } finally {
+            setLoadingSummary(false);
         }
     }
 
@@ -355,104 +373,109 @@ export default function UnifiedBotPage() {
 
             {/* Tab: Knowledge Base */}
             {activeTab === "knowledge" && (
-                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
-                    <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <label className={`
-                            flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-2xl cursor-pointer transition-all
-                            ${saving ? 'border-neutral-700 bg-neutral-900/50 opacity-50' : 'border-neutral-700 hover:border-blue-500 hover:bg-blue-500/5 bg-neutral-900'}
-                        `}>
-                            <div className="h-12 w-12 rounded-full bg-neutral-800 flex items-center justify-center mb-3">
-                                {saving ? <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div> : <Plus className="h-6 w-6 text-neutral-400" />}
-                            </div>
-                            <span className="font-medium text-neutral-200">Загрузить файлы</span>
-                            <span className="text-xs text-neutral-500 mt-1">PDF, DOCX, TXT, Images</span>
-                            <input type="file" multiple className="hidden"
-                                onChange={(e) => {
-                                    setForm(prev => ({ ...prev, category: 'general' }));
-                                    handleQuickUpload(e);
-                                }}
-                                disabled={saving}
-                            />
-                        </label>
+                <div className="space-y-12 animate-in fade-in slide-in-from-bottom-2 pb-20">
 
-                        <button
-                            onClick={() => {
-                                setForm({ name: "", description: "", file_type: "text", url: "text-note", category: "about" });
-                                setEditingContent({ id: "new", name: "Новая заметка", content: "" });
-                            }}
-                            disabled={saving}
-                            className="flex flex-col items-center justify-center p-8 border border-neutral-800 bg-neutral-900 rounded-2xl hover:bg-neutral-800 transition-all text-left group"
-                        >
-                            <div className="h-12 w-12 rounded-full bg-neutral-800 group-hover:bg-neutral-700 flex items-center justify-center mb-3 transition-colors">
-                                <FileText className="h-6 w-6 text-neutral-400" />
+                    {/* 1. QUICK ADD & UPLOAD */}
+                    <section className="space-y-4">
+                        <div className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6">
+                            <h2 className="text-sm font-semibold text-neutral-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <Plus className="h-4 w-4" /> Добавить информацию
+                            </h2>
+                            <div className="space-y-4">
+                                <textarea
+                                    className="w-full h-32 bg-neutral-950 border border-neutral-800 rounded-xl p-4 text-sm text-neutral-300 leading-relaxed outline-none focus:border-blue-700 transition-all resize-none"
+                                    placeholder="Просто вставьте текст здесь (например: правила компании, часы работы, условия бронирования)..."
+                                    value={quickNote}
+                                    onChange={(e) => setQuickNote(e.target.value)}
+                                />
+                                <div className="flex items-center justify-between gap-4">
+                                    <div className="flex items-center gap-3">
+                                        <label className={`
+                                            flex items-center gap-2 px-4 py-2 rounded-xl border border-neutral-800 bg-neutral-950 text-sm font-medium text-neutral-400 cursor-pointer transition-all hover:bg-neutral-900 hover:text-white
+                                            ${saving ? 'opacity-50 cursor-not-allowed' : ''}
+                                        `}>
+                                            <ImageIcon className="h-4 w-4" /> Фото/Документы
+                                            <input type="file" multiple className="hidden"
+                                                onChange={(e) => {
+                                                    setForm(prev => ({ ...prev, category: 'general' }));
+                                                    handleQuickUpload(e);
+                                                }}
+                                                disabled={saving}
+                                            />
+                                        </label>
+                                    </div>
+                                    <Button
+                                        disabled={!quickNote.trim() || saving}
+                                        onClick={async () => {
+                                            setSaving(true);
+                                            const { error } = await supabase.from("company_files").insert({
+                                                name: `Заметка ${new Date().toLocaleString()}`,
+                                                file_type: "text",
+                                                url: "manual-entry",
+                                                category: "general",
+                                                content_text: quickNote,
+                                                is_active: true
+                                            });
+                                            if (!error) {
+                                                setQuickNote("");
+                                                loadKnowledge();
+                                            } else {
+                                                alert(error.message);
+                                            }
+                                            setSaving(false);
+                                        }}
+                                    >
+                                        {saving ? "Сохранение..." : "Добавить заметку"}
+                                    </Button>
+                                </div>
                             </div>
-                            <span className="font-medium text-neutral-200">Добавить информацию</span>
-                            <span className="text-xs text-neutral-500 mt-1">История компании, правила, инструкции</span>
-                        </button>
+                        </div>
                     </section>
 
-                    <div className="space-y-6">
-                        {groupedFiles
-                            .map((group) => (
-                                <div key={group.value}>
-                                    {group.files.length > 0 && <h3 className="text-sm font-semibold text-neutral-400 uppercase tracking-widest mb-4">{group.label}</h3>}
-                                    <div className="grid grid-cols-1 gap-6">
+                    {/* 2. KNOWLEDGE LIST */}
+                    <section className="space-y-6">
+                        <h2 className="text-sm font-semibold text-neutral-400 uppercase tracking-widest ml-1">Список знаний</h2>
+                        <div className="space-y-8">
+                            {groupedFiles.map((group) => (
+                                <div key={group.value} className="space-y-4">
+                                    {group.files.length > 0 && <h3 className="text-xs font-medium text-neutral-500 uppercase tracking-widest pl-4">{group.label}</h3>}
+                                    <div className="grid grid-cols-1 gap-4">
                                         {group.files.map((file) => {
                                             const Icon = getFileIcon(file.file_type);
                                             return (
-                                                <div key={file.id} className="group relative rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6 transition-all border-l-4 border-l-blue-500/30">
-                                                    <div className="flex items-start justify-between mb-4">
-                                                        <div className="flex gap-4">
+                                                <div key={file.id} className="group relative rounded-2xl border border-neutral-800 bg-neutral-900/40 p-5 transition-all hover:bg-neutral-900/60 border-l-2 border-l-blue-500/20">
+                                                    <div className="flex items-start justify-between">
+                                                        <div className="flex gap-4 items-center">
                                                             <div className="shrink-0">
                                                                 {file.file_type === "image" ? (
-                                                                    <img src={file.url} alt="" className="w-16 h-16 rounded-xl object-cover border border-neutral-800" />
+                                                                    <img src={file.url} alt="" className="w-10 h-10 rounded-lg object-cover border border-neutral-800" />
                                                                 ) : (
-                                                                    <div className="w-16 h-16 rounded-xl bg-neutral-800 flex items-center justify-center text-neutral-500 border border-neutral-700">
-                                                                        <Icon className="h-8 w-8" />
+                                                                    <div className="w-10 h-10 rounded-lg bg-neutral-800 flex items-center justify-center text-neutral-500 border border-neutral-700">
+                                                                        <Icon className="h-5 w-5" />
                                                                     </div>
                                                                 )}
                                                             </div>
                                                             <div>
-                                                                <div className="font-semibold text-neutral-100 text-lg">{file.name}</div>
-                                                                <div className="text-xs text-neutral-500 mt-1 uppercase tracking-wider flex items-center gap-2">
-                                                                    <span className="px-2 py-0.5 rounded bg-neutral-800">{file.file_type === 'text' ? 'Инструкция' : 'Файл'}</span>
-                                                                    <span>•</span>
-                                                                    <span>{new Date(file.created_at).toLocaleDateString()}</span>
-                                                                    {file.category === 'about' && (
-                                                                        <>
-                                                                            <span>•</span>
-                                                                            <span className="text-blue-400 font-bold">О компании</span>
-                                                                        </>
-                                                                    )}
+                                                                <div className="font-medium text-neutral-200 text-sm">{file.name}</div>
+                                                                <div className="text-[10px] text-neutral-500 mt-0.5 uppercase tracking-wider">
+                                                                    {new Date(file.created_at).toLocaleDateString()}
                                                                 </div>
                                                             </div>
                                                         </div>
                                                         <div className="flex gap-2">
                                                             <button
                                                                 onClick={() => setEditingContent({ id: file.id, name: file.name, content: file.content_text || "" })}
-                                                                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-sm transition-colors"
+                                                                className="p-2 rounded-lg hover:bg-neutral-800 text-neutral-400 hover:text-white transition-colors"
                                                             >
-                                                                <Pencil className="h-3.5 w-3.5" /> Редактировать
+                                                                <Pencil className="h-4 w-4" />
                                                             </button>
                                                             <button
                                                                 onClick={() => handleDeleteFile(file.id)}
-                                                                className="p-1.5 rounded-lg hover:bg-red-900/20 text-neutral-500 hover:text-red-400 transition-colors"
+                                                                className="p-2 rounded-lg hover:bg-red-900/20 text-neutral-500 hover:text-red-400 transition-colors"
                                                             >
                                                                 <Trash2 className="h-4 w-4" />
                                                             </button>
                                                         </div>
-                                                    </div>
-
-                                                    <div className="relative group/text">
-                                                        <div className={`
-                                                            p-4 rounded-xl bg-neutral-950/50 border border-neutral-800/50 text-sm text-neutral-300 leading-relaxed font-sans whitespace-pre-wrap
-                                                            ${!file.content_text ? 'italic text-neutral-600' : ''}
-                                                        `}>
-                                                            {file.content_text || "Текст еще не извлечен или пуст. Нажмите редактировать, чтобы добавить информацию вручную."}
-                                                        </div>
-                                                        {file.content_text && file.content_text.length > 500 && (
-                                                            <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-neutral-900/20 to-transparent opacity-0 group-hover/text:opacity-100 transition-opacity" />
-                                                        )}
                                                     </div>
                                                 </div>
                                             );
@@ -460,7 +483,47 @@ export default function UnifiedBotPage() {
                                     </div>
                                 </div>
                             ))}
-                    </div>
+                        </div>
+                    </section>
+
+                    {/* 3. AI TOTAL SUMMARY */}
+                    <section className="pt-8 border-t border-neutral-800">
+                        <div className="rounded-3xl border border-blue-500/20 bg-blue-500/5 p-8 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-8 opacity-10">
+                                <Sparkles className="h-24 w-24 text-blue-500" />
+                            </div>
+
+                            <div className="relative">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h2 className="text-xl font-bold text-neutral-50 flex items-center gap-3">
+                                        <Sparkles className="h-5 w-5 text-blue-400" /> Итоговое резюме от ИИ
+                                    </h2>
+                                    <Button
+                                        variant="secondary"
+                                        onClick={loadTotalSummary}
+                                        disabled={loadingSummary}
+                                        className="bg-neutral-900/50 hover:bg-neutral-800 border-neutral-700 h-8 px-3 text-xs"
+                                    >
+                                        {loadingSummary ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Plus className="h-3 w-3 mr-2 rotate-45" />}
+                                        Обновить сводку
+                                    </Button>
+                                </div>
+
+                                {loadingSummary ? (
+                                    <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                                        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                                        <p className="text-sm text-neutral-400 animate-pulse">ИИ собирает информацию из всех ваших файлов...</p>
+                                    </div>
+                                ) : (
+                                    <div className="prose prose-invert prose-blue max-w-none">
+                                        <div className="text-neutral-300 leading-relaxed text-sm whitespace-pre-wrap font-sans">
+                                            {totalSummary || "Загрузите информацию или добавьте заметку, чтобы ИИ составил общую сводку вашей компании."}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </section>
                 </div>
             )}
 
