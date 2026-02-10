@@ -579,10 +579,10 @@ export default function UnifiedBotPage() {
                     <div className="overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900/20 backdrop-blur-sm">
                         <table className="w-full text-sm text-neutral-300">
                             <thead className="bg-neutral-900/80 backdrop-blur-md text-xs uppercase tracking-wide text-neutral-500">
-                                <tr>
+                                <tr className="border-b border-neutral-800">
                                     <th className="px-4 py-3 text-left">Имя</th>
-                                    <th className="px-4 py-3 text-left">ID</th>
-                                    <th className="px-4 py-3 text-left">Статус</th>
+                                    <th className="px-4 py-3 text-left font-mono text-[10px] text-neutral-500 uppercase">ID</th>
+                                    <th className="px-4 py-3 text-center">Статус</th>
                                     <th className="px-4 py-3 text-right">Действия</th>
                                 </tr>
                             </thead>
@@ -592,7 +592,7 @@ export default function UnifiedBotPage() {
                                         <td className="px-4 py-3 font-medium">{m.name || "Без имени"}</td>
                                         <td className="px-4 py-3 text-neutral-500 font-mono">{m.telegram_id}</td>
                                         <td className="px-4 py-3 align-middle">
-                                            <div className="flex items-center">
+                                            <div className="flex items-center justify-center">
                                                 <button
                                                     type="button"
                                                     onClick={(e) => {
@@ -600,7 +600,7 @@ export default function UnifiedBotPage() {
                                                         handleToggleManager(m);
                                                     }}
                                                     className={`
-                                                        w-9 h-5 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 outline-none
+                                                        w-8 h-4 flex items-center rounded-full p-0.5 cursor-pointer transition-colors duration-200 outline-none
                                                         ${m.is_active ? "bg-emerald-500" : "bg-neutral-600"}
                                                     `}
                                                 >
