@@ -115,6 +115,22 @@ export default function EditApartmentPage({ params }: { params: { id: string } }
         );
     }
 
+    async function handleRemovePhoto(url: string) {
+        try {
+            // Remove from UI immediately
+            setPhotos((prev) => prev.filter((p) => p !== url));
+
+            // Attempt deletion from storage
+            await fetch("/api/storage/delete", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ url }),
+            });
+        } catch (e) {
+            console.error("Failed to delete photo from storage", e);
+        }
+    }
+
     async function submit(e: React.FormEvent) {
         e.preventDefault();
         setSaving(true);
@@ -197,7 +213,7 @@ export default function EditApartmentPage({ params }: { params: { id: string } }
                                         <img src={url} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
                                         <button
                                             type="button"
-                                            onClick={() => setPhotos(prev => prev.filter((_, idx) => idx !== i))}
+                                            onClick={() => handleRemovePhoto(url)}
                                             className="absolute top-1.5 right-1.5 bg-black/60 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600 backdrop-blur-sm"
                                         >
                                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -292,9 +308,9 @@ export default function EditApartmentPage({ params }: { params: { id: string } }
                                 <div className="p-3 text-center group focus-within:bg-neutral-900/50 transition-colors">
                                     <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1 font-semibold">Комнат</label>
                                     <input
-                                        type="number"
-                                        className="w-full bg-transparent text-center text-neutral-200 placeholder:text-neutral-700 outline-none text-sm font-medium tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                        placeholder="1"
+                                        type="text"
+                                        className="w-full bg-transparent text-center text-neutral-200 placeholder:text-neutral-700 outline-none text-sm font-medium"
+                                        placeholder="1 или Студия"
                                         value={form.rooms}
                                         onChange={(e) => update("rooms", e.target.value)}
                                     />
@@ -394,8 +410,8 @@ export default function EditApartmentPage({ params }: { params: { id: string } }
                         )}
                         <Button
                             type="submit"
-                            disabled={saving || !form.price}
-                            className={`w-full py-4 text-base font-semibold shadow-xl transition-all ${saving || !form.price
+                            disabled={saving || !form.price || !form.city || !form.address}
+                            className={`w-full py-4 text-base font-semibold shadow-xl transition-all ${saving || !form.price || !form.city || !form.address
                                 ? "opacity-50 grayscale"
                                 : "bg-blue-600 hover:bg-blue-500 shadow-blue-900/30"
                                 }`}

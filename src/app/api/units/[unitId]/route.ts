@@ -9,7 +9,7 @@ function mapIncomingToDb(payload: any): Partial<Unit> {
   if (payload.rooms != null) {
     if (typeof payload.rooms === 'string') {
       const s = payload.rooms.toLowerCase()
-      if (s === 'studio') out.rooms = 0
+      if (s === 'studio' || s === 'студия') out.rooms = 0
       else if (s === '4+' || s === '4plus') out.rooms = 4
       else out.rooms = Number(payload.rooms)
     } else out.rooms = Number(payload.rooms)
@@ -35,9 +35,9 @@ async function enrich(u: Unit, sb: ReturnType<typeof getServerClient>) {
   try {
     const { data: photos } = await sb
       .from('unit_photos')
-      .select('unit_id,url,position,created_at')
+      .select('unit_id,url,sort_order,created_at')
       .eq('unit_id', u.id)
-      .order('position', { ascending: true })
+      .order('sort_order', { ascending: true })
     if (photos && photos.length) {
       u.photos_count = photos.length
       u.main_photo_url = (photos as any[])[0]?.url ?? null

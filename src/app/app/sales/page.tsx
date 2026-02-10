@@ -178,7 +178,7 @@ export default function SalesApartmentsPage() {
                       </div>
                     </td>
                     <td className="px-3 py-3 align-top text-sm">
-                      {u.rooms ?? "—"}
+                      {u.rooms === 0 ? "Студия" : (u.rooms ?? "—")}
                     </td>
                     <td className="px-3 py-3 align-top text-sm">
                       {u.floor != null

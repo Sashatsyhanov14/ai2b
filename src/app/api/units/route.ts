@@ -42,7 +42,7 @@ export async function POST(req: Request) {
       rooms: body.rooms ?? null,
       floor: body.floor ?? null,
       floors_total: body.floors_total ?? body.total_floors ?? null,
-      area_m2: body.area_m2 ?? body.area ?? null,
+      area: body.area_m2 ?? body.area ?? null,
       price: body.price_total ?? body.price ?? null,
       description: body.description ?? null,
       // is_rent removed
