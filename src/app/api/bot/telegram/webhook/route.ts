@@ -318,20 +318,23 @@ async function notifyManagers(
 
     if (!managers || managers.length === 0) return;
 
-    const target = managers[0];
-    if (!target.telegram_id) return;
-
     const msg =
       lang === "ru"
         ? `🔔 Новая заявка!\nГород: ${payload.city || "—"}\nОбъект: ${payload.unitId || "—"}\nЧат: ${payload.chatId}\nID: ${leadId}`
         : `🔔 New lead!\nCity: ${payload.city || "—"}\nUnit: ${payload.unitId || "—"}\nChat: ${payload.chatId}\nID: ${leadId}`;
 
-    await sendMessage(token, String(target.telegram_id), msg);
+    // Conditional: rotate if > 2, otherwise notify all active
+    const targets = managers.length > 2 ? [managers[0]] : managers;
 
-    await sb
-      .from("telegram_managers")
-      .update({ last_notified_at: new Date().toISOString() })
-      .eq("id", target.id);
+    for (const target of targets) {
+      if (target.telegram_id) {
+        await sendMessage(token, String(target.telegram_id), msg);
+        await sb
+          .from("telegram_managers")
+          .update({ last_notified_at: new Date().toISOString() })
+          .eq("id", target.id);
+      }
+    }
   } catch (e) {
     console.error("notifyManagers error:", (e as any)?.message || e);
   }
