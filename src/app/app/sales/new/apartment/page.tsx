@@ -51,7 +51,6 @@ export default function NewApartmentPage() {
   const [photos, setPhotos] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [roomsOpen, setRoomsOpen] = useState(false);
 
   function update(key: string, value: string) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -240,45 +239,15 @@ export default function NewApartmentPage() {
                     onChange={(e) => update("area_m2", e.target.value)}
                   />
                 </div>
-                <div className="p-3 text-center group focus-within:bg-neutral-900/50 relative transition-colors">
+                <div className="p-3 text-center group focus-within:bg-neutral-900/50 transition-colors">
                   <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1 font-semibold">Комнат</label>
-
-                  <button
-                    type="button"
-                    onClick={() => setRoomsOpen(!roomsOpen)}
-                    className="w-full bg-transparent text-center text-neutral-200 outline-none text-sm font-medium tabular-nums py-1"
-                  >
-                    {form.rooms === "0" ? "Студия" : form.rooms}
-                  </button>
-
-                  {roomsOpen && (
-                    <>
-                      <div className="fixed inset-0 z-40" onClick={() => setRoomsOpen(false)}></div>
-                      <div className="absolute top-full left-0 right-0 z-50 mt-1 overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900/90 backdrop-blur-xl shadow-xl">
-                        {[
-                          { v: "0", l: "Студия" },
-                          { v: "1", l: "1" },
-                          { v: "2", l: "2" },
-                          { v: "3", l: "3" },
-                          { v: "4", l: "4" },
-                          { v: "5", l: "5+" },
-                        ].map(opt => (
-                          <button
-                            key={opt.v}
-                            type="button"
-                            onClick={() => {
-                              update("rooms", opt.v);
-                              setRoomsOpen(false);
-                            }}
-                            className={`block w-full px-4 py-2 text-sm text-center transition-colors ${form.rooms === opt.v ? "bg-blue-600 text-white" : "text-neutral-300 hover:bg-neutral-800"
-                              }`}
-                          >
-                            {opt.l}
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
+                  <input
+                    type="number"
+                    className="w-full bg-transparent text-center text-neutral-200 placeholder:text-neutral-700 outline-none text-sm font-medium tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    placeholder="1"
+                    value={form.rooms}
+                    onChange={(e) => update("rooms", e.target.value)}
+                  />
                 </div>
                 <div className="p-3 text-center group focus-within:bg-neutral-900/50 transition-colors">
                   <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1 font-semibold">Этаж</label>
