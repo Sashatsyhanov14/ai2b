@@ -15,6 +15,16 @@ export async function GET() {
             .eq('is_active', true);
 
         if (error) throw error;
+
+        // Fetch Global Instructions
+        const { data: instrData } = await sb
+            .from('bot_settings')
+            .select('value')
+            .eq('key', 'global_instructions')
+            .maybeSingle();
+
+        const globalInstructions = instrData?.value || "";
+
         if (!entries || entries.length === 0) {
             return NextResponse.json({ ok: true, summary: "База знаний пуста." });
         }
@@ -28,12 +38,16 @@ export async function GET() {
         const prompt = `Пожалуйста, составь единую, краткую и структурированную сводку о компании на основе следующих данных из базы знаний. 
 Это должна быть "выжимка" самого важного для сотрудников или руководства.
 Используй списки и четкие заголовки. 
-Важно: пиши только на русском языке.
 
-ДАННЫЕ:
+В ГЛОБАЛЬНЫХ УКАЗАНИЯХ НИЖЕ МОГУТ БЫТЬ ПРАВИЛА О ТОМ, КАК ИМЕННО СТРУКТУРИРОВАТЬ ИЛИ КАКОЙ ТОН ИСПОЛЬЗОВАТЬ. СОБЛЮДАЙ ИХ.
+
+ГЛОБАЛЬНЫЕ УКАЗАНИЯ:
+${globalInstructions}
+
+ДАННЫЕ БАЗЫ ЗНАНИЙ:
 ${combinedText}`;
 
-        const summary = await askLLM(prompt, "Ты ассистент, который делает идеальные резюме (summary) на основе больших объемов данных о компании.", true);
+        const summary = await askLLM(prompt, "Ты ассистент, анализирующий базу знаний и составляющий сводки согласно глобальным правилам компании.", true);
 
         return NextResponse.json({ ok: true, summary });
 
