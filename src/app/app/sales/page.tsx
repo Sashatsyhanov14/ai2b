@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useI18n } from "@/i18n";
 import { Pencil, Trash2 } from "lucide-react";
 import type { Unit } from "@/types/units";
 import { Button } from "@/components/ui/Button";
@@ -24,6 +25,7 @@ function formatStatus(status?: Unit["status"]) {
 }
 
 export default function SalesApartmentsPage() {
+  const { t } = useI18n();
   const router = useRouter();
   const [units, setUnits] = useState<Unit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,7 +71,7 @@ export default function SalesApartmentsPage() {
   }, [units, search]);
 
   async function handleDelete(id: string) {
-    if (!confirm("Удалить объект?")) return;
+    if (!confirm(t("sales.deleteConfirm"))) return;
     try {
       const res = await fetch(`/api/units/${id}`, { method: "DELETE" });
       const json = await res.json().catch(() => ({}));
@@ -78,8 +80,16 @@ export default function SalesApartmentsPage() {
       }
       setUnits((prev) => prev.filter((u) => u.id !== id));
     } catch (e: any) {
-      alert(e?.message || "Не удалось удалить объект");
+      alert(e?.message || t("common.error"));
     }
+  }
+
+  function formatStatus(status?: Unit["status"]) {
+    if (!status) return "—";
+    if (status === "available") return t("sales.status.available");
+    if (status === "reserved") return t("sales.status.reserved");
+    if (status === "sold") return t("sales.status.sold");
+    return status;
   }
 
   return (
@@ -87,19 +97,15 @@ export default function SalesApartmentsPage() {
       <div className="mb-6 flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-neutral-50">
-            Продажа — квартиры
+            {t("sales.title")}
           </h1>
           <p className="mt-1 text-sm text-neutral-400">
-            Управление объектами из таблицы{" "}
-            <span className="font-mono text-xs text-neutral-300">
-              public.units
-            </span>
-            .
+            {t("sales.description")}
           </p>
         </div>
         <div className="flex flex-col items-end gap-2 sm:flex-row">
           <Button onClick={() => router.push("/app/sales/new/apartment")}>
-            + Добавить квартиру
+            {t("sales.addApartment")}
           </Button>
         </div>
       </div>
@@ -109,12 +115,12 @@ export default function SalesApartmentsPage() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Поиск по городу или адресу"
+            placeholder={t("sales.searchPlaceholder")}
             className="w-full rounded-xl border border-neutral-800 bg-neutral-900/70 px-4 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 outline-none focus:border-emerald-500"
           />
         </div>
         <div className="hidden text-xs text-neutral-500 sm:block">
-          Найдено: {filtered.length}
+          {t("sales.found")}: {filtered.length}
         </div>
       </div>
 
@@ -123,14 +129,14 @@ export default function SalesApartmentsPage() {
           <table className="min-w-full text-sm text-neutral-200">
             <thead className="bg-neutral-900/70 text-xs uppercase tracking-wide text-neutral-500">
               <tr>
-                <th className="px-3 py-3 text-left">Город</th>
-                <th className="px-3 py-3 text-left">Адрес</th>
-                <th className="px-3 py-3 text-left">Комнат</th>
-                <th className="px-3 py-3 text-left">Этаж</th>
-                <th className="px-3 py-3 text-left">Площадь, м²</th>
-                <th className="px-3 py-3 text-left">Цена, €</th>
-                <th className="px-3 py-3 text-left">Статус</th>
-                <th className="px-3 py-3 text-right">Действия</th>
+                <th className="px-3 py-3 text-left">{t("sales.fields.city")}</th>
+                <th className="px-3 py-3 text-left">{t("sales.fields.address")}</th>
+                <th className="px-3 py-3 text-left">{t("sales.fields.rooms")}</th>
+                <th className="px-3 py-3 text-left">{t("sales.fields.floor")}</th>
+                <th className="px-3 py-3 text-left">{t("sales.fields.area")}</th>
+                <th className="px-3 py-3 text-left">{t("sales.fields.price")}, €</th>
+                <th className="px-3 py-3 text-left">{t("sales.fields.status")}</th>
+                <th className="px-3 py-3 text-right">{t("managers.actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -140,7 +146,7 @@ export default function SalesApartmentsPage() {
                     colSpan={8}
                     className="px-4 py-6 text-center text-sm text-neutral-400"
                   >
-                    Загрузка списка…
+                    {t("sales.loadingCount")}
                   </td>
                 </tr>
               )}
@@ -150,7 +156,7 @@ export default function SalesApartmentsPage() {
                     colSpan={8}
                     className="px-4 py-6 text-center text-sm text-red-300"
                   >
-                    Ошибка загрузки: {error}
+                    {t("common.error")}: {error}
                   </td>
                 </tr>
               )}
@@ -160,7 +166,7 @@ export default function SalesApartmentsPage() {
                     colSpan={8}
                     className="px-4 py-10 text-center text-sm text-neutral-400"
                   >
-                    Пока нет квартир. Добавьте первую.
+                    {t("sales.empty")}
                   </td>
                 </tr>
               )}
@@ -178,7 +184,7 @@ export default function SalesApartmentsPage() {
                       </div>
                     </td>
                     <td className="px-3 py-3 align-top text-sm">
-                      {u.rooms === 0 ? "Студия" : (u.rooms ?? "—")}
+                      {u.rooms === 0 ? "Studio" : (u.rooms ?? "—")}
                     </td>
                     <td className="px-3 py-3 align-top text-sm">
                       {u.floor != null

@@ -5,33 +5,35 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, DollarSign } from "lucide-react";
 import UploadImage from "@/components/UploadImage";
 import { Button } from "@/components/ui/Button";
+import { useI18n } from "@/i18n";
 
 const COMMON_TAGS = [
-    "Рядом с морем",
-    "Вид на море",
-    "Бассейн",
-    "Парковка",
-    "Газ",
-    "Охрана 24/7",
-    "Фитнес",
-    "Сауна",
-    "Детская площадка",
-    "Рядом школа",
-    "Центр города",
-    "Меблированная",
-    "ВНЖ",
-    "Гражданство",
-    "С ремонтом",
-    "Whitebox",
-    "Черновая",
-    "Новостройка",
-    "Сдача в этом году",
-    "Сдача через 1 год",
-    "Сдача через 2 года",
-    "На этапе котлована",
+    "near_sea",
+    "sea_view",
+    "pool",
+    "parking",
+    "gas",
+    "security",
+    "fitness",
+    "sauna",
+    "playground",
+    "near_school",
+    "city_center",
+    "furnished",
+    "residence_permit",
+    "citizenship",
+    "renovated",
+    "whitebox",
+    "shell",
+    "new_building",
+    "ready_this_year",
+    "ready_1_year",
+    "ready_2_years",
+    "foundation_stage",
 ];
 
 export default function EditApartmentPage({ params }: { params: { id: string } }) {
+    const { t } = useI18n();
     const router = useRouter();
     const id = params.id;
 
@@ -86,10 +88,6 @@ export default function EditApartmentPage({ params }: { params: { id: string } }
                 });
                 setSelectedTags(tags);
 
-                // Load photos
-                // API returns { id, url, ... }
-                // We only need URLs for this UI, but to support efficient updates we might re-upload/sync.
-                // Current logic: we edit "photos" array of strings. On save, we replace all.
                 const pRes = await fetch(`/api/units/${id}/photos`);
                 const pJson = await pRes.json();
                 if (pJson.ok && Array.isArray(pJson.data)) {
@@ -165,7 +163,7 @@ export default function EditApartmentPage({ params }: { params: { id: string } }
 
             router.push("/app/sales");
         } catch (err: any) {
-            setError(err.message ?? "Unknown error");
+            setError(err.message ?? t("common.error"));
         } finally {
             setSaving(false);
         }
@@ -174,7 +172,7 @@ export default function EditApartmentPage({ params }: { params: { id: string } }
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen text-neutral-500">
-                Загрузка...
+                {t("sales.loadingCount")}
             </div>
         );
     }
@@ -190,7 +188,7 @@ export default function EditApartmentPage({ params }: { params: { id: string } }
                     >
                         <ChevronLeft className="h-5 w-5 text-neutral-400" />
                     </button>
-                    <h1 className="text-lg md:text-xl font-semibold text-white">Редактирование</h1>
+                    <h1 className="text-lg md:text-xl font-semibold text-white">{t("sales.editTitle")}</h1>
                 </div>
             </div>
 
@@ -202,9 +200,9 @@ export default function EditApartmentPage({ params }: { params: { id: string } }
                         <div className="bg-neutral-900/40 rounded-2xl border border-neutral-800 p-4 transition-all hover:border-neutral-700 shadow-sm">
                             <div className="mb-4 flex items-center justify-between">
                                 <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
-                                    1. Фотографии
+                                    {t("sales.sections.photos")}
                                 </h2>
-                                <span className="text-[10px] text-neutral-500">{photos.length} загружено</span>
+                                <span className="text-[10px] text-neutral-500">{photos.length} {t("sales.found").toLowerCase()}</span>
                             </div>
 
                             <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
@@ -218,7 +216,7 @@ export default function EditApartmentPage({ params }: { params: { id: string } }
                                         >
                                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                                         </button>
-                                        {i === 0 && <div className="absolute bottom-0 inset-x-0 bg-emerald-600/90 text-white text-[9px] font-bold text-center py-1 uppercase tracking-wide backdrop-blur-md">Главное</div>}
+                                        {i === 0 && <div className="absolute bottom-0 inset-x-0 bg-emerald-600/90 text-white text-[9px] font-bold text-center py-1 uppercase tracking-wide backdrop-blur-md">{t("sales.sections.photos").split(' ')[1]}</div>}
                                     </div>
                                 ))}
                                 <div className="aspect-square">
@@ -238,7 +236,7 @@ export default function EditApartmentPage({ params }: { params: { id: string } }
                     {/* 2. MAIN INFO */}
                     <section>
                         <h2 className="mb-3 text-xs font-semibold text-neutral-400 uppercase tracking-wider ml-1">
-                            2. Основное
+                            {t("sales.sections.main")}
                         </h2>
                         <div className="rounded-2xl border border-neutral-700 overflow-hidden bg-neutral-900/30 shadow-sm">
 
@@ -274,7 +272,7 @@ export default function EditApartmentPage({ params }: { params: { id: string } }
                             {/* Row 2: Location */}
                             <div className="grid grid-cols-1 md:grid-cols-12 border-b border-neutral-800">
                                 <div className="md:col-span-4 p-3 border-b md:border-b-0 md:border-r border-neutral-800 relative group focus-within:bg-neutral-900/50 transition-colors">
-                                    <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1 font-semibold">Город</label>
+                                    <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1 font-semibold">{t("sales.fields.city")}</label>
                                     <input
                                         className="w-full bg-transparent text-neutral-200 placeholder:text-neutral-700 outline-none text-sm font-medium"
                                         placeholder="Antalya"
@@ -283,7 +281,7 @@ export default function EditApartmentPage({ params }: { params: { id: string } }
                                     />
                                 </div>
                                 <div className="md:col-span-8 p-3 relative group focus-within:bg-neutral-900/50 transition-colors">
-                                    <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1 font-semibold">Адрес / Район</label>
+                                    <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1 font-semibold">{t("sales.fields.address")}</label>
                                     <input
                                         className="w-full bg-transparent text-neutral-200 placeholder:text-neutral-700 outline-none text-sm font-medium"
                                         placeholder="Liman Mah., 25. Sk"
@@ -296,7 +294,7 @@ export default function EditApartmentPage({ params }: { params: { id: string } }
                             {/* Row 3: Specs */}
                             <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-neutral-800">
                                 <div className="p-3 text-center group focus-within:bg-neutral-900/50 transition-colors">
-                                    <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1 font-semibold">Площадь м²</label>
+                                    <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1 font-semibold">{t("sales.fields.area")}</label>
                                     <input
                                         type="number"
                                         className="w-full bg-transparent text-center text-neutral-200 placeholder:text-neutral-700 outline-none text-sm font-medium tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
@@ -306,17 +304,17 @@ export default function EditApartmentPage({ params }: { params: { id: string } }
                                     />
                                 </div>
                                 <div className="p-3 text-center group focus-within:bg-neutral-900/50 transition-colors">
-                                    <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1 font-semibold">Комнат</label>
+                                    <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1 font-semibold">{t("sales.fields.rooms")}</label>
                                     <input
                                         type="text"
                                         className="w-full bg-transparent text-center text-neutral-200 placeholder:text-neutral-700 outline-none text-sm font-medium"
-                                        placeholder="1 или Студия"
+                                        placeholder="1 или Studio"
                                         value={form.rooms}
                                         onChange={(e) => update("rooms", e.target.value)}
                                     />
                                 </div>
                                 <div className="p-3 text-center group focus-within:bg-neutral-900/50 transition-colors">
-                                    <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1 font-semibold">Этаж</label>
+                                    <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1 font-semibold">{t("sales.fields.floor")}</label>
                                     <input
                                         type="number"
                                         className="w-full bg-transparent text-center text-neutral-200 placeholder:text-neutral-700 outline-none text-sm font-medium tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
@@ -326,7 +324,7 @@ export default function EditApartmentPage({ params }: { params: { id: string } }
                                     />
                                 </div>
                                 <div className="p-3 text-center group focus-within:bg-neutral-900/50 transition-colors">
-                                    <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1 font-semibold">Всего этажей</label>
+                                    <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1 font-semibold">{t("sales.fields.totalFloors")}</label>
                                     <input
                                         type="number"
                                         className="w-full bg-transparent text-center text-neutral-200 placeholder:text-neutral-700 outline-none text-sm font-medium tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
@@ -342,7 +340,7 @@ export default function EditApartmentPage({ params }: { params: { id: string } }
                     {/* 3. TAGS */}
                     <section>
                         <h2 className="mb-3 text-xs font-semibold text-neutral-400 uppercase tracking-wider ml-1">
-                            3. Хештеги
+                            {t("sales.sections.tags")}
                         </h2>
                         <div className="flex flex-wrap gap-2">
                             {COMMON_TAGS.map(tag => {
@@ -357,7 +355,7 @@ export default function EditApartmentPage({ params }: { params: { id: string } }
                                             : "bg-neutral-900/50 border-neutral-800 text-neutral-400 hover:border-neutral-700 hover:text-neutral-200"
                                             }`}
                                     >
-                                        {isSelected ? "✓ " : ""}{tag}
+                                        {isSelected ? "✓ " : ""}{t(`sales.tags.${tag}` as any)}
                                     </button>
                                 );
                             })}
@@ -369,12 +367,12 @@ export default function EditApartmentPage({ params }: { params: { id: string } }
                         <details className="group" open={!!form.description}>
                             <summary className="list-none cursor-pointer flex items-center gap-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider ml-1 hover:text-neutral-300 transition-colors">
                                 <span className="group-open:rotate-90 transition-transform text-neutral-600">▸</span>
-                                Добавить описание (необязательно)
+                                {t("sales.sections.description")}
                             </summary>
                             <div className="mt-3">
                                 <textarea
                                     className="w-full h-24 rounded-xl border border-neutral-800 bg-neutral-900/30 p-4 text-neutral-200 outline-none focus:border-neutral-700 transition-all text-sm resize-none placeholder:text-neutral-700"
-                                    placeholder="Заметки для бота..."
+                                    placeholder={t("sales.fields.descriptionPlaceholder")}
                                     value={form.description}
                                     onChange={(e) => update("description", e.target.value)}
                                 />
@@ -384,16 +382,16 @@ export default function EditApartmentPage({ params }: { params: { id: string } }
                         <details className="group" open={!!form.ai_instructions}>
                             <summary className="list-none cursor-pointer flex items-center gap-2 text-xs font-semibold text-rose-500/80 uppercase tracking-wider ml-1 hover:text-rose-400 transition-colors">
                                 <span className="group-open:rotate-90 transition-transform text-rose-600">▸</span>
-                                Данные для реально заинтересованных
+                                {t("sales.sections.aiData")}
                             </summary>
                             <div className="mt-3">
                                 <textarea
                                     className="w-full h-24 rounded-xl border border-rose-900/20 bg-rose-900/5 p-4 text-neutral-200 outline-none focus:border-rose-800/40 transition-all text-sm resize-none placeholder:text-neutral-700"
-                                    placeholder="То, что должен знать ИИ, но говорить только сильно заинтересованным (например: условия торга, нюансы по документам...)"
+                                    placeholder={t("sales.fields.aiInstructionsPlaceholder")}
                                     value={form.ai_instructions}
                                     onChange={(e) => update("ai_instructions", e.target.value)}
                                 />
-                                <p className="mt-2 text-[10px] text-neutral-500 ml-1 italic">Эти данные ИИ раскроет только если почувствует реальный интерес клиента.</p>
+                                <p className="mt-2 text-[10px] text-neutral-500 ml-1 italic">{t("sales.sections.aiInstructions")}</p>
                             </div>
                         </details>
                     </section>
@@ -416,7 +414,7 @@ export default function EditApartmentPage({ params }: { params: { id: string } }
                                 : "bg-blue-600 hover:bg-blue-500 shadow-blue-900/30"
                                 }`}
                         >
-                            {saving ? "Сохранение..." : "Сохранить изменения"}
+                            {saving ? t("common.saving") : t("common.save")}
                         </Button>
                     </div>
 
