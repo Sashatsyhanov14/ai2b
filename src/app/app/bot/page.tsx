@@ -41,6 +41,7 @@ type TelegramManager = {
     telegram_id: number;
     name: string | null;
     is_active: boolean;
+    preferred_lang: string;
     created_at: string;
 };
 
@@ -93,6 +94,7 @@ export default function UnifiedBotPage() {
     const [managersLoading, setManagersLoading] = useState(true);
     const [managerError, setManagerError] = useState<string | null>(null);
     const [managerSaving, setManagerSaving] = useState(false);
+    const [managerLang, setManagerLang] = useState("ru");
 
     // --- Load Data ---
     useEffect(() => {
@@ -300,13 +302,18 @@ export default function UnifiedBotPage() {
             const res = await fetch("/api/telegram-managers", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ telegram_id: trimmedId, name: managerName.trim() || null }),
+                body: JSON.stringify({
+                    telegram_id: trimmedId,
+                    name: managerName.trim() || null,
+                    preferred_lang: managerLang
+                }),
             });
             const json = await res.json().catch(() => ({}));
             if (res.ok && json?.ok && json.data) {
                 setManagers(prev => [json.data as TelegramManager, ...prev]);
                 setManagerName("");
                 setManagerTelegramId("");
+                setManagerLang("ru");
             } else {
                 setManagerError(json?.error || "Не удалось добавить менеджера.");
             }
@@ -348,6 +355,22 @@ export default function UnifiedBotPage() {
         } catch (err: any) {
             console.error("Toggle manager error:", err);
             alert("Ошибка при переключении статуса: " + err.message);
+        }
+    }
+
+    async function handleUpdateManagerLang(id: string, lang: string) {
+        try {
+            const res = await fetch(`/api/telegram-managers/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ preferred_lang: lang }),
+            });
+            const json = await res.json().catch(() => ({}));
+            if (res.ok && json?.ok && json.data) {
+                setManagers(prev => prev.map(m => m.id === json.data.id ? json.data : m));
+            }
+        } catch (err: any) {
+            console.error("Update manager lang error:", err);
         }
     }
 
@@ -637,6 +660,18 @@ export default function UnifiedBotPage() {
                                     placeholder="123456789"
                                 />
                             </div>
+                            <div className="w-32 space-y-2">
+                                <label className="text-xs font-medium text-neutral-400 ml-1">Язык</label>
+                                <select
+                                    className="w-full rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-100 outline-none focus:border-blue-500 transition-all cursor-pointer"
+                                    value={managerLang}
+                                    onChange={(e) => setManagerLang(e.target.value)}
+                                >
+                                    <option value="ru">RU</option>
+                                    <option value="en">EN</option>
+                                    <option value="tr">TR</option>
+                                </select>
+                            </div>
                             <Button type="submit" disabled={!managerTelegramId.trim() || managerSaving} className="h-[46px] px-8">
                                 Добавить
                             </Button>
@@ -650,6 +685,7 @@ export default function UnifiedBotPage() {
                                 <tr className="border-b border-neutral-800">
                                     <th className="px-4 py-3 text-left">Имя</th>
                                     <th className="px-4 py-3 text-left font-mono text-[10px] text-neutral-500 uppercase">ID</th>
+                                    <th className="px-4 py-3 text-center">Язык</th>
                                     <th className="px-4 py-3 text-center">Статус</th>
                                     <th className="px-4 py-3 text-right">Действия</th>
                                 </tr>
@@ -659,6 +695,17 @@ export default function UnifiedBotPage() {
                                     <tr key={m.id} className="hover:bg-white/5 transition-colors">
                                         <td className="px-4 py-3 font-medium">{m.name || "Без имени"}</td>
                                         <td className="px-4 py-3 text-neutral-500 font-mono">{m.telegram_id}</td>
+                                        <td className="px-4 py-3 text-center">
+                                            <select
+                                                className="bg-transparent border-none text-xs text-neutral-400 outline-none cursor-pointer hover:text-white transition-colors"
+                                                value={m.preferred_lang || "ru"}
+                                                onChange={(e) => handleUpdateManagerLang(m.id, e.target.value)}
+                                            >
+                                                <option value="ru">RU</option>
+                                                <option value="en">EN</option>
+                                                <option value="tr">TR</option>
+                                            </select>
+                                        </td>
                                         <td className="px-4 py-3 align-middle">
                                             <div className="flex items-center justify-center">
                                                 <button

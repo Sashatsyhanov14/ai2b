@@ -22,6 +22,9 @@ export async function PATCH(req: Request, { params }: Params) {
   if (typeof body.is_active === "boolean") {
     update.is_active = body.is_active;
   }
+  if (typeof body.preferred_lang === "string") {
+    update.preferred_lang = body.preferred_lang;
+  }
 
   if (!Object.keys(update).length) {
     return NextResponse.json(
@@ -35,7 +38,7 @@ export async function PATCH(req: Request, { params }: Params) {
     .from("telegram_managers")
     .update(update)
     .eq("id", id)
-    .select("id, telegram_id, name, is_active, created_at")
+    .select("id, telegram_id, name, is_active, preferred_lang, created_at")
     .maybeSingle();
 
   if (error) {

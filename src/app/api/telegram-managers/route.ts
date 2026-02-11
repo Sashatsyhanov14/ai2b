@@ -5,7 +5,7 @@ export async function GET() {
   const sb = getServerClient();
   const { data, error } = await sb
     .from("telegram_managers")
-    .select("id, telegram_id, name, is_active, created_at")
+    .select("id, telegram_id, name, is_active, preferred_lang, created_at")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -49,13 +49,14 @@ export async function POST(req: Request) {
     telegram_id: telegramIdNum,
     name: typeof body.name === "string" ? body.name.trim() || null : null,
     is_active: body.is_active !== false,
+    preferred_lang: typeof body.preferred_lang === "string" ? body.preferred_lang : "ru",
   };
 
   const sb = getServerClient();
   const { data, error } = await sb
     .from("telegram_managers")
     .insert(row)
-    .select("id, telegram_id, name, is_active, created_at")
+    .select("id, telegram_id, name, is_active, preferred_lang, created_at")
     .single();
 
   if (error) {

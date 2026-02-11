@@ -275,6 +275,8 @@ async function handleCreateLead(
         budget_min: args?.budget_min || null,
         budget_max: args?.budget_max || null,
         chat_id: chatId,
+        tg_username: (global as any).tgUsername,
+        tg_full_name: (global as any).tgFullName,
       },
       status: "new",
     });
@@ -284,6 +286,8 @@ async function handleCreateLead(
       city: args?.city || null,
       unitId: args?.unit_id || null,
       chatId,
+      tgUsername: (global as any).tgUsername, // Using global to pass from POST to handleCreateLead context
+      tgFullName: (global as any).tgFullName,
     });
 
     const msg =
@@ -308,29 +312,78 @@ async function notifyManagers(
   lang: Lang,
   token: string,
   leadId: string,
-  payload: { city?: string | null; unitId?: string | null; chatId: string }
+  payload: { city?: string | null; unitId?: string | null; chatId: string; tgUsername?: string | null; tgFullName?: string | null }
 ) {
   try {
     const sb = getServerClient();
+
+    // 1. Fetch lead details
+    const { data: lead } = await sb.from("leads").select("*").eq("id", leadId).single();
+    if (!lead) return;
+
+    // 2. Fetch conversation history for summary
+    const { data: session } = await sb.from("sessions").select("id").eq("chat_id", payload.chatId).eq("bot_id", "telegram").single();
+    let conversationHistory = "";
+    if (session) {
+      const messages = await listMessages(session.id, 20);
+      conversationHistory = messages
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        .map(m => `${m.role.toUpperCase()}: ${m.content}`)
+        .join("\n");
+    }
+
+    // 3. AISummary Prompt (Requested Format)
+    const summaryPrompt = `Твоя задача — проанализировать диалог между AI-брокером и Клиентом и составить Краткую Карточку Лида для менеджера.
+
+Входящие данные:
+История переписки:
+"""
+${conversationHistory || "История недоступна"}
+"""
+
+ВЫВЕДИ ОТВЕТ СТРОГО В ТАКОМ ФОРМАТЕ (без лишних слов):
+
+🔥 **НОВЫЙ ЛИД (ТУРЦИЯ)**
+👤 **Язык:** [Русский / English / Türkçe]
+💰 **Бюджет:** [Бюджет клиента]
+🎯 **Цель:** [Инвестиции / ПМЖ / Отдых / Неизвестно]
+🏠 **Интересовали объекты:** [Какие объекты смотрел/обсуждал]
+⚠️ **Важные детали:** [Оплата криптой, питомцы, гражданство и т.д.]
+📊 **Температура:** [Холодный / Теплый / Горячий]
+
+Также добавь советы (например по национальности как лучше общаться и тд).
+Номер телефона: ${lead.phone || "не указан"}
+UserName в ТГ: ${payload.tgUsername ? `@${payload.tgUsername}` : "не указан"}
+Имя: ${payload.tgFullName || lead.name || "не указано"}
+`;
+
+    const summary = await askLLM(summaryPrompt, "Ты — эксперт CRM, анализирующий диалоги и создающий карточки лидов для менеджеров по недвижимости в Турции.", true);
+
+    // 4. Update Lead with Summary
+    await sb.from("leads").update({ notes: summary }).eq("id", leadId);
+
+    // 5. Notify Managers
     const { data: managers } = await sb
       .from("telegram_managers")
-      .select("id, telegram_id, name")
+      .select("id, telegram_id, name, preferred_lang")
       .eq("is_active", true)
       .order("last_notified_at", { ascending: true, nullsFirst: true });
 
     if (!managers || managers.length === 0) return;
-
-    const msg =
-      lang === "ru"
-        ? `🔔 Новая заявка!\nГород: ${payload.city || "—"}\nОбъект: ${payload.unitId || "—"}\nЧат: ${payload.chatId}\nID: ${leadId}`
-        : `🔔 New lead!\nCity: ${payload.city || "—"}\nUnit: ${payload.unitId || "—"}\nChat: ${payload.chatId}\nID: ${leadId}`;
 
     // Conditional: rotate if > 2, otherwise notify all active
     const targets = managers.length > 2 ? [managers[0]] : managers;
 
     for (const target of targets) {
       if (target.telegram_id) {
-        await sendMessage(token, String(target.telegram_id), msg);
+        // Generate summary in manager's language if not Russian
+        let finalSummary = summary;
+        if (target.preferred_lang && target.preferred_lang !== "ru") {
+          const transPrompt = `Translate this lead card into ${target.preferred_lang === 'en' ? 'English' : 'Turkish'}. Keep the emojis and structure exactly the same.\n\n${summary}`;
+          finalSummary = await askLLM(transPrompt, "You are a professional translator for real estate leads.", true);
+        }
+
+        await sendMessage(token, String(target.telegram_id), finalSummary);
         await sb
           .from("telegram_managers")
           .update({ last_notified_at: new Date().toISOString() })
@@ -445,6 +498,15 @@ export async function POST(req: NextRequest) {
     const lang = detectLang(langCode);
     const trimmed = text.trim();
     const botId = process.env.TELEGRAM_BOT_ID || "telegram";
+
+    const tgUsername = message?.from?.username || update?.message?.from?.username || null;
+    const tgFirstName = message?.from?.first_name || update?.message?.from?.first_name || "";
+    const tgLastName = message?.from?.last_name || update?.message?.from?.last_name || "";
+    const tgFullName = `${tgFirstName} ${tgLastName}`.trim() || "не указано";
+
+    // Set globals for tools called deep in branching
+    (global as any).tgUsername = tgUsername;
+    (global as any).tgFullName = tgFullName;
 
     // Send typing indicator
     try {
