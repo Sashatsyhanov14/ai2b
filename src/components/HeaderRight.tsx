@@ -9,11 +9,11 @@ function cx(...c: (string | boolean | undefined)[]) {
   return c.filter(Boolean).join(" ");
 }
 
-function getInitials(name: string) {
-  if (!name) return "Г"; // Гость
+function getInitials(name: string, fallback: string = "G") {
+  if (!name) return fallback.toLocaleUpperCase(undefined);
   const parts = name.trim().split(/\s+/);
-  const first = (parts[0]?.[0] || "Г").toLocaleUpperCase("ru-RU");
-  const second = (parts[1]?.[0] || "").toLocaleUpperCase("ru-RU");
+  const first = (parts[0]?.[0] || fallback).toLocaleUpperCase(undefined);
+  const second = (parts[1]?.[0] || "").toLocaleUpperCase(undefined);
   return `${first}${second}`;
 }
 
@@ -32,7 +32,7 @@ export default function HeaderRight() {
           title={t('header.account')}
         >
           <span className="text-[11px] font-semibold select-none">
-            {typeof window !== 'undefined' ? getInitials(localStorage.getItem('dev_name') || 'Гость') : 'Г'}
+            {typeof window !== 'undefined' ? getInitials(localStorage.getItem('dev_name') || t('common.guest'), t('common.guest')[0]) : t('common.guest')[0].toLocaleUpperCase(undefined)}
           </span>
         </Menu.Button>
 

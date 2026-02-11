@@ -52,14 +52,7 @@ type BotInstruction = {
 
 type Tab = "dashboard" | "knowledge" | "managers" | "instructions";
 
-const CATEGORIES = [
-    { value: "about", label: "О компании" },
-    { value: "general", label: "Знания" },
-    { value: "instructions", label: "Указания" },
-    { value: "license", label: "Лицензии" },
-    { value: "certificate", label: "Сертификаты" },
-    { value: "presentation", label: "Презентации" },
-];
+// --- Constants ---
 
 function getFileIcon(type: string | null) {
     if (type === "image") return ImageIcon;
@@ -71,6 +64,15 @@ function getFileIcon(type: string | null) {
 export default function UnifiedBotPage() {
     const { t } = useI18n();
     const [activeTab, setActiveTab] = useState<Tab>("dashboard");
+
+    const CATEGORIES = [
+        { value: "about", label: t("bot.categories.about") },
+        { value: "general", label: t("bot.categories.general") },
+        { value: "instructions", label: t("bot.categories.instructions") },
+        { value: "license", label: t("bot.categories.license") },
+        { value: "certificate", label: t("bot.categories.certificate") },
+        { value: "presentation", label: t("bot.categories.presentation") },
+    ];
 
     // --- State: Knowledge Base ---
     const [files, setFiles] = useState<CompanyFile[]>([]);
@@ -273,7 +275,7 @@ export default function UnifiedBotPage() {
     }
 
     async function handleDeleteFile(id: string) {
-        if (!confirm("Удалить файл?")) return;
+        if (!confirm(t("common.delete") + "?")) return;
         try {
             console.log("Attempting to delete file:", id);
             const res = await fetch(`/api/company/files?id=${id}`, { method: 'DELETE' });
@@ -286,7 +288,7 @@ export default function UnifiedBotPage() {
             }
         } catch (e: any) {
             console.error("Delete file error:", e);
-            alert("Ошибка при удалении файла: " + e.message);
+            alert(t("common.error") + ": " + e.message);
         }
     }
 
@@ -315,7 +317,7 @@ export default function UnifiedBotPage() {
                 setManagerTelegramId("");
                 setManagerLang("ru");
             } else {
-                setManagerError(json?.error || "Не удалось добавить менеджера.");
+                setManagerError(json?.error || t("common.error"));
             }
         } finally {
             setManagerSaving(false);
@@ -323,18 +325,18 @@ export default function UnifiedBotPage() {
     }
 
     async function handleDeleteManager(id: string) {
-        if (!confirm("Удалить менеджера?")) return;
+        if (!confirm(t("common.delete") + "?")) return;
         try {
             const res = await fetch(`/api/telegram-managers/${id}`, { method: "DELETE" });
             if (res.ok) {
                 setManagers(prev => prev.filter(m => m.id !== id));
             } else {
                 const json = await res.json().catch(() => ({}));
-                alert("Ошибка при удалении менеджера: " + (json.error || "Неизвестная ошибка"));
+                alert(t("common.error") + ": " + (json.error || "Error"));
             }
         } catch (err: any) {
             console.error("Delete manager error:", err);
-            alert("Ошибка при удалении менеджера: " + err.message);
+            alert(t("common.error") + ": " + err.message);
         }
     }
 
@@ -349,12 +351,12 @@ export default function UnifiedBotPage() {
             if (res.ok && json?.ok && json.data) {
                 setManagers(prev => prev.map(m => m.id === json.data.id ? json.data : m));
             } else {
-                const errorText = json?.error || "Не удалось обновить статус";
+                const errorText = json?.error || t("common.error");
                 alert(errorText);
             }
         } catch (err: any) {
             console.error("Toggle manager error:", err);
-            alert("Ошибка при переключении статуса: " + err.message);
+            alert(t("common.error") + ": " + err.message);
         }
     }
 
@@ -383,9 +385,9 @@ export default function UnifiedBotPage() {
         <div className="mx-auto max-w-6xl px-6 py-6">
             <header className="mb-8 flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-neutral-50">Настройки бота</h1>
+                    <h1 className="text-3xl font-bold text-neutral-50">{t("bot.title")}</h1>
                     <p className="mt-1 text-sm text-neutral-400">
-                        Управление знаниями бота, статистика и менеджеры.
+                        {t("bot.description")}
                     </p>
                 </div>
             </header>
@@ -397,28 +399,28 @@ export default function UnifiedBotPage() {
                     className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${activeTab === "dashboard" ? "bg-zinc-800 text-white shadow-sm" : "text-neutral-400 hover:text-neutral-200"
                         }`}
                 >
-                    <LayoutDashboard className="h-4 w-4" /> Главная
+                    <LayoutDashboard className="h-4 w-4" /> {t("bot.tabs.main")}
                 </button>
                 <button
                     onClick={() => setActiveTab("instructions")}
                     className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${activeTab === "instructions" ? "bg-zinc-800 text-white shadow-sm" : "text-neutral-400 hover:text-neutral-200"
                         }`}
                 >
-                    <FileText className="h-4 w-4" /> Указания
+                    <FileText className="h-4 w-4" /> {t("bot.tabs.instructions")}
                 </button>
                 <button
                     onClick={() => setActiveTab("knowledge")}
                     className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${activeTab === "knowledge" ? "bg-zinc-800 text-white shadow-sm" : "text-neutral-400 hover:text-neutral-200"
                         }`}
                 >
-                    <Database className="h-4 w-4" /> База знаний
+                    <Database className="h-4 w-4" /> {t("bot.tabs.knowledge")}
                 </button>
                 <button
                     onClick={() => setActiveTab("managers")}
                     className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${activeTab === "managers" ? "bg-zinc-800 text-white shadow-sm" : "text-neutral-400 hover:text-neutral-200"
                         }`}
                 >
-                    <SettingsIcon className="h-4 w-4" /> Менеджеры
+                    <SettingsIcon className="h-4 w-4" /> {t("bot.tabs.managers")}
                 </button>
             </div>
 
@@ -428,7 +430,7 @@ export default function UnifiedBotPage() {
                     <section className="grid gap-4 md:grid-cols-2">
                         <div className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6">
                             <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-neutral-500 mb-4">
-                                <BarChart3 className="h-3 w-3" /> Диалогов в Telegram
+                                <BarChart3 className="h-3 w-3" /> {t("dashboard.stats.dialogs")}
                             </div>
                             <div className="text-4xl font-bold text-neutral-50">
                                 {sessionsCount ?? "0"}
@@ -436,7 +438,7 @@ export default function UnifiedBotPage() {
                         </div>
                         <div className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6">
                             <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-neutral-500 mb-4">
-                                <Users className="h-3 w-3" /> Лидов за всё время
+                                <Users className="h-3 w-3" /> {t("dashboard.stats.leads")}
                             </div>
                             <div className="text-4xl font-bold text-neutral-50">
                                 {leads.length}
@@ -445,16 +447,16 @@ export default function UnifiedBotPage() {
                     </section>
 
                     <section className="space-y-4">
-                        <h2 className="text-lg font-semibold text-neutral-200">Последние лиды</h2>
+                        <h2 className="text-lg font-semibold text-neutral-200">{t("dashboard.recentLeads")}</h2>
                         <div className="overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900/20 backdrop-blur-sm">
                             <div className="max-h-[60vh] overflow-y-auto">
                                 <table className="w-full text-sm text-neutral-300">
                                     <thead className="sticky top-0 bg-neutral-900/80 backdrop-blur-md text-xs uppercase tracking-wide text-neutral-500">
                                         <tr>
-                                            <th className="px-4 py-3 text-left font-semibold">Имя</th>
-                                            <th className="px-4 py-3 text-left font-semibold">Телефон</th>
+                                            <th className="px-4 py-3 text-left font-semibold">{t("leads.table.name")}</th>
+                                            <th className="px-4 py-3 text-left font-semibold">{t("leads.table.phone")}</th>
                                             <th className="px-4 py-3 text-left font-semibold">Email</th>
-                                            <th className="px-4 py-3 text-left font-semibold">Создан</th>
+                                            <th className="px-4 py-3 text-left font-semibold">{t("leads.table.createdAt")}</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-neutral-800/50">
@@ -469,7 +471,7 @@ export default function UnifiedBotPage() {
                                             </tr>
                                         ))}
                                         {leads.length === 0 && !loadingLeads && (
-                                            <tr><td colSpan={4} className="p-8 text-center text-neutral-500 italic">Пока нет лидов.</td></tr>
+                                            <tr><td colSpan={4} className="p-8 text-center text-neutral-500 italic">{t("leads.empty")}</td></tr>
                                         )}
                                     </tbody>
                                 </table>
@@ -487,12 +489,12 @@ export default function UnifiedBotPage() {
                     <section className="space-y-4">
                         <div className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6">
                             <h2 className="text-sm font-semibold text-neutral-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <Plus className="h-4 w-4" /> Добавить информацию
+                                <Plus className="h-4 w-4" /> {t("bot.knowledge.addNote")}
                             </h2>
                             <div className="space-y-4">
                                 <textarea
                                     className="w-full h-32 bg-neutral-950 border border-neutral-800 rounded-xl p-4 text-sm text-neutral-300 leading-relaxed outline-none focus:border-blue-700 transition-all resize-none"
-                                    placeholder="Просто вставьте текст здесь (например: правила компании, часы работы, условия бронирования)..."
+                                    placeholder={t("bot.knowledge.placeholder")}
                                     value={quickNote}
                                     onChange={(e) => setQuickNote(e.target.value)}
                                 />
@@ -502,7 +504,7 @@ export default function UnifiedBotPage() {
                                             flex items-center gap-2 px-4 py-2 rounded-xl border border-neutral-800 bg-neutral-950 text-sm font-medium text-neutral-400 cursor-pointer transition-all hover:bg-neutral-900 hover:text-white
                                             ${saving ? 'opacity-50 cursor-not-allowed' : ''}
                                         `}>
-                                            <ImageIcon className="h-4 w-4" /> Фото/Документы
+                                            <ImageIcon className="h-4 w-4" /> {t("bot.knowledge.upload")}
                                             <input type="file" multiple className="hidden"
                                                 onChange={(e) => {
                                                     setForm(prev => ({ ...prev, category: 'general' }));
@@ -517,7 +519,7 @@ export default function UnifiedBotPage() {
                                         onClick={async () => {
                                             setSaving(true);
                                             const { error } = await supabase.from("company_files").insert({
-                                                name: `Заметка ${new Date().toLocaleString()}`,
+                                                name: `${t("bot.knowledge.addNote")} ${new Date().toLocaleString()}`,
                                                 file_type: "text",
                                                 url: "manual-entry",
                                                 category: "general",
@@ -533,7 +535,7 @@ export default function UnifiedBotPage() {
                                             setSaving(false);
                                         }}
                                     >
-                                        {saving ? "Сохранение..." : "Добавить заметку"}
+                                        {saving ? t("common.loading") : t("bot.knowledge.addNote")}
                                     </Button>
                                 </div>
                             </div>
@@ -542,7 +544,7 @@ export default function UnifiedBotPage() {
 
                     {/* 2. KNOWLEDGE LIST */}
                     <section className="space-y-6">
-                        <h2 className="text-sm font-semibold text-neutral-400 uppercase tracking-widest ml-1">Список знаний</h2>
+                        <h2 className="text-sm font-semibold text-neutral-400 uppercase tracking-widest ml-1">{t("bot.knowledge.title")}</h2>
                         <div className="space-y-8">
                             {groupedFiles.map((group) => (
                                 <div key={group.value} className="space-y-4">
@@ -604,7 +606,7 @@ export default function UnifiedBotPage() {
                             <div className="relative">
                                 <div className="flex items-center justify-between mb-6">
                                     <h2 className="text-xl font-bold text-neutral-50 flex items-center gap-3">
-                                        <Sparkles className="h-5 w-5 text-blue-400" /> Итоговое резюме от ИИ
+                                        <Sparkles className="h-5 w-5 text-blue-400" /> {t("bot.knowledge.summary")}
                                     </h2>
                                     <Button
                                         variant="secondary"
@@ -613,19 +615,19 @@ export default function UnifiedBotPage() {
                                         className="bg-neutral-900/50 hover:bg-neutral-800 border-neutral-700 h-8 px-3 text-xs"
                                     >
                                         {loadingSummary ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Plus className="h-3 w-3 mr-2 rotate-45" />}
-                                        Обновить сводку
+                                        {t("dashboard.update")}
                                     </Button>
                                 </div>
 
                                 {loadingSummary ? (
                                     <div className="flex flex-col items-center justify-center py-12 space-y-4">
                                         <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                                        <p className="text-sm text-neutral-400 animate-pulse">ИИ собирает информацию из всех ваших файлов...</p>
+                                        <p className="text-sm text-neutral-400 animate-pulse">{t("bot.knowledge.processing")}</p>
                                     </div>
                                 ) : (
                                     <div className="prose prose-invert prose-blue max-w-none">
                                         <div className="text-neutral-300 leading-relaxed text-sm whitespace-pre-wrap font-sans">
-                                            {totalSummary || "Загрузите информацию или добавьте заметку, чтобы ИИ составил общую сводку вашей компании."}
+                                            {totalSummary || t("bot.knowledge.emptySummary")}
                                         </div>
                                     </div>
                                 )}
@@ -640,10 +642,10 @@ export default function UnifiedBotPage() {
             {activeTab === "managers" && (
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
                     <section className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6">
-                        <h2 className="text-lg font-semibold text-neutral-200 mb-6">Telegram‑менеджеры</h2>
+                        <h2 className="text-lg font-semibold text-neutral-200 mb-6">{t("bot.managers.title")}</h2>
                         <form onSubmit={handleAddManager} className="flex flex-col gap-4 md:flex-row md:items-end">
                             <div className="flex-1 space-y-2">
-                                <label className="text-xs font-medium text-neutral-400 ml-1">Имя</label>
+                                <label className="text-xs font-medium text-neutral-400 ml-1">{t("bot.managers.name")}</label>
                                 <input
                                     className="w-full rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-100 outline-none focus:border-blue-500 transition-all"
                                     value={managerName}
@@ -652,7 +654,7 @@ export default function UnifiedBotPage() {
                                 />
                             </div>
                             <div className="flex-1 space-y-2">
-                                <label className="text-xs font-medium text-neutral-400 ml-1">Telegram ID</label>
+                                <label className="text-xs font-medium text-neutral-400 ml-1">{t("bot.managers.tgId")}</label>
                                 <input
                                     className="w-full rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-100 outline-none focus:border-blue-500 transition-all"
                                     value={managerTelegramId}
@@ -661,7 +663,7 @@ export default function UnifiedBotPage() {
                                 />
                             </div>
                             <div className="w-32 space-y-2">
-                                <label className="text-xs font-medium text-neutral-400 ml-1">Язык</label>
+                                <label className="text-xs font-medium text-neutral-400 ml-1">{t("bot.managers.lang")}</label>
                                 <select
                                     className="w-full rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-100 outline-none focus:border-blue-500 transition-all cursor-pointer"
                                     value={managerLang}
@@ -673,7 +675,7 @@ export default function UnifiedBotPage() {
                                 </select>
                             </div>
                             <Button type="submit" disabled={!managerTelegramId.trim() || managerSaving} className="h-[46px] px-8">
-                                Добавить
+                                {t("bot.managers.add")}
                             </Button>
                         </form>
                         {managerError && <p className="mt-4 text-xs text-red-400">{managerError}</p>}
@@ -683,11 +685,11 @@ export default function UnifiedBotPage() {
                         <table className="w-full text-sm text-neutral-300">
                             <thead className="bg-neutral-900/80 backdrop-blur-md text-xs uppercase tracking-wide text-neutral-500">
                                 <tr className="border-b border-neutral-800">
-                                    <th className="px-4 py-3 text-left">Имя</th>
-                                    <th className="px-4 py-3 text-left font-mono text-[10px] text-neutral-500 uppercase">ID</th>
-                                    <th className="px-4 py-3 text-center">Язык</th>
-                                    <th className="px-4 py-3 text-center">Статус</th>
-                                    <th className="px-4 py-3 text-right">Действия</th>
+                                    <th className="px-4 py-3 text-left">{t("bot.managers.name")}</th>
+                                    <th className="px-4 py-3 text-left font-mono text-[10px] text-neutral-500 uppercase">{t("bot.managers.tgId")}</th>
+                                    <th className="px-4 py-3 text-center">{t("bot.managers.lang")}</th>
+                                    <th className="px-4 py-3 text-center">{t("bot.managers.status")}</th>
+                                    <th className="px-4 py-3 text-right">{t("bot.managers.actions")}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-neutral-800/50">
@@ -735,7 +737,7 @@ export default function UnifiedBotPage() {
                                     </tr>
                                 ))}
                                 {managers.length === 0 && !managersLoading && (
-                                    <tr><td colSpan={4} className="p-8 text-center text-neutral-500 italic">Нет зарегистрированных менеджеров.</td></tr>
+                                    <tr><td colSpan={5} className="p-8 text-center text-neutral-500 italic">{t("bot.managers.empty")}</td></tr>
                                 )}
                             </tbody>
                         </table>
@@ -749,10 +751,10 @@ export default function UnifiedBotPage() {
                     <div className="w-full max-w-2xl rounded-2xl border border-neutral-800 bg-neutral-950 p-6 shadow-2xl">
                         <div className="mb-4 flex items-center justify-between">
                             <h3 className="text-lg font-semibold">
-                                {editingContent?.id === "new" ? "Новая заметка" : `Редактирование: ${editingContent?.name}`}
+                                {editingContent?.id === "new" ? t("bot.knowledge.addNote") : `${t("bot.knowledge.editNote")}: ${editingContent?.name}`}
                             </h3>
                             <button onClick={() => setEditingContent(null)} className="rounded p-1 text-neutral-400 hover:bg-neutral-900 hover:text-white transition-colors">
-                                Закрыть
+                                {t("common.cancel")}
                             </button>
                         </div>
 
@@ -778,7 +780,7 @@ export default function UnifiedBotPage() {
                         </div>
 
                         <div className="mt-8 flex justify-end gap-3">
-                            <Button variant="secondary" onClick={() => setEditingContent(null)}>Отмена</Button>
+                            <Button variant="secondary" onClick={() => setEditingContent(null)}>{t("common.cancel")}</Button>
                             <Button
                                 onClick={async () => {
                                     if (editingContent?.id === "new") {
@@ -805,7 +807,7 @@ export default function UnifiedBotPage() {
                                 }}
                                 disabled={saving}
                             >
-                                {saving ? "Сохранение..." : "Сохранить изменения"}
+                                {saving ? t("common.loading") : t("bot.knowledge.saveChanges")}
                             </Button>
                         </div>
                     </div>
@@ -818,9 +820,9 @@ export default function UnifiedBotPage() {
                     <section className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6">
                         <div className="flex items-center justify-between mb-8">
                             <div>
-                                <h2 className="text-xl font-bold text-neutral-100 italic">Глобальные указания</h2>
+                                <h2 className="text-xl font-bold text-neutral-100 italic">{t("bot.instructions.title")}</h2>
                                 <p className="text-sm text-neutral-400 mt-1">
-                                    Настройте конкретные правила поведения бота. Каждый пункт — отдельная инструкция.
+                                    {t("bot.instructions.description")}
                                 </p>
                             </div>
                             <Button
@@ -828,7 +830,7 @@ export default function UnifiedBotPage() {
                                 variant="secondary"
                                 className="gap-2 bg-blue-600/10 text-blue-400 border-blue-600/20 hover:bg-blue-600/20"
                             >
-                                <Plus className="h-4 w-4" /> Добавить правило
+                                <Plus className="h-4 w-4" /> {t("bot.instructions.addRule")}
                             </Button>
                         </div>
 
@@ -846,7 +848,7 @@ export default function UnifiedBotPage() {
                                         <div className="flex-1 space-y-2">
                                             <textarea
                                                 className="w-full bg-transparent border-none p-0 text-sm text-neutral-200 placeholder:text-neutral-600 focus:ring-0 resize-none min-h-[60px]"
-                                                placeholder="Введите правило здесь..."
+                                                placeholder={t("bot.instructions.placeholder")}
                                                 value={instruction.text}
                                                 onChange={(e) => handleUpdateInstruction(instruction.id, e.target.value)}
                                                 onBlur={(e) => handleSaveInstruction(instruction.id, e.target.value)}
@@ -855,7 +857,7 @@ export default function UnifiedBotPage() {
                                         <button
                                             onClick={() => handleDeleteInstruction(instruction.id)}
                                             className="p-2 rounded-lg text-neutral-600 hover:text-red-400 hover:bg-red-400/10 transition-all"
-                                            title="Удалить правило"
+                                            title={t("common.delete")}
                                         >
                                             <Trash2 className="h-4 w-4" />
                                         </button>

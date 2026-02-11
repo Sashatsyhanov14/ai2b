@@ -50,7 +50,7 @@ export default function Sidebar() {
           <SidebarLink href="/app/sales" label={t("nav.sales")} icon={DollarSign} />
           {/* Developer Projects link removed */}
           <SidebarLink href="/app/leads" label={t("nav.leads")} icon={Users} />
-          <SidebarLink href="/app/bot" label="Бот" icon={Bot} />
+          <SidebarLink href="/app/bot" label={t("nav.bots")} icon={Bot} />
         </nav>
 
         <div className="px-2 pt-2 pb-4 space-y-1 border-t border-zinc-800 light:border-zinc-200">

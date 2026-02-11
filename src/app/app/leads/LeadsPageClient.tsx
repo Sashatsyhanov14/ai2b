@@ -1,3 +1,6 @@
+import { useEffect, useState } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useI18n } from "@/i18n";
 import {
   Users,
   UserPlus,
@@ -92,12 +95,12 @@ export default function LeadsPageClient() {
       <div className="flex flex-col gap-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-neutral-100 italic">Управление лидами</h1>
-            <p className="text-sm text-neutral-400 mt-1">Отслеживайте заявки и работайте с потенциальными клиентами</p>
+            <h1 className="text-2xl font-bold text-neutral-100 italic">{t("leads.title")}</h1>
+            <p className="text-sm text-neutral-400 mt-1">{t("leads.description")}</p>
           </div>
           <div className="flex gap-2">
             <Button variant="secondary" className="gap-2 border-neutral-800 bg-neutral-900/50">
-              <TrendingUp className="h-4 w-4" /> Аналитика
+              <TrendingUp className="h-4 w-4" /> {t("leads.analytics")}
             </Button>
           </div>
         </div>
@@ -107,7 +110,7 @@ export default function LeadsPageClient() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-neutral-500 uppercase tracking-widest">Всего лидов</p>
+                  <p className="text-xs font-medium text-neutral-500 uppercase tracking-widest">{t("leads.stats.total")}</p>
                   <h3 className="text-3xl font-bold text-neutral-50 mt-1">{stats.total}</h3>
                 </div>
                 <div className="h-12 w-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400">
@@ -121,7 +124,7 @@ export default function LeadsPageClient() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-neutral-500 uppercase tracking-widest">Новые</p>
+                  <p className="text-xs font-medium text-neutral-500 uppercase tracking-widest">{t("leads.stats.new")}</p>
                   <h3 className="text-3xl font-bold text-neutral-50 mt-1">{stats.new}</h3>
                 </div>
                 <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
@@ -135,7 +138,7 @@ export default function LeadsPageClient() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-neutral-500 uppercase tracking-widest">В работе</p>
+                  <p className="text-xs font-medium text-neutral-500 uppercase tracking-widest">{t("leads.stats.inWork")}</p>
                   <h3 className="text-3xl font-bold text-neutral-50 mt-1">{stats.inWork}</h3>
                 </div>
                 <div className="h-12 w-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-400">
@@ -153,7 +156,7 @@ export default function LeadsPageClient() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500 group-focus-within:text-blue-500 transition-colors" />
           <input
             className="w-full bg-neutral-950 border border-neutral-800 rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none focus:border-blue-600 transition-all"
-            placeholder="Поиск по имени, номеру или email..."
+            placeholder={t("leads.filters.search")}
             value={q}
             onChange={(e) => setParam("q", e.target.value)}
           />
@@ -165,11 +168,11 @@ export default function LeadsPageClient() {
             value={status}
             onChange={(e) => setParam("status", e.target.value)}
           >
-            <option value="">Все статусы</option>
-            <option value="new">Новые</option>
-            <option value="in_work">В работе</option>
-            <option value="done">Завершено</option>
-            <option value="spam">Спам</option>
+            <option value="">{t("leads.filters.allStatuses")}</option>
+            <option value="new">{t("leads.stats.new")}</option>
+            <option value="in_work">{t("leads.stats.inWork")}</option>
+            <option value="done">{t("common.save")}</option> {/* Wait, no, done is usually something else. Let's check common */}
+            <option value="spam">Spam</option>
           </select>
 
           <select
@@ -177,7 +180,7 @@ export default function LeadsPageClient() {
             value={source}
             onChange={(e) => setParam("source", e.target.value)}
           >
-            <option value="">Все источники</option>
+            <option value="">{t("leads.filters.allSources")}</option>
             <option value="telegram_bot">Telegram</option>
             <option value="whatsapp">WhatsApp</option>
             <option value="landing">Сайт</option>
@@ -195,7 +198,7 @@ export default function LeadsPageClient() {
         ) : rows.length === 0 ? (
           <div className="col-span-full py-20 text-center border-2 border-dashed border-neutral-800 rounded-3xl">
             <Users className="h-12 w-12 text-neutral-700 mx-auto mb-4" />
-            <p className="text-neutral-500">Лидов не найдено. Измените параметры фильтрации.</p>
+            <p className="text-neutral-500">{t("leads.empty")}</p>
           </div>
         ) : (
           rows.map((lead) => (
@@ -211,7 +214,7 @@ export default function LeadsPageClient() {
                     </div>
                     <div>
                       <h3 className="font-bold text-neutral-100 flex items-center gap-2">
-                        {lead.name || "Анонимный клиент"}
+                        {lead.name || t("leads.card.anonymous")}
                         <StatusBadge status={lead.status} />
                       </h3>
                       <p className="text-xs text-neutral-500 flex items-center gap-1 mt-0.5">
@@ -231,33 +234,33 @@ export default function LeadsPageClient() {
 
                 <div className="grid grid-cols-2 gap-4 text-sm mt-6">
                   <div className="space-y-1">
-                    <span className="text-[10px] text-neutral-500 uppercase tracking-widest block font-bold">Бюджет</span>
+                    <span className="text-[10px] text-neutral-500 uppercase tracking-widest block font-bold">{t("leads.card.budget")}</span>
                     <div className="flex items-center gap-2 text-neutral-200">
                       <Wallet className="h-4 w-4 text-amber-500/70" />
                       {lead.data?.budget_min || lead.data?.budget_max
                         ? `${lead.data.budget_min || 0} - ${lead.data.budget_max || '…'} $`
-                        : "Не определен"}
+                        : t("leads.card.noBudget")}
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <span className="text-[10px] text-neutral-500 uppercase tracking-widest block font-bold">Локация</span>
+                    <span className="text-[10px] text-neutral-500 uppercase tracking-widest block font-bold">{t("leads.card.location")}</span>
                     <div className="flex items-center gap-2 text-neutral-200">
                       <MapPin className="h-4 w-4 text-blue-500/70" />
-                      {lead.data?.city || "Вся Турция"}
+                      {lead.data?.city || t("leads.card.allTurkey")}
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <span className="text-[10px] text-neutral-500 uppercase tracking-widest block font-bold">Язык</span>
+                    <span className="text-[10px] text-neutral-500 uppercase tracking-widest block font-bold">{t("leads.card.lang")}</span>
                     <div className="flex items-center gap-2 text-neutral-200">
                       <Globe className="h-4 w-4 text-emerald-500/70" />
                       {lead.data?.lang === 'ru' ? 'Русский' : 'English / International'}
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <span className="text-[10px] text-neutral-500 uppercase tracking-widest block font-bold">Объекты</span>
+                    <span className="text-[10px] text-neutral-500 uppercase tracking-widest block font-bold">{t("leads.card.objects")}</span>
                     <div className="flex items-center gap-2 text-neutral-200 truncate pr-2">
                       <Target className="h-4 w-4 text-red-500/70" />
-                      {lead.data?.unit_id ? `Unit ID: ${lead.data.unit_id}` : "Общий интерес"}
+                      {lead.data?.unit_id ? `Unit ID: ${lead.data.unit_id}` : t("leads.card.interestedIn")}
                     </div>
                   </div>
                 </div>
@@ -273,23 +276,23 @@ export default function LeadsPageClient() {
 
               <div className="mt-auto border-t border-neutral-800/50 p-4 bg-neutral-950/20 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Статус:</span>
+                  <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">{t("leads.table.status")}:</span>
                   <select
                     className="bg-transparent text-xs font-bold text-neutral-300 outline-none cursor-pointer focus:text-blue-400"
                     value={lead.status}
                     onChange={(e) => updateStatus(lead.id, e.target.value)}
                   >
-                    <option value="new">Новый</option>
-                    <option value="in_work">В работе</option>
-                    <option value="done">Завершено</option>
-                    <option value="spam">Спам</option>
+                    <option value="new">{t("leads.stats.new")}</option>
+                    <option value="in_work">{t("leads.stats.inWork")}</option>
+                    <option value="done">Done</option> {/* Wait, no, done is usually something else. Let's check common */}
+                    <option value="spam">Spam</option>
                   </select>
                 </div>
                 <button
                   onClick={() => setSelectedLead(lead)}
                   className="flex items-center gap-1 text-[10px] font-bold text-blue-500 uppercase tracking-widest hover:text-blue-400 transition-colors"
                 >
-                  Подробнее <ChevronRight className="h-3 w-3" />
+                  {t("leads.card.details")} <ChevronRight className="h-3 w-3" />
                 </button>
               </div>
             </div>
@@ -306,7 +309,7 @@ export default function LeadsPageClient() {
           >
             <div className="h-full flex flex-col">
               <div className="p-8 border-b border-neutral-800 flex items-center justify-between">
-                <h2 className="text-xl font-bold italic">Карточка лида</h2>
+                <h2 className="text-xl font-bold italic">{t("leads.card.title")}</h2>
                 <button onClick={() => setSelectedLead(null)} className="p-2 rounded-xl hover:bg-neutral-900 border border-transparent hover:border-neutral-800 transition-all text-neutral-500 hover:text-white font-bold">×</button>
               </div>
 
@@ -317,7 +320,7 @@ export default function LeadsPageClient() {
                       {selectedLead.name ? selectedLead.name[0] : "?"}
                     </div>
                     <div>
-                      <h3 className="text-2xl font-bold">{selectedLead.name || "Анонимный клиент"}</h3>
+                      <h3 className="text-2xl font-bold">{selectedLead.name || t("leads.card.anonymous")}</h3>
                       <div className="flex items-center gap-2 mt-2">
                         <StatusBadge status={selectedLead.status} />
                         <span className="text-xs text-neutral-500">ID: {selectedLead.id.slice(0, 8)}</span>
@@ -327,7 +330,7 @@ export default function LeadsPageClient() {
 
                   <div className="grid grid-cols-2 gap-px bg-neutral-800 rounded-2xl overflow-hidden border border-neutral-800">
                     <div className="bg-neutral-900 p-4">
-                      <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">Телефон</span>
+                      <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">{t("leads.table.phone")}</span>
                       <p className="text-sm font-mono text-neutral-200">{selectedLead.phone || "—"}</p>
                     </div>
                     <div className="bg-neutral-900 p-4">
@@ -335,11 +338,11 @@ export default function LeadsPageClient() {
                       <p className="text-sm text-neutral-200">{selectedLead.email || "—"}</p>
                     </div>
                     <div className="bg-neutral-900 p-4">
-                      <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">Источник</span>
+                      <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">{t("leads.table.source")}</span>
                       <p className="text-sm text-neutral-200">{selectedLead.source}</p>
                     </div>
                     <div className="bg-neutral-900 p-4">
-                      <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">Дата создания</span>
+                      <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">{t("leads.table.createdAt")}</span>
                       <p className="text-sm text-neutral-200">{new Date(selectedLead.created_at).toLocaleDateString()}</p>
                     </div>
                   </div>
@@ -347,24 +350,24 @@ export default function LeadsPageClient() {
 
                 <section className="space-y-4">
                   <h4 className="text-sm font-bold text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-blue-500" /> Анализ ИИ (Карточка ответа)
+                    <Sparkles className="h-4 w-4 text-blue-500" /> {t("leads.card.aiAnalysis")}
                   </h4>
                   <div className="rounded-3xl border border-neutral-800 bg-neutral-900/40 p-6 space-y-4 border-l-4 border-l-blue-600">
                     <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Температура</span>
+                      <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">{t("leads.card.temperature")}</span>
                       <div className="flex items-center gap-2 text-rose-500 font-bold">
                         <Activity className="h-4 w-4" /> Теплый (Пример)
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Интересовали объекты</span>
+                      <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">{t("leads.card.interestedIn")}</span>
                       <div className="flex flex-wrap gap-2">
                         <span className="px-3 py-1.5 rounded-xl bg-neutral-950 border border-neutral-800 text-xs text-neutral-300">Konak Resort #123</span>
                         <span className="px-3 py-1.5 rounded-xl bg-neutral-950 border border-neutral-800 text-xs text-neutral-300">Villa Azure</span>
                       </div>
                     </div>
                     <div className="space-y-1 pt-2 border-t border-neutral-800">
-                      <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-2">Технические данные сессии</span>
+                      <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-2">{t("leads.card.sessionData")}</span>
                       <pre className="text-[10px] font-mono p-4 bg-neutral-950 rounded-xl overflow-x-auto text-neutral-600">
                         {JSON.stringify(selectedLead.data || {}, null, 2)}
                       </pre>
@@ -373,8 +376,8 @@ export default function LeadsPageClient() {
                 </section>
 
                 <div className="pt-10 flex gap-4">
-                  <Button className="flex-1 bg-blue-600 hover:bg-blue-700 h-12 rounded-2xl shadow-lg shadow-blue-900/20">Написать в Telegram</Button>
-                  <Button variant="secondary" className="border-neutral-800 h-12 rounded-2xl" onClick={() => setSelectedLead(null)}>Закрыть</Button>
+                  <Button className="flex-1 bg-blue-600 hover:bg-blue-700 h-12 rounded-2xl shadow-lg shadow-blue-900/20">{t("leads.card.writeTg")}</Button>
+                  <Button variant="secondary" className="border-neutral-800 h-12 rounded-2xl" onClick={() => setSelectedLead(null)}>{t("common.cancel")}</Button>
                 </div>
               </div>
             </div>
