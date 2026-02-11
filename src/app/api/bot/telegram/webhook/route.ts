@@ -7,12 +7,17 @@ import {
 } from "@/lib/telegram";
 import { getServerClient } from "@/lib/supabaseClient";
 import { askLLM } from "@/lib/openrouter";
+import { appendMessage, findOrCreateSession, listMessages } from "@/services/sessions";
+import { createLead, updateLeadStatus } from "@/services/leads";
 import {
-  appendMessage,
-  findOrCreateSession,
-  listMessages,
-} from "@/services/sessions";
-import { createLead } from "@/services/leads";
+  getSessionScore,
+  updateSessionScore,
+  markLeadCreated,
+  markReactivationResponded,
+  SCORING_RULES,
+  STAGE_THRESHOLDS,
+  type FunnelStage,
+} from "@/services/scoring";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -120,7 +125,8 @@ async function sendPropertyPhotos(
   token: string,
   chatId: string,
   unitId: string,
-  caption: string
+  caption: string,
+  lang: Lang
 ) {
   const sb = getServerClient();
   const { data: photos } = await sb
@@ -130,14 +136,27 @@ async function sendPropertyPhotos(
     .order("sort_order", { ascending: true })
     .limit(10);
 
+  // Buttons for Depth Actions
+  const keyboard = {
+    inline_keyboard: [
+      [
+        { text: "📸 Фото", callback_data: `depth:photos:${unitId}` },
+        { text: "📍 Локация", callback_data: `depth:location:${unitId}` },
+      ],
+      [
+        { text: "💰 В Лирах", callback_data: `depth:price_tr:${unitId}` },
+        { text: "💵 В USD", callback_data: `depth:price_us:${unitId}` },
+      ]
+    ]
+  };
+
   if (!photos || photos.length === 0) {
-    // No photos, just send caption as text
-    await sendMessage(token, chatId, caption);
+    await sendMessage(token, chatId, caption, { reply_markup: keyboard });
     return;
   }
 
   if (photos.length === 1) {
-    await sendPhoto(token, chatId, photos[0].url, caption);
+    await sendPhoto(token, chatId, photos[0].url, caption, { reply_markup: keyboard });
   } else {
     const media = photos.map((p: { url: string }, idx: number) => ({
       type: "photo" as const,
@@ -145,6 +164,7 @@ async function sendPropertyPhotos(
       caption: idx === 0 ? caption : undefined,
     }));
     await sendMediaGroup(token, chatId, media);
+    await sendMessage(token, chatId, lang === "ru" ? "Дополнительно:" : "More info:", { reply_markup: keyboard });
   }
 }
 
@@ -229,7 +249,7 @@ async function handleShowProperty(
     .filter(Boolean)
     .join(" ");
 
-  await sendPropertyPhotos(token, chatId, unit.id, caption);
+  await sendPropertyPhotos(token, chatId, unit.id, caption, lang);
 
   // Save to session
   if (sessionId) {
@@ -242,9 +262,27 @@ async function handleShowProperty(
         payload: {
           unit_id: unit.id,
           city: unit.city,
-          ai_instructions: unit.ai_instructions // <--- Added this
+          ai_instructions: unit.ai_instructions
         },
       });
+
+      // SCORE: Award points for viewing property
+      // Check if this is a repeat view
+      const historyRecs = await listMessages(sessionId, 30);
+      const viewsOfThisUnit = historyRecs.filter(
+        m => m.role === 'assistant' && (m.payload as any)?.unit_id === unit.id
+      ).length;
+
+      if (viewsOfThisUnit === 1) {
+        // First view of any property
+        await awardPoints(sessionId, "view_first_property", SCORING_RULES.view_first_property);
+      } else if (viewsOfThisUnit === 2) {
+        // Second view = repeat interest
+        await awardPoints(sessionId, "view_property_again", SCORING_RULES.view_property_again);
+      } else if (viewsOfThisUnit >= 3) {
+        // Third+ view = strong interest
+        await awardPoints(sessionId, "view_same_property_3x", SCORING_RULES.view_same_property_3x);
+      }
     } catch (e) {
       console.error("appendMessage show_property error:", (e as any)?.message);
     }
@@ -254,42 +292,173 @@ async function handleShowProperty(
 }
 
 // =====================================================
+// SCORING HELPER
+// =====================================================
+async function awardPoints(
+  sessionId: string | null,
+  actionType: string,
+  points: number
+): Promise<{ score: number; stage: FunnelStage; crossed5: boolean } | null> {
+  if (!sessionId) return null;
+
+  const result = await updateSessionScore(sessionId, actionType, points);
+  if (!result) return null;
+
+  // Check if user just crossed the handoff threshold (5 points)
+  const crossed5 = result.stage === 'handoff' && result.stageChanged;
+
+  console.log(`[SCORING] ${actionType}: +${points} pts → Total: ${result.score} (Stage: ${result.stage}${crossed5 ? ' 🔥 CROSSED THRESHOLD!' : ''})`);
+
+  return {
+    score: result.score,
+    stage: result.stage,
+    crossed5,
+  };
+}
+
+// =====================================================
+// LEAD QUALIFICATION AI (CRM AGENT)
+// =====================================================
+async function qualifyLeadAI(history: string, lang: Lang): Promise<{
+  is_trash: boolean;
+  summary: string;
+  budget: string;
+  location: string;
+  type: string;
+  urgency: string;
+} | null> {
+  const prompt = `Ты — CRM-аналитик. Твоя задача — извлечь данные из диалога для менеджера по недвижимости.
+
+ВХОДНЫЕ ДАННЫЕ:
+История чата:
+"""
+${history}
+"""
+Язык пользователя: ${lang}
+
+ПРОАНАЛИЗИРУЙ И ВЕРНИ JSON (СТРОГО):
+{
+  "is_trash": true/false, // Если это спам или просто "привет", ставь true
+  "summary": "Краткая выжимка в 1 предложение (на русском)",
+  "budget": "сумма или 'не указан'",
+  "location": "город/район или 'не указан'",
+  "type": "покупка/аренда/инвестиции",
+  "urgency": "горячий/теплый/холодный"
+}
+`;
+
+  try {
+    const raw = await askLLM(prompt, "Ты — эксперт CRM, анализирующий диалоги и создающий карточки лидов для менеджеров по недвижимости.", true);
+    let jsonText = raw.trim();
+    const firstBrace = jsonText.indexOf("{");
+    const lastBrace = jsonText.lastIndexOf("}");
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      jsonText = jsonText.slice(firstBrace, lastBrace + 1);
+    }
+    return JSON.parse(jsonText);
+  } catch (e) {
+    console.error("qualifyLeadAI error:", e);
+    return null;
+  }
+}
+
+async function requestContact(token: string, chatId: string, lang: Lang) {
+  const text = lang === "ru"
+    ? "Чтобы я передал информацию менеджеру, нажмите кнопку \"Поделиться контактом\" ниже."
+    : "To pass your inquiry to a manager, please click the \"Share Contact\" button below.";
+
+  const keyboard = {
+    reply_markup: {
+      keyboard: [
+        [{ text: lang === "ru" ? "Поделиться контактом" : "Share Contact", request_contact: true }]
+      ],
+      resize_keyboard: true,
+      one_time_keyboard: true
+    }
+  };
+
+  const url = `https://api.telegram.org/bot${token}/sendMessage`;
+  await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: text,
+      ...keyboard
+    }),
+  });
+}
+
+// =====================================================
 // HANDLE CREATE LEAD
 // =====================================================
 async function handleCreateLead(
   args: CreateLeadArgs | undefined,
   lang: Lang,
   chatId: string,
-  token: string
+  token: string,
+  sessionId: string | null,
+  userInfo: { phone?: string | null; username?: string | null; fullName?: string | null }
 ) {
   try {
+    const phone = userInfo.phone || args?.phone || null;
+
+    if (!phone) {
+      await requestContact(token, chatId, lang);
+      return;
+    }
+
+    // Run AI Qualification before creating lead if we have history
+    let aiQual: any = null;
+    let history = "";
+    if (sessionId) {
+      const messages = await listMessages(sessionId, 20);
+      history = messages
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        .map(m => `${m.role.toUpperCase()}: ${m.content}`)
+        .join("\n");
+      aiQual = await qualifyLeadAI(history, lang);
+    }
+
+    if (aiQual?.is_trash) {
+      console.log("Lead marked as trash by AI, skipping manager notification.");
+      return;
+    }
+
     const lead = await createLead({
       source_bot_id: "telegram",
       source: "telegram",
-      name: args?.name || null,
-      phone: args?.phone || null,
+      name: userInfo.fullName || args?.name || null,
+      phone: phone,
       email: null,
       data: {
-        unit_id: args?.unit_id || null,
-        city: args?.city || null,
-        budget_min: args?.budget_min || null,
-        budget_max: args?.budget_max || null,
+        unit_id: args?.unit_id || (global as any).focus_unit_id || null, // Priority to direct arg, then session focus
+        city: aiQual?.location || args?.city || null,
+        budget: aiQual?.budget || null,
+        type: aiQual?.type || null,
+        urgency: aiQual?.urgency || null,
+        ai_summary: aiQual?.summary || null,
         chat_id: chatId,
-        tg_username: (global as any).tgUsername,
-        tg_full_name: (global as any).tgFullName,
+        tg_username: userInfo.username,
+        tg_full_name: userInfo.fullName,
       },
       status: "new",
     });
 
     // Notify managers
     await notifyManagers(lang, token, lead.id, {
-      city: args?.city || null,
-      unitId: args?.unit_id || null,
       chatId,
-      tgUsername: (global as any).tgUsername, // Using global to pass from POST to handleCreateLead context
-      tgFullName: (global as any).tgFullName,
+      tgUsername: userInfo.username,
+      tgFullName: userInfo.fullName,
+      history,
     });
 
+    // Mark in scoring system that lead has been created
+    if (sessionId) {
+      await markLeadCreated(sessionId);
+    }
+
+    // Respond to user
     const msg =
       lang === "ru"
         ? "Отлично! Я записал вашу заявку. Менеджер свяжется с вами в ближайшее время."
@@ -297,11 +466,6 @@ async function handleCreateLead(
     await sendMessage(token, chatId, msg);
   } catch (e) {
     console.error("createLead error:", (e as any)?.message || e);
-    const msg =
-      lang === "ru"
-        ? "Не удалось создать заявку. Попробуйте позже."
-        : "Failed to create inquiry. Please try again later.";
-    await sendMessage(token, chatId, msg);
   }
 }
 
@@ -312,27 +476,25 @@ async function notifyManagers(
   lang: Lang,
   token: string,
   leadId: string,
-  payload: { city?: string | null; unitId?: string | null; chatId: string; tgUsername?: string | null; tgFullName?: string | null }
+  payload: { chatId: string; tgUsername?: string | null; tgFullName?: string | null; history?: string }
 ) {
   try {
     const sb = getServerClient();
-
-    // 1. Fetch lead details
     const { data: lead } = await sb.from("leads").select("*").eq("id", leadId).single();
     if (!lead) return;
 
-    // 2. Fetch conversation history for summary
-    const { data: session } = await sb.from("sessions").select("id").eq("chat_id", payload.chatId).eq("bot_id", "telegram").single();
-    let conversationHistory = "";
-    if (session) {
-      const messages = await listMessages(session.id, 20);
-      conversationHistory = messages
-        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-        .map(m => `${m.role.toUpperCase()}: ${m.content}`)
-        .join("\n");
+    let conversationHistory = payload.history || "";
+    if (!conversationHistory) {
+      const { data: session } = await sb.from("sessions").select("id").eq("chat_id", payload.chatId).eq("bot_id", "telegram").single();
+      if (session) {
+        const messages = await listMessages(session.id, 20);
+        conversationHistory = messages
+          .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+          .map(m => `${m.role.toUpperCase()}: ${m.content}`)
+          .join("\n");
+      }
     }
 
-    // 3. AISummary Prompt (Requested Format)
     const summaryPrompt = `Твоя задача — проанализировать диалог между AI-брокером и Клиентом и составить Краткую Карточку Лида для менеджера.
 
 Входящие данные:
@@ -358,11 +520,8 @@ UserName в ТГ: ${payload.tgUsername ? `@${payload.tgUsername}` : "не ука
 `;
 
     const summary = await askLLM(summaryPrompt, "Ты — эксперт CRM, анализирующий диалоги и создающий карточки лидов для менеджеров по недвижимости в Турции.", true);
-
-    // 4. Update Lead with Summary
     await sb.from("leads").update({ notes: summary }).eq("id", leadId);
 
-    // 5. Notify Managers
     const { data: managers } = await sb
       .from("telegram_managers")
       .select("id, telegram_id, name, preferred_lang")
@@ -370,24 +529,17 @@ UserName в ТГ: ${payload.tgUsername ? `@${payload.tgUsername}` : "не ука
       .order("last_notified_at", { ascending: true, nullsFirst: true });
 
     if (!managers || managers.length === 0) return;
-
-    // Conditional: rotate if > 2, otherwise notify all active
     const targets = managers.length > 2 ? [managers[0]] : managers;
 
     for (const target of targets) {
       if (target.telegram_id) {
-        // Generate summary in manager's language if not Russian
         let finalSummary = summary;
         if (target.preferred_lang && target.preferred_lang !== "ru") {
           const transPrompt = `Translate this lead card into ${target.preferred_lang === 'en' ? 'English' : 'Turkish'}. Keep the emojis and structure exactly the same.\n\n${summary}`;
           finalSummary = await askLLM(transPrompt, "You are a professional translator for real estate leads.", true);
         }
-
         await sendMessage(token, String(target.telegram_id), finalSummary);
-        await sb
-          .from("telegram_managers")
-          .update({ last_notified_at: new Date().toISOString() })
-          .eq("id", target.id);
+        await sb.from("telegram_managers").update({ last_notified_at: new Date().toISOString() }).eq("id", target.id);
       }
     }
   } catch (e) {
@@ -410,16 +562,12 @@ const systemPrompt = `Ты — профессиональный ассистен
 СТРОГИЕ ПРАВИЛА:
 1. РАБОТАЙ ТОЛЬКО ПО БАЗЕ. Никогда не придумывай квартиры, цены или услуги, которых нет в источниках. Если информации нет — отвечай: "Этот момент я уточню у менеджера, оставьте ваш телефон".
 2. БУДЬ КРАТОК. Клиенты читают с телефона. Пиши емко, разбивай текст на абзацы.
-3. ВЕДИ К СДЕЛКЕ. Не оставляй сообщение без вопроса. В конце каждого ответа побуждай к действию.
+413. ВЕДИ К СДЕЛКЕ. Не оставляй сообщение без вопроса. В конце каждого ответа побуждай к действию.
    - Плохой ответ: "Квартира стоит 5 млн, 40 кв.м."
    - Хороший ответ: "Цена — 5 млн за 40 кв.м. Это отличная цена для района. Хотите посмотреть фото?"
-
-ПРИМЕРЫ ДИАЛОГА:
-Клиент: "Есть что-то до 4 млн?"
-Ты: "Да, есть отличная студия за 3.5 млн руб. 22 кв.м., идеально под сдачу. Рассказать подробнее?"
-
-Клиент: "Какой процент берете?"
-Ты: (Берешь инфо из файла о компании) "Наша комиссия — 3% от сделки, оплата только по факту успеха. Вас интересует покупка или продажа?"
+414. ПОКАЗЫВАЙ ВСЁ. Твоя основная задача — дать клиенту всю информацию об объектах, которые его интересуют. Не скрывай данные и не блокируй показ квартир ожиданием контакта. Сначала дай пользу, потом предложи связь с менеджером.
+415. ЕСЛИ КЛИЕНТ ЗАИНТЕРЕСОВАН: Если клиент хочет связаться с менеджером, посмотреть объект или задает много конкретных вопросов — используй инструмент create_lead. 
+416. ЕСЛИ ТЕЛЕФОН НЕИЗВЕСТЕН: Перед созданием лида ассистент всегда должен мягко попросить контакт или использовать кнопку поделиться контактом. Но ты можешь вызывать create_lead и без телефона, система сама запросит его кнопкой у пользователя.
 
 IMPORTANT: You ONLY output a JSON object. No other text.
 
@@ -504,22 +652,86 @@ export async function POST(req: NextRequest) {
     const tgLastName = message?.from?.last_name || update?.message?.from?.last_name || "";
     const tgFullName = `${tgFirstName} ${tgLastName}`.trim() || "не указано";
 
-    // Set globals for tools called deep in branching
-    (global as any).tgUsername = tgUsername;
-    (global as any).tgFullName = tgFullName;
+    const userInfo = {
+      username: tgUsername,
+      fullName: tgFullName,
+      phone: (update?.message?.contact?.phone_number) || null as string | null
+    };
 
-    // Send typing indicator
-    try {
-      await sendTyping(token, chatId);
-    } catch {
-      // ignore
+    // Callback Query Handling (Depth Actions)
+    if (update?.callback_query) {
+      const cbData = update.callback_query.data;
+      const cbId = update.callback_query.id;
+
+      if (cbData.startsWith("depth:")) {
+        const [_, action, unitId] = cbData.split(":");
+        // Track this event in session
+        try {
+          const session = await findOrCreateSession(botId, chatId);
+          await appendMessage({
+            session_id: session.id,
+            bot_id: botId,
+            role: "user",
+            content: `Click: ${action} for unit ${unitId}`,
+            payload: { depth_action: action, unit_id: unitId }
+          });
+
+          // SCORE: Award points for depth action (clicking photos/location/price)
+          await awardPoints(session.id, "click_depth_button", SCORING_RULES.click_depth_button);
+
+          // Respond to user
+          const sb = getServerClient();
+          const { data: unit } = await sb.from("units").select("*").eq("id", unitId).single();
+
+          if (unit) {
+            let responseText = "";
+            if (action === "photos") {
+              responseText = lang === "ru" ? "📸 Загружаю дополнительные фото..." : "📸 Loading more photos...";
+            } else if (action === "location") {
+              responseText = unit.address
+                ? (lang === "ru" ? `📍 Адрес объекта: ${unit.address}` : `📍 Property Address: ${unit.address}`)
+                : (lang === "ru" ? "📍 Точный адрес уточняйте у менеджера." : "📍 Please ask manager for exact coordinates.");
+            } else if (action === "price_tr") {
+              const tryPrice = Math.round(unit.price * 33); // Example rate
+              responseText = lang === "ru"
+                ? `💰 Примерная цена: ${tryPrice.toLocaleString()} TRY`
+                : `💰 Approx. price: ${tryPrice.toLocaleString()} TRY`;
+            } else if (action === "price_us") {
+              responseText = `💵 Price: $${unit.price.toLocaleString()}`;
+            }
+
+            if (responseText) {
+              await sendMessage(token, chatId, responseText);
+            }
+          }
+        } catch (e) {
+          console.error("callback error:", e);
+        }
+      }
+
+      // Answer callback query to stop loading spinner
+      await fetch(`https://api.telegram.org/bot${token}/answerCallbackQuery`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ callback_query_id: cbId }),
+      });
+
+      return NextResponse.json({ ok: true });
     }
 
     // Find or create session
     let sessionId: string | null = null;
+    let sessionData: any = {};
     try {
-      const session = await findOrCreateSession(botId, chatId);
+      const session = await findOrCreateSession(botId, chatId) as any;
       sessionId = session.id;
+      sessionData = session.payload || {};
+
+      // Set Focus ID for tool context
+      if (sessionData.focus_unit_id) {
+        (global as any).focus_unit_id = sessionData.focus_unit_id;
+      }
+
       await appendMessage({
         session_id: session.id,
         bot_id: botId,
@@ -527,16 +739,36 @@ export async function POST(req: NextRequest) {
         content: text,
         payload: { update },
       });
+
+      // SCORE: Award points for asking a question (text input)
+      if (text && text.trim().length > 5) {
+        await awardPoints(sessionId, "ask_question", SCORING_RULES.ask_simple_question);
+      }
+
+      // Mark reactivation as responded if user comes back
+      if (sessionId) {
+        await markReactivationResponded(sessionId);
+      }
     } catch (e) {
       console.error("session/appendMessage error:", (e as any)?.message || e);
     }
 
-    // Check for phone/contact in message
-    const phoneMatch = trimmed.match(/(\+?[\d\s\-()]{7,})/);
-    if (phoneMatch) {
-      // User sent phone number - might be responding to contact request
-      // Continue to LLM to handle context
+    // Check for shared contact
+    if (update?.message?.contact) {
+      // If we got a contact, immediately try to create a lead
+      await handleCreateLead({}, lang, chatId, token, sessionId, userInfo);
+      return NextResponse.json({ ok: true });
     }
+
+    // Soft Action Tracking: Count history
+    let messagesCount = 0;
+    let unitsViewedCount = 0;
+    if (sessionId) {
+      const historyRecs = await listMessages(sessionId, 20);
+      messagesCount = historyRecs.filter(m => m.role === 'user').length;
+      unitsViewedCount = historyRecs.filter(m => m.role === 'assistant' && (m.payload as any)?.unit_id).length;
+    }
+
 
     // Check OpenRouter API key
     if (!process.env.OPENROUTER_API_KEY) {
@@ -591,7 +823,25 @@ export async function POST(req: NextRequest) {
       console.error("Failed to load global instructions:", e);
     }
 
-    const messages: LLMMessage[] = [{ role: "system", content: globalInstructions + systemPrompt + companyContext }];
+    // Get current score and stage for stage-aware bot behavior
+    let scoreContext = "";
+    if (sessionId) {
+      const scoreData = await getSessionScore(sessionId);
+      if (scoreData) {
+        const stageEmoji = scoreData.stage === 'handoff' ? '🔥' : scoreData.stage === 'warmup' ? '⚡' : '🏖️';
+        scoreContext = `\n\n---\nCURRENT LEAD SCORE: ${scoreData.score} points ${stageEmoji}\nFUNNEL STAGE: ${scoreData.stage.toUpperCase()}\n\n`;
+
+        if (scoreData.stage === 'sandbox') {
+          scoreContext += `YOU ARE IN SANDBOX MODE (0-2 points):\n- Be helpful but don't push too hard\n- Answer questions directly\n- Let the user explore\n\n`;
+        } else if (scoreData.stage === 'warmup') {
+          scoreContext += `YOU ARE IN WARMUP MODE (3-4 points):\n- Be PROACTIVE and consultative\n- Ask qualifying questions\n- Guide towards specific properties\n\n`;
+        } else if (scoreData.stage === 'handoff') {
+          scoreContext += `YOU ARE IN HANDOFF MODE (5+ = HOT):\n- Qualified lead ready for human contact\n- Emphasize specialist value\n- Focus on next steps\n\n`;
+        }
+      }
+    }
+
+    const messages: LLMMessage[] = [{ role: "system", content: globalInstructions + systemPrompt + companyContext + scoreContext }];
 
     // Load conversation history
     if (sessionId) {
@@ -665,24 +915,24 @@ export async function POST(req: NextRequest) {
     }
 
     // Execute actions
-    let sentReply = false;
-    let finalReply: string | null = null;
+    let leadCreatedFromTool = false;
     const actions: ToolAction[] = Array.isArray(parsed?.actions)
       ? (parsed.actions as ToolAction[])
       : [];
+
+    // Always send the text reply if it exists
+    let finalReply = typeof parsed?.reply === "string" ? parsed.reply.trim() : "";
+    if (finalReply) {
+      await sendMessage(token, chatId, finalReply);
+    }
 
     for (const action of actions) {
       if (!action) continue;
 
       if (action.tool === "send_message") {
-        const textToSend =
-          typeof action.args?.text === "string"
-            ? action.args.text
-            : parsed?.reply ?? "";
-        if (textToSend.trim()) {
-          await sendMessage(token, chatId, textToSend.trim());
-          sentReply = true;
-          finalReply = textToSend.trim();
+        // Already handled by finalReply or additional action text
+        if (action.args?.text && action.args.text !== parsed?.reply) {
+          await sendMessage(token, chatId, action.args.text);
         }
       } else if (action.tool === "show_property") {
         await handleShowProperty(
@@ -693,29 +943,47 @@ export async function POST(req: NextRequest) {
           sessionId,
           botId
         );
-        sentReply = true;
       } else if (action.tool === "create_lead") {
-        await handleCreateLead(action.args as any, lang, chatId, token);
-        sentReply = true;
+        // SCORE: Hard action = strong buying signal
+        await awardPoints(sessionId, "hard_action", SCORING_RULES.hard_action);
+
+        await handleCreateLead(action.args as any, lang, chatId, token, sessionId, userInfo);
+        leadCreatedFromTool = true;
       }
     }
 
-    // If no actions sent a reply, use the reply field
-    if (!sentReply) {
-      const candidate =
-        typeof parsed?.reply === "string" ? parsed.reply.trim() : "";
-      if (candidate) {
-        finalReply = candidate;
-      } else {
-        finalReply =
-          lang === "ru"
-            ? "Здравствуйте! Я помогу вам найти недвижимость в Турции. В каком городе вы ищете?"
-            : "Hello! I'll help you find property in Turkey. Which city are you looking in?";
+    // --- SCORE-BASED LEAD QUALIFICATION ---
+    // Check if user has reached the handoff threshold (5+ points)
+    if (!leadCreatedFromTool && !userInfo.phone && sessionId) {
+      const scoreData = await getSessionScore(sessionId);
+
+      if (scoreData && scoreData.score >= STAGE_THRESHOLDS.handoff.min) {
+        const alreadyRequested = sessionData?.contact_requested;
+
+        if (!alreadyRequested) {
+          console.log(`[HANDOFF] Score threshold met (${scoreData.score} pts). Requesting contact.`);
+          await requestContact(token, chatId, lang);
+          sessionData.contact_requested = true;
+
+          // Store focus unit ID if we have one
+          if (sessionData.focus_unit_id) {
+            (global as any).focus_unit_id = sessionData.focus_unit_id;
+          }
+        }
       }
+    }
+
+
+    // If no reply was sent at all (should be rare now)
+    if (!finalReply && actions.length === 0) {
+      finalReply =
+        lang === "ru"
+          ? "Здравствуйте! Я помогу вам найти недвижимость в Турции. В каком городе вы ищете?"
+          : "Hello! I'll help you find property in Turkey. Which city are you looking in?";
       await sendMessage(token, chatId, finalReply);
     }
 
-    // Save assistant response to session
+    // Save assistant response and current state to session
     if (sessionId && finalReply) {
       try {
         await appendMessage({
@@ -723,7 +991,10 @@ export async function POST(req: NextRequest) {
           bot_id: botId,
           role: "assistant",
           content: finalReply,
-          payload: parsed?.state ?? {},
+          payload: {
+            ...(parsed?.state ?? {}),
+            ...sessionData // save flags like contact_requested
+          },
         });
       } catch (e) {
         console.error("appendMessage assistant error:", (e as any)?.message);

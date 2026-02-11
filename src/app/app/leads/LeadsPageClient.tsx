@@ -23,6 +23,7 @@ import {
   MapPin,
   ExternalLink
 } from "lucide-react";
+import LeadCard from "@/components/LeadCard";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge, LeadStatus } from "@/components/StatusBadge";
@@ -100,9 +101,6 @@ export default function LeadsPageClient() {
             <p className="text-sm text-neutral-400 mt-1">{t("leads.description")}</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="secondary" className="gap-2 border-neutral-800 bg-neutral-900/50">
-              <TrendingUp className="h-4 w-4" /> {t("leads.analytics")}
-            </Button>
           </div>
         </div>
 
@@ -203,100 +201,12 @@ export default function LeadsPageClient() {
           </div>
         ) : (
           rows.map((lead) => (
-            <div
+            <LeadCard
               key={lead.id}
-              className="group relative flex flex-col bg-neutral-900/40 border border-neutral-800 rounded-3xl overflow-hidden transition-all hover:border-neutral-700 hover:bg-neutral-900/60"
-            >
-              <div className="p-6 space-y-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-2xl bg-neutral-950 flex items-center justify-center text-xl shadow-inner border border-neutral-800/50">
-                      {lead.name ? lead.name[0] : <Search className="h-5 w-5 text-neutral-600" />}
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-neutral-100 flex items-center gap-2">
-                        {lead.name || t("leads.card.anonymous")}
-                        <StatusBadge status={lead.status} />
-                      </h3>
-                      <p className="text-xs text-neutral-500 flex items-center gap-1 mt-0.5">
-                        <Calendar className="h-3 w-3" /> {new Date(lead.created_at).toLocaleDateString()} в {new Date(lead.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button className="p-2 rounded-xl bg-neutral-950/50 border border-neutral-800 text-neutral-500 hover:text-blue-400 hover:border-blue-500/30 transition-all">
-                      <Phone className="h-4 w-4" />
-                    </button>
-                    <button className="p-2 rounded-xl bg-neutral-950/50 border border-neutral-800 text-neutral-500 hover:text-emerald-400 hover:border-emerald-500/30 transition-all">
-                      <MessageSquare className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 text-sm mt-6">
-                  <div className="space-y-1">
-                    <span className="text-[10px] text-neutral-500 uppercase tracking-widest block font-bold">{t("leads.card.budget")}</span>
-                    <div className="flex items-center gap-2 text-neutral-200">
-                      <Wallet className="h-4 w-4 text-amber-500/70" />
-                      {lead.data?.budget_min || lead.data?.budget_max
-                        ? `${lead.data.budget_min || 0} - ${lead.data.budget_max || '…'} $`
-                        : t("leads.card.noBudget")}
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[10px] text-neutral-500 uppercase tracking-widest block font-bold">{t("leads.card.location")}</span>
-                    <div className="flex items-center gap-2 text-neutral-200">
-                      <MapPin className="h-4 w-4 text-blue-500/70" />
-                      {lead.data?.city || t("leads.card.allTurkey")}
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[10px] text-neutral-500 uppercase tracking-widest block font-bold">{t("leads.card.lang")}</span>
-                    <div className="flex items-center gap-2 text-neutral-200">
-                      <Globe className="h-4 w-4 text-emerald-500/70" />
-                      {lead.data?.lang === 'ru' ? 'Русский' : 'English / International'}
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[10px] text-neutral-500 uppercase tracking-widest block font-bold">{t("leads.card.objects")}</span>
-                    <div className="flex items-center gap-2 text-neutral-200 truncate pr-2">
-                      <Target className="h-4 w-4 text-red-500/70" />
-                      {lead.data?.unit_id ? `Unit ID: ${lead.data.unit_id}` : t("leads.card.interestedIn")}
-                    </div>
-                  </div>
-                </div>
-
-                {lead.notes && (
-                  <div className="bg-neutral-950/50 border border-neutral-800/50 rounded-2xl p-4 mt-4">
-                    <p className="text-xs text-neutral-400 leading-relaxed italic line-clamp-2">
-                      &ldquo;{lead.notes}&rdquo;
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-auto border-t border-neutral-800/50 p-4 bg-neutral-950/20 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">{t("leads.table.status")}:</span>
-                  <select
-                    className="bg-transparent text-xs font-bold text-neutral-300 outline-none cursor-pointer focus:text-blue-400"
-                    value={lead.status}
-                    onChange={(e) => updateStatus(lead.id, e.target.value)}
-                  >
-                    <option value="new">{t("leads.stats.new")}</option>
-                    <option value="in_work">{t("leads.stats.inWork")}</option>
-                    <option value="done">Done</option> {/* Wait, no, done is usually something else. Let's check common */}
-                    <option value="spam">Spam</option>
-                  </select>
-                </div>
-                <button
-                  onClick={() => setSelectedLead(lead)}
-                  className="flex items-center gap-1 text-[10px] font-bold text-blue-500 uppercase tracking-widest hover:text-blue-400 transition-colors"
-                >
-                  {t("leads.card.details")} <ChevronRight className="h-3 w-3" />
-                </button>
-              </div>
-            </div>
+              lead={lead}
+              onDetailsClick={() => setSelectedLead(lead)}
+              onStatusUpdate={updateStatus}
+            />
           ))
         )}
       </div>
