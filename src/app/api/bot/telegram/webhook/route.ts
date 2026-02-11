@@ -343,7 +343,7 @@ async function notifyManagers(
 // =====================================================
 // SYSTEM PROMPT - SALES ONLY
 // =====================================================
-const systemPrompt = `Ты — профессиональный ассистент по продаже недвижимости агентства "PrimeEstate".
+const systemPrompt = `Ты — профессиональный ассистент по продаже недвижимости.
 
 ТВОЯ ЦЕЛЬ:
 Помочь клиенту выбрать квартиру из базы и записать его на просмотр или получить контакт для менеджера.
@@ -507,7 +507,25 @@ export async function POST(req: NextRequest) {
       console.error("Failed to load company context:", e);
     }
 
-    const messages: LLMMessage[] = [{ role: "system", content: systemPrompt + companyContext }];
+    // Load Global Instructions
+    let globalInstructions = "";
+    try {
+      const sb = getServerClient();
+      const { data: instr } = await sb
+        .from("company_files")
+        .select("content_text")
+        .eq("category", "instructions")
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle();
+      if (instr?.content_text) {
+        globalInstructions = `GLOBAL INSTRUCTIONS AND RULES (STRICTLY FOLLOW):\n${instr.content_text}\n\n`;
+      }
+    } catch (e) {
+      console.error("Failed to load global instructions:", e);
+    }
+
+    const messages: LLMMessage[] = [{ role: "system", content: globalInstructions + systemPrompt + companyContext }];
 
     // Load conversation history
     if (sessionId) {

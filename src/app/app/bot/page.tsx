@@ -44,11 +44,12 @@ type TelegramManager = {
     created_at: string;
 };
 
-type Tab = "dashboard" | "knowledge" | "managers";
+type Tab = "dashboard" | "knowledge" | "managers" | "instructions";
 
 const CATEGORIES = [
     { value: "about", label: "О компании" },
     { value: "general", label: "Знания" },
+    { value: "instructions", label: "Указания" },
     { value: "license", label: "Лицензии" },
     { value: "certificate", label: "Сертификаты" },
     { value: "presentation", label: "Презентации" },
@@ -74,6 +75,8 @@ export default function UnifiedBotPage() {
     const [totalSummary, setTotalSummary] = useState("");
     const [loadingSummary, setLoadingSummary] = useState(false);
     const [quickNote, setQuickNote] = useState("");
+    const [globalInstructions, setGlobalInstructions] = useState("");
+    const [loadingInstructions, setLoadingInstructions] = useState(false);
 
     // --- State: Dashboard & Managers ---
     const [sessionsCount, setSessionsCount] = useState<number | null>(null);
@@ -137,9 +140,61 @@ export default function UnifiedBotPage() {
             if (statsJson?.ok) setSessionsCount(statsJson.sessionsCount ?? 0);
             if (leadsJson?.ok && Array.isArray(leadsJson.data)) setLeads(leadsJson.data);
             if (managersJson?.ok && Array.isArray(managersJson.data)) setManagers(managersJson.data);
+            loadGlobalInstructions();
         } finally {
             setLoadingLeads(false);
             setManagersLoading(false);
+        }
+    }
+
+    async function loadGlobalInstructions() {
+        setLoadingInstructions(true);
+        try {
+            const { data, error } = await supabase
+                .from("company_files")
+                .select("content_text")
+                .eq("category", "instructions")
+                .limit(1)
+                .maybeSingle();
+            if (data) setGlobalInstructions(data.content_text || "");
+        } catch (e) {
+            console.error("Failed to load instructions", e);
+        } finally {
+            setLoadingInstructions(false);
+        }
+    }
+
+    async function handleSaveInstructions() {
+        setSaving(true);
+        try {
+            const { data: existing } = await supabase
+                .from("company_files")
+                .select("id")
+                .eq("category", "instructions")
+                .maybeSingle();
+
+            if (existing) {
+                await supabase
+                    .from("company_files")
+                    .update({ content_text: globalInstructions, is_active: true })
+                    .eq("id", existing.id);
+            } else {
+                await supabase
+                    .from("company_files")
+                    .insert({
+                        name: "Глобальные указания",
+                        category: "instructions",
+                        content_text: globalInstructions,
+                        is_active: true,
+                        file_type: "text",
+                        url: "internal"
+                    });
+            }
+            alert("Указания сохранены");
+        } catch (e: any) {
+            alert("Ошибка сохранения: " + e.message);
+        } finally {
+            setSaving(false);
         }
     }
 
@@ -314,6 +369,13 @@ export default function UnifiedBotPage() {
                         }`}
                 >
                     <LayoutDashboard className="h-4 w-4" /> Главная
+                </button>
+                <button
+                    onClick={() => setActiveTab("instructions")}
+                    className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${activeTab === "instructions" ? "bg-zinc-800 text-white shadow-sm" : "text-neutral-400 hover:text-neutral-200"
+                        }`}
+                >
+                    <FileText className="h-4 w-4" /> Указания
                 </button>
                 <button
                     onClick={() => setActiveTab("knowledge")}
@@ -694,6 +756,38 @@ export default function UnifiedBotPage() {
                             </Button>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {/* Tab: Global Instructions */}
+            {activeTab === "instructions" && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+                    <section className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6">
+                        <div className="flex items-center justify-between mb-6">
+                            <div>
+                                <h2 className="text-lg font-semibold text-neutral-200">Глобальные указания для бота</h2>
+                                <p className="text-sm text-neutral-400 mt-1">
+                                    Эти инструкции бот будет учитывать в первую очередь при каждом ответе.
+                                </p>
+                            </div>
+                            <Button onClick={handleSaveInstructions} disabled={saving}>
+                                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Сохранить"}
+                            </Button>
+                        </div>
+
+                        {loadingInstructions ? (
+                            <div className="flex justify-center py-12">
+                                <Loader2 className="h-8 w-8 animate-spin text-neutral-600" />
+                            </div>
+                        ) : (
+                            <textarea
+                                className="w-full h-[500px] bg-neutral-950 border border-neutral-800 rounded-2xl p-6 text-sm text-neutral-300 leading-relaxed outline-none focus:border-blue-700 transition-all resize-none font-mono"
+                                placeholder="Напишите здесь, как бот должен себя вести, какие правила соблюдать и какой тон использовать..."
+                                value={globalInstructions}
+                                onChange={(e) => setGlobalInstructions(e.target.value)}
+                            />
+                        )}
+                    </section>
                 </div>
             )}
         </div>
