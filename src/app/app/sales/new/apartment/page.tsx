@@ -42,7 +42,7 @@ export default function NewApartmentPage() {
     floors_total: "",
     area_m2: "",
     price: "",
-    currency: "EUR", // Default currency
+    currency: "USD", // Default currency
     description: "",
     ai_instructions: "",
   });

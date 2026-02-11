@@ -43,7 +43,7 @@ export default function EditApartmentPage({ params }: { params: { id: string } }
         floors_total: "",
         area_m2: "",
         price: "",
-        currency: "EUR",
+        currency: "USD",
         description: "",
         ai_instructions: "",
     });

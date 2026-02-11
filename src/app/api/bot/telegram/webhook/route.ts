@@ -81,7 +81,9 @@ function detectLang(code?: string | null): Lang {
 
 function formatPrice(price: number | null | undefined): string {
   if (price == null) return "цена по запросу";
-  return `€${price.toLocaleString("ru-RU")}`;
+  const usd = price.toLocaleString("ru-RU");
+  const tryValue = Math.round(price * 34).toLocaleString("ru-RU");
+  return `$${usd} (≈${tryValue} ₺)\n*Точную цену в лирах узнаете у менеджера*`;
 }
 
 function buildPropertyDescription(unit: any, lang: Lang): string {
