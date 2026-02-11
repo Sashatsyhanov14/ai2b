@@ -136,7 +136,7 @@ export default function SalesApartmentsPage() {
                 <th className="px-3 py-3 text-left">{t("sales.fields.area")}</th>
                 <th className="px-3 py-3 text-left">{t("sales.fields.price")}, €</th>
                 <th className="px-3 py-3 text-left">{t("sales.fields.status")}</th>
-                <th className="px-3 py-3 text-right">{t("managers.actions")}</th>
+                <th className="px-3 py-3 text-right">{t("sales.actions")}</th>
               </tr>
             </thead>
             <tbody>
