@@ -16,14 +16,19 @@ export async function GET() {
 
         if (error) throw error;
 
-        // Fetch Global Instructions
-        const { data: instrData } = await sb
-            .from('bot_settings')
-            .select('value')
-            .eq('key', 'global_instructions')
-            .maybeSingle();
+        // Fetch Global Instructions (structured)
+        const { data: rules } = await sb
+            .from('bot_instructions')
+            .select('text')
+            .eq('is_active', true)
+            .order('created_at', { ascending: true });
 
-        const globalInstructions = instrData?.value || "";
+        let globalInstructions = "";
+        if (rules && rules.length > 0) {
+            globalInstructions = rules
+                .map((r, i) => `${i + 1}. ${r.text}`)
+                .join("\n");
+        }
 
         if (!entries || entries.length === 0) {
             return NextResponse.json({ ok: true, summary: "База знаний пуста." });

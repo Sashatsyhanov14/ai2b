@@ -44,6 +44,11 @@ type TelegramManager = {
     created_at: string;
 };
 
+type BotInstruction = {
+    id: string;
+    text: string;
+};
+
 type Tab = "dashboard" | "knowledge" | "managers" | "instructions";
 
 const CATEGORIES = [
@@ -75,7 +80,7 @@ export default function UnifiedBotPage() {
     const [totalSummary, setTotalSummary] = useState("");
     const [loadingSummary, setLoadingSummary] = useState(false);
     const [quickNote, setQuickNote] = useState("");
-    const [globalInstructions, setGlobalInstructions] = useState("");
+    const [globalInstructions, setGlobalInstructions] = useState<BotInstruction[]>([]);
     const [loadingInstructions, setLoadingInstructions] = useState(false);
 
     // --- State: Dashboard & Managers ---
@@ -151,11 +156,10 @@ export default function UnifiedBotPage() {
         setLoadingInstructions(true);
         try {
             const { data, error } = await supabase
-                .from("bot_settings")
-                .select("value")
-                .eq("key", "global_instructions")
-                .maybeSingle();
-            if (data) setGlobalInstructions(data.value || "");
+                .from("bot_instructions")
+                .select("id, text")
+                .order("created_at", { ascending: true });
+            if (data) setGlobalInstructions(data);
         } catch (e) {
             console.error("Failed to load instructions", e);
         } finally {
@@ -163,23 +167,40 @@ export default function UnifiedBotPage() {
         }
     }
 
-    async function handleSaveInstructions() {
-        setSaving(true);
+    async function handleAddInstruction() {
         try {
-            const { error } = await supabase
-                .from("bot_settings")
-                .upsert({
-                    key: "global_instructions",
-                    value: globalInstructions,
-                    updated_at: new Date().toISOString()
-                });
+            const { data, error } = await supabase
+                .from("bot_instructions")
+                .insert({ text: "" })
+                .select()
+                .single();
+            if (data) setGlobalInstructions([...globalInstructions, data]);
+        } catch (e) {
+            console.error("Add instruction error", e);
+        }
+    }
 
-            if (error) throw error;
-            alert("Указания сохранены");
-        } catch (e: any) {
-            alert("Ошибка сохранения: " + e.message);
-        } finally {
-            setSaving(false);
+    async function handleUpdateInstruction(id: string, text: string) {
+        setGlobalInstructions(prev => prev.map(item => item.id === id ? { ...item, text } : item));
+    }
+
+    async function handleSaveInstruction(id: string, text: string) {
+        try {
+            await supabase
+                .from("bot_instructions")
+                .update({ text })
+                .eq("id", id);
+        } catch (e) {
+            console.error("Save instruction error", e);
+        }
+    }
+
+    async function handleDeleteInstruction(id: string) {
+        try {
+            await supabase.from("bot_instructions").delete().eq("id", id);
+            setGlobalInstructions(prev => prev.filter(item => item.id !== id));
+        } catch (e) {
+            console.error("Delete instruction error", e);
         }
     }
 
@@ -748,15 +769,19 @@ export default function UnifiedBotPage() {
             {activeTab === "instructions" && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
                     <section className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6">
-                        <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center justify-between mb-8">
                             <div>
-                                <h2 className="text-lg font-semibold text-neutral-200">Глобальные указания для бота</h2>
+                                <h2 className="text-xl font-bold text-neutral-100 italic">Глобальные указания</h2>
                                 <p className="text-sm text-neutral-400 mt-1">
-                                    Эти инструкции бот будет учитывать в первую очередь при каждом ответе.
+                                    Настройте конкретные правила поведения бота. Каждый пункт — отдельная инструкция.
                                 </p>
                             </div>
-                            <Button onClick={handleSaveInstructions} disabled={saving}>
-                                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Сохранить"}
+                            <Button
+                                onClick={handleAddInstruction}
+                                variant="secondary"
+                                className="gap-2 bg-blue-600/10 text-blue-400 border-blue-600/20 hover:bg-blue-600/20"
+                            >
+                                <Plus className="h-4 w-4" /> Добавить правило
                             </Button>
                         </div>
 
@@ -765,12 +790,37 @@ export default function UnifiedBotPage() {
                                 <Loader2 className="h-8 w-8 animate-spin text-neutral-600" />
                             </div>
                         ) : (
-                            <textarea
-                                className="w-full h-[500px] bg-neutral-950 border border-neutral-800 rounded-2xl p-6 text-sm text-neutral-300 leading-relaxed outline-none focus:border-blue-700 transition-all resize-none font-mono"
-                                placeholder="Напишите здесь, как бот должен себя вести, какие правила соблюдать и какой тон использовать..."
-                                value={globalInstructions}
-                                onChange={(e) => setGlobalInstructions(e.target.value)}
-                            />
+                            <div className="space-y-4">
+                                {globalInstructions.map((instruction, index) => (
+                                    <div key={instruction.id} className="group relative flex gap-4 items-start bg-neutral-950/50 border border-neutral-800/50 rounded-xl p-4 transition-all hover:border-neutral-700/50">
+                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-neutral-900 text-sm font-bold text-neutral-500">
+                                            {index + 1}
+                                        </div>
+                                        <div className="flex-1 space-y-2">
+                                            <textarea
+                                                className="w-full bg-transparent border-none p-0 text-sm text-neutral-200 placeholder:text-neutral-600 focus:ring-0 resize-none min-h-[60px]"
+                                                placeholder="Введите правило здесь..."
+                                                value={instruction.text}
+                                                onChange={(e) => handleUpdateInstruction(instruction.id, e.target.value)}
+                                                onBlur={(e) => handleSaveInstruction(instruction.id, e.target.value)}
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={() => handleDeleteInstruction(instruction.id)}
+                                            className="p-2 rounded-lg text-neutral-600 hover:text-red-400 hover:bg-red-400/10 transition-all"
+                                            title="Удалить правило"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                ))}
+
+                                {globalInstructions.length === 0 && (
+                                    <div className="text-center py-12 border-2 border-dashed border-neutral-800 rounded-2xl">
+                                        <p className="text-neutral-500">Список правил пуст. Нажмите «Добавить правило», чтобы начать.</p>
+                                    </div>
+                                )}
+                            </div>
                         )}
                     </section>
                 </div>

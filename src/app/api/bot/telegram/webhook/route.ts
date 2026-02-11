@@ -507,17 +507,21 @@ export async function POST(req: NextRequest) {
       console.error("Failed to load company context:", e);
     }
 
-    // Load Global Instructions
+    // Load Global Instructions (structured)
     let globalInstructions = "";
     try {
       const sb = getServerClient();
-      const { data: instr } = await sb
-        .from("bot_settings")
-        .select("value")
-        .eq("key", "global_instructions")
-        .maybeSingle();
-      if (instr?.value) {
-        globalInstructions = `GLOBAL INSTRUCTIONS AND RULES (STRICTLY FOLLOW):\n${instr.value}\n\n`;
+      const { data: rules } = await sb
+        .from("bot_instructions")
+        .select("text")
+        .eq("is_active", true)
+        .order("created_at", { ascending: true });
+
+      if (rules && rules.length > 0) {
+        const formattedRules = rules
+          .map((r, i) => `${i + 1}. ${r.text}`)
+          .join("\n");
+        globalInstructions = `GLOBAL INSTRUCTIONS AND RULES (STRICTLY FOLLOW):\n${formattedRules}\n\n`;
       }
     } catch (e) {
       console.error("Failed to load global instructions:", e);
