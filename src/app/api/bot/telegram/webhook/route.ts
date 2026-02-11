@@ -512,14 +512,12 @@ export async function POST(req: NextRequest) {
     try {
       const sb = getServerClient();
       const { data: instr } = await sb
-        .from("company_files")
-        .select("content_text")
-        .eq("category", "instructions")
-        .eq("is_active", true)
-        .limit(1)
+        .from("bot_settings")
+        .select("value")
+        .eq("key", "global_instructions")
         .maybeSingle();
-      if (instr?.content_text) {
-        globalInstructions = `GLOBAL INSTRUCTIONS AND RULES (STRICTLY FOLLOW):\n${instr.content_text}\n\n`;
+      if (instr?.value) {
+        globalInstructions = `GLOBAL INSTRUCTIONS AND RULES (STRICTLY FOLLOW):\n${instr.value}\n\n`;
       }
     } catch (e) {
       console.error("Failed to load global instructions:", e);

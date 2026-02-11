@@ -151,12 +151,11 @@ export default function UnifiedBotPage() {
         setLoadingInstructions(true);
         try {
             const { data, error } = await supabase
-                .from("company_files")
-                .select("content_text")
-                .eq("category", "instructions")
-                .limit(1)
+                .from("bot_settings")
+                .select("value")
+                .eq("key", "global_instructions")
                 .maybeSingle();
-            if (data) setGlobalInstructions(data.content_text || "");
+            if (data) setGlobalInstructions(data.value || "");
         } catch (e) {
             console.error("Failed to load instructions", e);
         } finally {
@@ -167,29 +166,15 @@ export default function UnifiedBotPage() {
     async function handleSaveInstructions() {
         setSaving(true);
         try {
-            const { data: existing } = await supabase
-                .from("company_files")
-                .select("id")
-                .eq("category", "instructions")
-                .maybeSingle();
+            const { error } = await supabase
+                .from("bot_settings")
+                .upsert({
+                    key: "global_instructions",
+                    value: globalInstructions,
+                    updated_at: new Date().toISOString()
+                });
 
-            if (existing) {
-                await supabase
-                    .from("company_files")
-                    .update({ content_text: globalInstructions, is_active: true })
-                    .eq("id", existing.id);
-            } else {
-                await supabase
-                    .from("company_files")
-                    .insert({
-                        name: "Глобальные указания",
-                        category: "instructions",
-                        content_text: globalInstructions,
-                        is_active: true,
-                        file_type: "text",
-                        url: "internal"
-                    });
-            }
+            if (error) throw error;
             alert("Указания сохранены");
         } catch (e: any) {
             alert("Ошибка сохранения: " + e.message);
