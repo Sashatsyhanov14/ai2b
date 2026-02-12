@@ -59,6 +59,20 @@ export default function LeadCard({ lead, onDetailsClick, onStatusUpdate }: LeadC
     const urgency = lead.data?.urgency || "холодный";
     const tempConfig = TEMP_CONFIG[urgency] || TEMP_CONFIG["холодный"];
 
+    // Score and stage from scoring system
+    const score = lead.data?.score || 0;
+    const stage = lead.data?.stage || "sandbox";
+
+    // Stage config
+    const stageConfig: Record<string, { label: string; color: string; emoji: string }> = {
+        sandbox: { label: "Песочница", color: "text-gray-500 bg-gray-500/10 border-gray-500/20", emoji: "🏖️" },
+        warmup: { label: "Прогрев", color: "text-orange-500 bg-orange-500/10 border-orange-500/20", emoji: "⚡" },
+        handoff: { label: "Готов", color: "text-red-500 bg-red-500/10 border-red-500/20", emoji: "🔥" },
+        reactivation: { label: "Реактивация", color: "text-blue-500 bg-blue-500/10 border-blue-500/20", emoji: "🔄" },
+    };
+
+    const currentStage = stageConfig[stage] || stageConfig.sandbox;
+
     // Format last active time
     const lastActive = new Date(lead.created_at);
     const now = new Date();
@@ -93,9 +107,33 @@ export default function LeadCard({ lead, onDetailsClick, onStatusUpdate }: LeadC
                             </p>
                         </div>
                     </div>
-                    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-neutral-950/50 border border-neutral-800 ${tempConfig.color}`}>
-                        <span className="text-sm">{tempConfig.emoji}</span>
-                        <span className="text-[10px] font-bold uppercase tracking-wider">{tempConfig.label}</span>
+                    <div className="flex items-center gap-2">
+                        {/* Score Badge */}
+                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border ${currentStage.color}`}>
+                            <span className="text-sm">{currentStage.emoji}</span>
+                            <span className="text-xs font-bold">{score} pts</span>
+                        </div>
+                        {/* Stage Label */}
+                        <div className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${currentStage.color}`}>
+                            {currentStage.label}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Score Progress Bar */}
+                <div className="mt-3">
+                    <div className="flex items-center gap-2 text-[10px] text-neutral-500 mb-1.5">
+                        <span>Прогресс:</span>
+                        <span className="font-bold">{Math.min(score, 10)}/10</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-neutral-800 rounded-full overflow-hidden">
+                        <div
+                            className={`h-full transition-all duration-500 ${score >= 5 ? "bg-gradient-to-r from-orange-500 to-red-500" :
+                                score >= 3 ? "bg-gradient-to-r from-blue-500 to-orange-500" :
+                                    "bg-neutral-600"
+                                }`}
+                            style={{ width: `${Math.min((score / 10) * 100, 100)}%` }}
+                        />
                     </div>
                 </div>
             </div>

@@ -39,6 +39,7 @@ export default function LeadsPageClient() {
   const from = sp.get("from") || "";
   const to = sp.get("to") || "";
   const q = sp.get("q") || "";
+  const stage = sp.get("stage") || "";
 
   function setParam(key: string, val: string) {
     const p = new URLSearchParams(sp.toString());
@@ -60,6 +61,7 @@ export default function LeadsPageClient() {
       if (from) qs.set("from", from);
       if (to) qs.set("to", to);
       if (q) qs.set("q", q);
+      if (stage) qs.set("stage", stage);
       const res = await fetch("/api/leads?" + qs.toString());
       const j = await res.json().catch(() => ({}));
       if (j?.ok) setRows(j.data || []);
@@ -147,6 +149,49 @@ export default function LeadsPageClient() {
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      {/* Stage Filter Tabs */}
+      <div className="flex items-center gap-2 p-2 rounded-2xl border border-neutral-800 bg-neutral-900/20 backdrop-blur-sm">
+        <button
+          onClick={() => setParam("stage", "")}
+          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${!stage
+            ? "bg-neutral-700 text-white border border-neutral-600"
+            : "bg-transparent text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50"
+            }`}
+        >
+          <span>Все</span>
+        </button>
+        <button
+          onClick={() => setParam("stage", "sandbox")}
+          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${stage === "sandbox"
+            ? "bg-gray-600/20 text-gray-400 border border-gray-500/30"
+            : "bg-transparent text-neutral-400 hover:text-gray-400 hover:bg-gray-600/10"
+            }`}
+        >
+          <span>🏖️</span>
+          <span>Песочница</span>
+        </button>
+        <button
+          onClick={() => setParam("stage", "warmup")}
+          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${stage === "warmup"
+            ? "bg-orange-600/20 text-orange-400 border border-orange-500/30"
+            : "bg-transparent text-neutral-400 hover:text-orange-400 hover:bg-orange-600/10"
+            }`}
+        >
+          <span>⚡</span>
+          <span>Прогрев</span>
+        </button>
+        <button
+          onClick={() => setParam("stage", "handoff")}
+          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${stage === "handoff"
+            ? "bg-red-600/20 text-red-400 border border-red-500/30"
+            : "bg-transparent text-neutral-400 hover:text-red-400 hover:bg-red-600/10"
+            }`}
+        >
+          <span>🔥</span>
+          <span>Готов</span>
+        </button>
       </div>
 
       {/* Filters */}
