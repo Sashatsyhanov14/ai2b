@@ -45,7 +45,12 @@ export default function LeadCard({ lead, onDetailsClick, onStatusUpdate }: LeadC
             setLoading(true);
             fetch(`/api/units/${unitId}`)
                 .then((res) => res.json())
-                .then((data) => setFocusUnit(data))
+                .then((json) => {
+                    // API returns { ok: true, data: unit }
+                    if (json?.ok && json?.data) {
+                        setFocusUnit(json.data);
+                    }
+                })
                 .catch(console.error)
                 .finally(() => setLoading(false));
         }
