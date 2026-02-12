@@ -39,7 +39,8 @@ export default function LeadsPageClient() {
   const from = sp.get("from") || "";
   const to = sp.get("to") || "";
   const q = sp.get("q") || "";
-  const stage = sp.get("stage") || "";
+  // Default: hide sandbox (tourists), show warmup+handoff only
+  const stage = sp.get("stage") !== null ? sp.get("stage") || "" : "warmup,handoff";
 
   function setParam(key: string, val: string) {
     const p = new URLSearchParams(sp.toString());
@@ -64,7 +65,15 @@ export default function LeadsPageClient() {
       if (stage) qs.set("stage", stage);
       const res = await fetch("/api/leads?" + qs.toString());
       const j = await res.json().catch(() => ({}));
-      if (j?.ok) setRows(j.data || []);
+      if (j?.ok) {
+        // Sort by score: hot leads first, then warm, then sandbox
+        const sorted = (j.data || []).sort((a: any, b: any) => {
+          const scoreA = a.data?.score || 0;
+          const scoreB = b.data?.score || 0;
+          return scoreB - scoreA; // Descending
+        });
+        setRows(sorted);
+      }
     } finally {
       setLoading(false);
     }
@@ -72,7 +81,7 @@ export default function LeadsPageClient() {
 
   useEffect(() => {
     load();
-  }, [status, source, from, to, q]);
+  }, [status, source, from, to, q, stage]);
 
   async function updateStatus(id: string, newStatus: string) {
     try {
@@ -151,27 +160,8 @@ export default function LeadsPageClient() {
         </div>
       </div>
 
-      {/* Stage Filter Tabs */}
+      {/* Stage Filter Tabs (No Sandbox - filtered at bot level) */}
       <div className="flex items-center gap-2 p-2 rounded-2xl border border-neutral-800 bg-neutral-900/20 backdrop-blur-sm">
-        <button
-          onClick={() => setParam("stage", "")}
-          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${!stage
-            ? "bg-neutral-700 text-white border border-neutral-600"
-            : "bg-transparent text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50"
-            }`}
-        >
-          <span>Все</span>
-        </button>
-        <button
-          onClick={() => setParam("stage", "sandbox")}
-          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${stage === "sandbox"
-            ? "bg-gray-600/20 text-gray-400 border border-gray-500/30"
-            : "bg-transparent text-neutral-400 hover:text-gray-400 hover:bg-gray-600/10"
-            }`}
-        >
-          <span>🏖️</span>
-          <span>Песочница</span>
-        </button>
         <button
           onClick={() => setParam("stage", "warmup")}
           className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${stage === "warmup"
@@ -184,7 +174,7 @@ export default function LeadsPageClient() {
         </button>
         <button
           onClick={() => setParam("stage", "handoff")}
-          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${stage === "handoff"
+          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${stage === "handoff" || stage === "warmup,handoff"
             ? "bg-red-600/20 text-red-400 border border-red-500/30"
             : "bg-transparent text-neutral-400 hover:text-red-400 hover:bg-red-600/10"
             }`}

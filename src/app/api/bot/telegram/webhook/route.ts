@@ -425,6 +425,20 @@ async function handleCreateLead(
       return;
     }
 
+    // BLOCK SANDBOX (TOURISTS) - Don't create leads for score < 3
+    if (sessionId) {
+      const scoreData = await getSessionScore(sessionId);
+      if (scoreData && scoreData.score < STAGE_THRESHOLDS.warmup.min) {
+        console.log(`[SANDBOX FILTER] User score ${scoreData.score} is too low (sandbox stage). Not creating lead.`);
+        const msg =
+          lang === "ru"
+            ? "Спасибо за интерес! Если вам понадобится помощь, я всегда здесь."
+            : "Thank you for your interest! I'm here if you need any help.";
+        await sendMessage(token, chatId, msg);
+        return;
+      }
+    }
+
     const lead = await createLead({
       source_bot_id: "telegram",
       source: "telegram",

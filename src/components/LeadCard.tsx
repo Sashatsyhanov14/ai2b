@@ -195,12 +195,37 @@ export default function LeadCard({ lead, onDetailsClick, onStatusUpdate }: LeadC
                 </div>
             )}
 
-            {/* AI Summary (if available) */}
+            {/* Manager Hints from AI */}
+            {lead.data?.manager_hints && (
+                <div className="px-5 py-4 border-b border-neutral-800/50 bg-blue-500/5">
+                    <div className="flex items-center gap-2 mb-3">
+                        <span className="text-blue-400">💡</span>
+                        <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">
+                            ПОДСКАЗКИ МЕНЕДЖЕРУ:
+                        </span>
+                    </div>
+                    <div className="space-y-2 pl-6">
+                        <p className="text-sm text-neutral-300 leading-relaxed">
+                            {lead.data.manager_hints}
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* Conversation Summary */}
             {lead.data?.ai_summary && (
-                <div className="px-5 py-3 bg-neutral-950/30 border-b border-neutral-800/50">
-                    <p className="text-xs text-neutral-400 italic line-clamp-2">
-                        &ldquo;{lead.data.ai_summary}&rdquo;
-                    </p>
+                <div className="px-5 py-4 border-b border-neutral-800/50 bg-neutral-950/30">
+                    <div className="flex items-center gap-2 mb-3">
+                        <span className="text-neutral-400">💬</span>
+                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">
+                            ОПИСАНИЕ ДИАЛОГА:
+                        </span>
+                    </div>
+                    <div className="pl-6">
+                        <p className="text-xs text-neutral-400 italic leading-relaxed">
+                            &ldquo;{lead.data.ai_summary}&rdquo;
+                        </p>
+                    </div>
                 </div>
             )}
 
