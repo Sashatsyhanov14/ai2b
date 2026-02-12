@@ -229,32 +229,62 @@ export default function LeadCard({ lead, onDetailsClick, onStatusUpdate }: LeadC
                 </div>
             )}
 
-            {/* Quick Actions */}
-            <div className="p-4 bg-neutral-950/20 flex items-center justify-between gap-3">
-                {whatsappLink ? (
-                    <a
-                        href={whatsappLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition-all"
-                    >
-                        <MessageSquare className="h-4 w-4" />
-                        WhatsApp
-                    </a>
-                ) : (
-                    <button
-                        disabled
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-neutral-800/50 text-neutral-600 text-sm font-bold cursor-not-allowed"
-                    >
-                        <Phone className="h-4 w-4" />
-                        Нет телефона
-                    </button>
-                )}
+            {/* Action Buttons */}
+            <div className="p-4 bg-neutral-950/20 flex items-center gap-2">
+                {/* Sold Button */}
+                <button
+                    onClick={() => onStatusUpdate(lead.id, "done")}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:border-emerald-500/50 text-sm font-bold transition-all"
+                    title="Продано"
+                >
+                    <span className="text-lg">✓</span>
+                    <span className="hidden sm:inline">Продано</span>
+                </button>
+
+                {/* Delete Button */}
+                <button
+                    onClick={() => {
+                        if (confirm('Удалить этот лид?')) {
+                            onStatusUpdate(lead.id, "spam");
+                        }
+                    }}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-500/30 hover:border-red-500/50 text-sm font-bold transition-all"
+                    title="Удалить"
+                >
+                    <span className="text-lg">×</span>
+                    <span className="hidden sm:inline">Удалить</span>
+                </button>
+
+                {/* Snooze 24h Button */}
+                <button
+                    onClick={async () => {
+                        try {
+                            const res = await fetch(`/api/leads/${lead.id}`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ snooze: true }),
+                            });
+                            if (res.ok) {
+                                alert('✓ Лид отложен на 24 часа. Вернётся в топ автоматически.');
+                                onStatusUpdate(lead.id, lead.status); // Refresh
+                            }
+                        } catch (e) {
+                            alert('Ошибка при отложении лида');
+                        }
+                    }}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:border-blue-500/50 text-sm font-bold transition-all"
+                    title="Отложить на 24ч"
+                >
+                    <span className="text-lg">🕐</span>
+                    <span className="hidden sm:inline">24ч</span>
+                </button>
+
+                {/* Details Button */}
                 <button
                     onClick={onDetailsClick}
-                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-200 hover:text-white text-sm font-bold transition-all border border-neutral-700"
+                    className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-200 hover:text-white text-sm font-bold transition-all border border-neutral-700"
+                    title="Подробнее"
                 >
-                    Подробнее
                     <ChevronRight className="h-3.5 w-3.5" />
                 </button>
             </div>

@@ -66,8 +66,22 @@ export default function LeadsPageClient() {
       const res = await fetch("/api/leads?" + qs.toString());
       const j = await res.json().catch(() => ({}));
       if (j?.ok) {
-        // Sort by score: hot leads first, then warm, then sandbox
+        // Smart sorting:
+        // 1. Snoozed leads whose time expired go to TOP
+        // 2. Then sort by score (hot leads first)
+        const now = new Date();
         const sorted = (j.data || []).sort((a: any, b: any) => {
+          const aSnoozed = a.snoozed_until ? new Date(a.snoozed_until) : null;
+          const bSnoozed = b.snoozed_until ? new Date(b.snoozed_until) : null;
+
+          // If A's snooze expired and B's hasn't (or B not snoozed), A goes first
+          const aExpired = aSnoozed && aSnoozed <= now;
+          const bExpired = bSnoozed && bSnoozed <= now;
+
+          if (aExpired && !bExpired) return -1;
+          if (!aExpired && bExpired) return 1;
+
+          // Both expired or both not expired: sort by score
           const scoreA = a.data?.score || 0;
           const scoreB = b.data?.score || 0;
           return scoreB - scoreA; // Descending
@@ -184,42 +198,16 @@ export default function LeadsPageClient() {
         </button>
       </div>
 
-      {/* Filters */}
+      {/* Filters - Text Search Only */}
       <div className="flex flex-col md:flex-row gap-4 p-5 rounded-2xl border border-neutral-800 bg-neutral-900/20 backdrop-blur-sm">
         <div className="flex-1 relative group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500 group-focus-within:text-blue-500 transition-colors" />
           <input
             className="w-full bg-neutral-950 border border-neutral-800 rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none focus:border-blue-600 transition-all"
-            placeholder={t("leads.filters.search")}
+            placeholder="Поиск по имени, номеру или email..."
             value={q}
             onChange={(e) => setParam("q", e.target.value)}
           />
-        </div>
-
-        <div className="flex gap-2">
-          <select
-            className="bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2 text-sm outline-none focus:border-blue-600 cursor-pointer"
-            value={status}
-            onChange={(e) => setParam("status", e.target.value)}
-          >
-            <option value="">{t("leads.filters.allStatuses")}</option>
-            <option value="new">{t("leads.stats.new")}</option>
-            <option value="in_work">{t("leads.stats.inWork")}</option>
-            <option value="done">{t("common.save")}</option> {/* Wait, no, done is usually something else. Let's check common */}
-            <option value="spam">Spam</option>
-          </select>
-
-          <select
-            className="bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2 text-sm outline-none focus:border-blue-600 cursor-pointer"
-            value={source}
-            onChange={(e) => setParam("source", e.target.value)}
-          >
-            <option value="">{t("leads.filters.allSources")}</option>
-            <option value="telegram_bot">Telegram</option>
-            <option value="whatsapp">WhatsApp</option>
-            <option value="landing">Сайт</option>
-            <option value="manual">Вручную</option>
-          </select>
         </div>
       </div>
 
