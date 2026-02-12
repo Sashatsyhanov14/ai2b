@@ -183,7 +183,7 @@ export default function LeadsPageClient() {
             : "bg-transparent text-neutral-400 hover:text-orange-400 hover:bg-orange-600/10"
             }`}
         >
-          <span>⚡</span>
+          <Zap className="h-4 w-4" />
           <span>Прогрев</span>
         </button>
         <button
@@ -193,7 +193,7 @@ export default function LeadsPageClient() {
             : "bg-transparent text-neutral-400 hover:text-red-400 hover:bg-red-600/10"
             }`}
         >
-          <span>🔥</span>
+          <Flame className="h-4 w-4" />
           <span>Готов</span>
         </button>
       </div>

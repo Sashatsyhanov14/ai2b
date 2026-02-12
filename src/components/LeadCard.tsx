@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Phone, MessageSquare, ChevronRight, Eye } from "lucide-react";
+import { Phone, MessageSquare, ChevronRight, Eye, Target, DollarSign, Heart, Lightbulb, MessageCircle, Clock, CheckCircle, X } from "lucide-react";
 
 interface LeadCardProps {
     lead: any;
@@ -146,14 +146,14 @@ export default function LeadCard({ lead, onDetailsClick, onStatusUpdate }: LeadC
             {/* Goal & Budget */}
             <div className="px-5 py-4 space-y-2 border-b border-neutral-800/50 bg-neutral-950/20">
                 <div className="flex items-center gap-2 text-sm">
-                    <span className="text-neutral-500">🎯</span>
+                    <Target className="h-4 w-4 text-neutral-500" />
                     <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">ЦЕЛЬ:</span>
                     <span className="text-neutral-200 font-medium">
                         {lead.data?.type || "Не указано"}
                     </span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
-                    <span className="text-neutral-500">💰</span>
+                    <DollarSign className="h-4 w-4 text-neutral-500" />
                     <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">БЮДЖЕТ:</span>
                     <span className="text-neutral-200 font-medium">
                         {lead.data?.budget || "Не указан"}
@@ -165,7 +165,7 @@ export default function LeadCard({ lead, onDetailsClick, onStatusUpdate }: LeadC
             {focusUnit && (
                 <div className="px-5 py-4 border-b border-neutral-800/50">
                     <div className="flex items-center gap-2 mb-3">
-                        <span className="text-red-500">❤️</span>
+                        <Heart className="h-4 w-4 text-red-500" />
                         <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">
                             ГЛАВНЫЙ ИНТЕРЕС:
                         </span>
@@ -199,7 +199,7 @@ export default function LeadCard({ lead, onDetailsClick, onStatusUpdate }: LeadC
             {lead.data?.manager_hints && (
                 <div className="px-5 py-4 border-b border-neutral-800/50 bg-blue-500/5">
                     <div className="flex items-center gap-2 mb-3">
-                        <span className="text-blue-400">💡</span>
+                        <Lightbulb className="h-4 w-4 text-blue-400" />
                         <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">
                             ПОДСКАЗКИ МЕНЕДЖЕРУ:
                         </span>
@@ -216,7 +216,7 @@ export default function LeadCard({ lead, onDetailsClick, onStatusUpdate }: LeadC
             {lead.data?.ai_summary && (
                 <div className="px-5 py-4 border-b border-neutral-800/50 bg-neutral-950/30">
                     <div className="flex items-center gap-2 mb-3">
-                        <span className="text-neutral-400">💬</span>
+                        <MessageCircle className="h-4 w-4 text-neutral-400" />
                         <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">
                             ОПИСАНИЕ ДИАЛОГА:
                         </span>
@@ -237,7 +237,7 @@ export default function LeadCard({ lead, onDetailsClick, onStatusUpdate }: LeadC
                     className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:border-emerald-500/50 text-sm font-bold transition-all"
                     title="Продано"
                 >
-                    <span className="text-lg">✓</span>
+                    <CheckCircle className="h-4 w-4" />
                     <span className="hidden sm:inline">Продано</span>
                 </button>
 
@@ -251,7 +251,7 @@ export default function LeadCard({ lead, onDetailsClick, onStatusUpdate }: LeadC
                     className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-500/30 hover:border-red-500/50 text-sm font-bold transition-all"
                     title="Удалить"
                 >
-                    <span className="text-lg">×</span>
+                    <X className="h-4 w-4" />
                     <span className="hidden sm:inline">Удалить</span>
                 </button>
 
@@ -275,7 +275,7 @@ export default function LeadCard({ lead, onDetailsClick, onStatusUpdate }: LeadC
                     className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:border-blue-500/50 text-sm font-bold transition-all"
                     title="Отложить на 24ч"
                 >
-                    <span className="text-lg">🕐</span>
+                    <Clock className="h-4 w-4" />
                     <span className="hidden sm:inline">24ч</span>
                 </button>
 
