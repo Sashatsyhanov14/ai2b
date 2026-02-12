@@ -118,6 +118,34 @@ function buildPropertyDescription(unit: any, lang: Lang): string {
   return `${city}. ${parts}. ${price}`;
 }
 
+const CITY_VARIANT_MAP: Record<string, string[]> = {
+  "alanya": ["alanya", "алания", "аланья"],
+  "antalya": ["antalya", "анталия", "анталья"],
+  "mersin": ["mersin", "мерсин"],
+  "istanbul": ["istanbul", "стамбул"],
+  "bodrum": ["bodrum", "бодрум"],
+  "fethiye": ["fethiye", "фетхие", "фетхия"],
+  "kemer": ["kemer", "кемер"],
+  "belek": ["belek", "белек"],
+  "side": ["side", "сиде"],
+  "gazipasa": ["gazipasa", "газипаша"],
+  "izmir": ["izmir", "измир"],
+};
+
+function getCityVariants(input: string): string[] {
+  if (!input) return [];
+  const lower = input.toLowerCase().trim();
+
+  // Check if input matches any known variant
+  for (const key in CITY_VARIANT_MAP) {
+    if (CITY_VARIANT_MAP[key].includes(lower)) {
+      return CITY_VARIANT_MAP[key];
+    }
+  }
+
+  return [input];
+}
+
 // =====================================================
 // SEND PROPERTY PHOTOS
 // =====================================================
@@ -195,7 +223,14 @@ async function handleShowProperty(
     .order("created_at", { ascending: false });
 
   if (city) {
-    query = query.ilike("city", `%${city}%`);
+    const variants = getCityVariants(city);
+    if (variants.length > 1) {
+      // Create OR query for all variants: city.ilike.%v1%,city.ilike.%v2%,...
+      const orQuery = variants.map(v => `city.ilike.%${v}%`).join(',');
+      query = query.or(orQuery);
+    } else {
+      query = query.ilike("city", `%${city}%`);
+    }
   }
   if (budgetMin != null) {
     query = query.gte("price", budgetMin);
@@ -592,7 +627,9 @@ JSON FORMAT:
     "city": string | null,
     "budget_min": number | null,
     "budget_max": number | null,
-    "rooms": number | null,
+    "budget_max": number | null,
+    "rooms": number | null, // 0=Studio, 1=1+1, 2=2+1, 3=3+1, 4=4+
+    "current_unit_id": string | null,
     "current_unit_id": string | null,
     "shown_unit_ids": string[]
   },
