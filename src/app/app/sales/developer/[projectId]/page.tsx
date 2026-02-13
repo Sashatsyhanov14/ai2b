@@ -20,7 +20,7 @@ type Unit = {
   rooms?: number | null;
   floor?: number | null;
   floors_total?: number | null;
-  area?: number | null;
+  area_m2?: number | null;
   price?: number | null;
   status?: string | null;
 };
