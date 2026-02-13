@@ -9,9 +9,6 @@ import { getServerClient } from "@/lib/supabaseClient";
 import { askLLM } from "@/lib/openrouter";
 import { appendMessage, findOrCreateSession, listMessages } from "@/services/sessions";
 import { createLead, updateLeadStatus } from "@/services/leads";
-createLead,
-  updateLeadStatus
-} from "@/services/leads";
 import {
   markLeadCreated,
   markReactivationResponded,
@@ -272,26 +269,6 @@ async function handleShowProperty(
   const rooms = args?.rooms || null;
   const excludeIds = args?.exclude_ids || [];
 
-  // Build query
-  // AI Parameter Extraction
-  // Combine args provided by Tool with potential natural language nuances check? 
-  // Actually, the Tool args come from the LLM, but the LLM might have messed up "Piter".
-  // Let's use the city from args if present, but verify it via normalization if it looks raw.
-  // OR: If the user just typed "Show me flats in Piter", the LLM calling the tool might have passed "Piter".
-  // We can re-normalize just the city using our new AI extraction if needed, OR trust the "extractSearchParamsAI" was called earlier?
-  // Wait, the User Request: "In code of search function... AI-layer matches Piter -> SPb".
-
-  // It seems safer to use AI extraction on the CITY arg if it exists, to ensure it matches DB.
-
-  let finalCity = args?.city || null;
-  let finalBudgetMax = args?.budget_max || null;
-  let finalRooms = args?.rooms || null;
-
-  // Small hack: if city is provided, double-check its normalization via a mini-prompt or just assume 
-  // we integrate extractSearchParamsAI at a higher level? 
-  // The plan said: "In the code of search function...". 
-  // Let's normalize the city if it's non-english looking or just always normalize it.
-
   // AI Parameter Extraction - Generate all city variants
   let cityVariants: string[] = [];
   let finalBudgetMax = args?.budget_max || null;
@@ -508,19 +485,7 @@ async function handleCreateLead(
       return;
     }
 
-    // BLOCK SANDBOX (TOURISTS) - Don't create leads for score < 3
-    if (sessionId) {
-      const scoreData = await getSessionScore(sessionId);
-      if (scoreData && scoreData.score < STAGE_THRESHOLDS.warmup.min) {
-        console.log(`[SANDBOX FILTER] User score ${scoreData.score} is too low (sandbox stage). Not creating lead.`);
-        const msg =
-          lang === "ru"
-            ? "Спасибо за интерес! Если вам понадобится помощь, я всегда здесь."
-            : "Thank you for your interest! I'm here if you need any help.";
-        await sendMessage(token, chatId, msg);
-        return;
-      }
-    }
+    // BLOCK SANDBOX - REMOVED (Now handled by AI Analyst)
 
     const lead = await createLead({
       source_bot_id: "telegram",
@@ -1028,8 +993,7 @@ export async function POST(req: NextRequest) {
           botId
         );
       } else if (action.tool === "create_lead") {
-        // SCORE: Hard action = strong buying signal
-        await awardPoints(sessionId, "hard_action", SCORING_RULES.hard_action);
+        // SCORE: Hard action - REMOVED
 
         await handleCreateLead(action.args as any, lang, chatId, token, sessionId, userInfo);
         leadCreatedFromTool = true;
