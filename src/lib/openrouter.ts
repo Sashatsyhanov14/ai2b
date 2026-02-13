@@ -34,13 +34,13 @@ export async function askLLM(
     messages = promptOrMessages;
   }
 
-  // DeepSeek V3 - GPT-4 level intelligence at 1/10 the price!
-  // Input: $0.27/1M | Output: $1.10/1M (vs GPT-4o: $2.50/$10)
-  const model = "deepseek/deepseek-chat";
+  // Qwen 2.5 72B - smartest FREE model, excellent with instructions
+  const model = "qwen/qwen-2.5-72b-instruct:free";
 
   const requestBody: any = {
     model,
     messages,
+    max_tokens: 2048, // Limit tokens to avoid overspending
   };
 
   // Add JSON response format for models that support it
