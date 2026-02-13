@@ -28,7 +28,7 @@ function downloadCsv(rows: Unit[]) {
     'rooms',
     'floor',
     'floors_total',
-    'area',
+    'area_m2',
     'finish',
     'price',
     'status',
@@ -44,7 +44,7 @@ function downloadCsv(rows: Unit[]) {
         String(u.rooms ?? ''),
         u.floor,
         (u as any).floors_total,
-        u.area,
+        u.area_m2,
         (u as any).finish ?? '',
         u.price,
         u.status ?? '',
@@ -85,14 +85,14 @@ export default function SecondaryList() {
     const p = new URLSearchParams(sp.toString())
     if (val) p.set(key, val)
     else p.delete(key)
-    if (['city','rooms','status','priceFrom','priceTo','search'].includes(key)) p.set('page','1')
+    if (['city', 'rooms', 'status', 'priceFrom', 'priceTo', 'search'].includes(key)) p.set('page', '1')
     router.replace(pathname + '?' + p.toString())
   }
 
   async function load() {
     setLoading(true)
     const res = await fetch('/api/units?type=sale')
-    const j = await res.json().catch(()=>({}))
+    const j = await res.json().catch(() => ({}))
     const units: Unit[] = (j && Array.isArray(j.units)) ? j.units : []
 
     // client-side filtering
@@ -245,7 +245,7 @@ export default function SecondaryList() {
                 <td className="px-3 py-2">
                   {u.floor}/{(u as any).floors_total}
                 </td>
-                <td className="px-3 py-2">{u.area}</td>
+                <td className="px-3 py-2">{u.area_m2}</td>
                 <td className="px-3 py-2">{(u.price ?? 0).toLocaleString('ru-RU')}</td>
                 <td className="px-3 py-2">{u.status ? statusBadge(u.status) : '-'}</td>
                 <td className="px-3 py-2">{u.photos_count ?? 0}</td>
@@ -262,7 +262,7 @@ export default function SecondaryList() {
                       onClick={async () => {
                         if (!confirm('Точно удалить?')) return
                         const res = await fetch(`/api/units/${u.id}`, { method: 'DELETE' })
-                        const j = await res.json().catch(()=>({}))
+                        const j = await res.json().catch(() => ({}))
                         if (!j?.ok) alert(j?.error || 'Ошибка удаления')
                         await load()
                       }}
