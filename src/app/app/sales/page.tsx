@@ -193,7 +193,7 @@ export default function SalesApartmentsPage() {
                         : "—"}
                     </td>
                     <td className="px-3 py-3 align-top text-sm">
-                      {u.area ?? "—"}
+                      {u.area_m2 ?? "—"}
                     </td>
                     <td className="px-3 py-3 align-top text-sm">
                       {formatPrice(u.price)}

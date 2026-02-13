@@ -80,7 +80,7 @@ export default function EditApartmentPage({ params }: { params: { id: string } }
                     rooms: u.rooms != null ? String(u.rooms) : "1",
                     floor: u.floor != null ? String(u.floor) : "",
                     floors_total: u.floors_total != null ? String(u.floors_total) : "",
-                    area_m2: u.area != null ? String(u.area) : "",
+                    area_m2: u.area_m2 != null ? String(u.area_m2) : "",
                     price: u.price != null ? String(u.price) : "",
                     currency,
                     description: u.description || "",

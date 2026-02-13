@@ -79,7 +79,7 @@ export default function ProjectPage() {
                 <td className="px-3 py-2">{u.address}</td>
                 <td className="px-3 py-2">{u.rooms === 0 ? 'Студия' : u.rooms ?? ''}</td>
                 <td className="px-3 py-2">{u.floor}/{u.floors_total}</td>
-                <td className="px-3 py-2">{u.area ?? ''}</td>
+                <td className="px-3 py-2">{u.area_m2 ?? ''}</td>
                 <td className="px-3 py-2">{(u.price ?? 0).toLocaleString('ru-RU')}</td>
                 <td className="px-3 py-2">{u.status ?? '—'}</td>
               </tr>
