@@ -218,27 +218,15 @@ async function sendPropertyPhotos(
     .order("sort_order", { ascending: true })
     .limit(10);
 
-  // Buttons for Depth Actions
-  const keyboard = {
-    inline_keyboard: [
-      [
-        { text: "📸 Фото", callback_data: `depth:photos:${unitId}` },
-        { text: "📍 Локация", callback_data: `depth:location:${unitId}` },
-      ],
-      [
-        { text: "💰 В Лирах", callback_data: `depth:price_tr:${unitId}` },
-        { text: "💵 В USD", callback_data: `depth:price_us:${unitId}` },
-      ]
-    ]
-  };
+  console.log(`[PHOTOS] Unit ${unitId}: Found ${photos?.length || 0} photos`);
 
   if (!photos || photos.length === 0) {
-    await sendMessage(token, chatId, caption, { reply_markup: keyboard });
+    await sendMessage(token, chatId, caption);
     return;
   }
 
   if (photos.length === 1) {
-    await sendPhoto(token, chatId, photos[0].url, caption, { reply_markup: keyboard });
+    await sendPhoto(token, chatId, photos[0].url, caption);
   } else {
     const media = photos.map((p: { url: string }, idx: number) => ({
       type: "photo" as const,
@@ -246,7 +234,6 @@ async function sendPropertyPhotos(
       caption: idx === 0 ? caption : undefined,
     }));
     await sendMediaGroup(token, chatId, media);
-    await sendMessage(token, chatId, lang === "ru" ? "Дополнительно:" : "More info:", { reply_markup: keyboard });
   }
 }
 
