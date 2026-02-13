@@ -34,8 +34,8 @@ export async function askLLM(
     messages = promptOrMessages;
   }
 
-  // Qwen 2.5 72B - smartest FREE model, excellent with instructions
-  const model = "qwen/qwen-2.5-72b-instruct:free";
+  // Claude 3 Haiku - excellent intelligence at low cost ($0.25/1M tokens)
+  const model = "anthropic/claude-3-haiku";
 
   const requestBody: any = {
     model,
