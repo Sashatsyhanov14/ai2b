@@ -277,6 +277,7 @@ async function handleShowProperty(
 
   // Use OR query for all city variants (flexible search)
   if (cityVariants.length > 0) {
+    console.log(`[CITY SEARCH] Variants for search:`, cityVariants);
     const orConditions = cityVariants.map(v => `city.ilike.%${v}%`).join(',');
     query = query.or(orConditions);
   }
@@ -306,6 +307,9 @@ async function handleShowProperty(
   }
 
   const list = data || [];
+
+  console.log(`[SEARCH RESULT] Found ${list.length} units. First unit city: ${list[0]?.city}`);
+
   const unit = list[0];
 
   if (!unit) {
@@ -317,18 +321,22 @@ async function handleShowProperty(
     return null;
   }
 
-  // Build caption
+  // Build caption with AI instructions priority
   const baseDesc = buildPropertyDescription(unit, lang);
   const descRaw = unit.description?.trim() || "";
   const shortDesc = descRaw.length > 200 ? `${descRaw.slice(0, 200)}…` : descRaw;
   const addressLine = unit.address ? `Адрес: ${unit.address}.` : "";
+
+  // AI_INSTRUCTIONS - это ПРИОРИТЕТ! Если есть - используй их вместо стандартного описания
+  const aiInstructions = unit.ai_instructions?.trim() || "";
+  const finalDescription = aiInstructions || shortDesc;
 
   const question =
     lang === "ru"
       ? "Интересует? Или показать другой вариант?"
       : "Interested? Or shall I show another option?";
 
-  const caption = [baseDesc, addressLine, shortDesc, question]
+  const caption = [baseDesc, addressLine, finalDescription, question]
     .filter(Boolean)
     .join(" ");
 
@@ -603,6 +611,13 @@ const systemPrompt = `Ты — профессиональный ассистен
 
 ТВОЯ ЦЕЛЬ:
 Помочь клиенту выбрать квартиру из базы и записать его на просмотр или получить контакт для менеджера.
+
+ПРИВЕТСТВИЕ (при первом сообщении):
+Если это ПЕРВОЕ сообщение в диалоге, ОБЯЗАТЕЛЬНО представься:
+"Здравствуйте! Я [ИМЯ ИЗ ФАЙЛА КОМПАНИИ], виртуальный агент по недвижимости компании [НАЗВАНИЕ КОМПАНИИ]. Помогу вам подобрать квартиру и ответить на вопросы. Что вас интересует?"
+
+Если в файле "О компании" нет имени бота, используй:
+"Здравствуйте! Я виртуальный агент компании [НАЗВАНИЕ], специализируемся на продаже недвижимости. Чем могу помочь?"
 
 ТВОИ ИСТОЧНИКИ ДАННЫХ:
 1. Список квартир (используй только объекты, что есть в базе).
