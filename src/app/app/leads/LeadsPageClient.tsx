@@ -13,6 +13,8 @@ import {
   Mail,
   MessageSquare,
   Target,
+  Zap,
+  Flame,
   Wallet,
   Globe,
   CheckCircle2,
