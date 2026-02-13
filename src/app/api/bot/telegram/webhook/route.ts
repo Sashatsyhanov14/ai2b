@@ -17,7 +17,7 @@ import {
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
-type Lang = "ru" | "en";
+type Lang = "ru" | "en" | "tr";
 
 // =====================================================
 // TOOL ACTIONS - What the LLM can request
@@ -88,28 +88,45 @@ function formatPrice(price: number | null | undefined): string {
 
 function buildPropertyDescription(unit: any, lang: Lang): string {
   const city = unit.city || "—";
-  const rooms = unit.rooms
-    ? unit.rooms === 1
-      ? lang === "ru"
-        ? "студия"
-        : "studio"
-      : lang === "ru"
-        ? `${unit.rooms}-комнатная`
-        : `${unit.rooms}-room`
-    : "";
-  const area = unit.area_m2 ? `${unit.area_m2} м²` : "";
-  const floor = unit.floor
-    ? unit.floors_total
-      ? `${unit.floor}/${unit.floors_total} этаж`
-      : `${unit.floor} этаж`
-    : "";
-  const price = formatPrice(unit.price);
 
+  // Rooms - translate to user language
+  let rooms = "";
+  if (unit.rooms != null) {
+    if (unit.rooms === 0) {
+      rooms = lang === "ru" ? "студия" : lang === "tr" ? "stüdyo" : "studio";
+    } else {
+      rooms = lang === "ru"
+        ? `${unit.rooms}-комнатная`
+        : lang === "tr"
+          ? `${unit.rooms}+1 daire`
+          : `${unit.rooms}-room`;
+    }
+  }
+
+  // Area
+  const area = unit.area_m2 ? `${unit.area_m2} m²` : "";
+
+  // Floor - translate to user language
+  let floor = "";
+  if (unit.floor) {
+    if (unit.floors_total) {
+      floor = lang === "ru"
+        ? `${unit.floor}/${unit.floors_total} этаж`
+        : lang === "tr"
+          ? `${unit.floor}/${unit.floors_total} Kat`
+          : `${unit.floor}/${unit.floors_total} floor`;
+    } else {
+      floor = lang === "ru"
+        ? `${unit.floor} этаж`
+        : lang === "tr"
+          ? `${unit.floor} Kat`
+          : `${unit.floor} floor`;
+    }
+  }
+
+  const price = formatPrice(unit.price);
   const parts = [rooms, area, floor].filter(Boolean).join(", ");
 
-  if (lang === "ru") {
-    return `${city}. ${parts}. ${price}`;
-  }
   return `${city}. ${parts}. ${price}`;
 }
 
