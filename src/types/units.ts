@@ -10,7 +10,7 @@ export type Unit = {
   rooms?: number | null
   floor?: number | null
   floors_total?: number | null
-  area?: number | null
+  area_m2?: number | null
   price?: number | null
   status?: UnitStatus | null
   project_id?: string | null
@@ -34,7 +34,8 @@ export type UnitCreatePayload = {
   rooms?: number | string
   floor?: number
   floors_total?: number
-  area?: number
+  area_m2?: number
+  area?: number  // Backwards compatibility
   price?: number
   status?: UnitStatus
   project_id?: string | null

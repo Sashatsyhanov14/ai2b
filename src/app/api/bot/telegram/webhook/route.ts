@@ -97,7 +97,7 @@ function buildPropertyDescription(unit: any, lang: Lang): string {
         ? `${unit.rooms}-комнатная`
         : `${unit.rooms}-room`
     : "";
-  const area = unit.area ? `${unit.area} м²` : "";
+  const area = unit.area_m2 ? `${unit.area_m2} м²` : "";
   const floor = unit.floor
     ? unit.floors_total
       ? `${unit.floor}/${unit.floors_total} этаж`
