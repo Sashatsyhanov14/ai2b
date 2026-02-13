@@ -34,8 +34,9 @@ export async function askLLM(
     messages = promptOrMessages;
   }
 
-  // Use GPT-4o-mini - better reasoning than Gemini, still cheap
-  const model = "openai/gpt-4o-mini";
+  // DeepSeek V3 - GPT-4 level intelligence at 1/10 the price!
+  // Input: $0.27/1M | Output: $1.10/1M (vs GPT-4o: $2.50/$10)
+  const model = "deepseek/deepseek-chat";
 
   const requestBody: any = {
     model,
