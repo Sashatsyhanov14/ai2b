@@ -34,8 +34,8 @@ export async function askLLM(
     messages = promptOrMessages;
   }
 
-  // Use Gemini 2.0 Flash - fast, cheap, and reliable for JSON
-  const model = "google/gemini-2.0-flash-001";
+  // Use GPT-4o-mini - better reasoning than Gemini, still cheap
+  const model = "openai/gpt-4o-mini";
 
   const requestBody: any = {
     model,
