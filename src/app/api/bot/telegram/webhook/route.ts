@@ -122,7 +122,7 @@ function buildPropertyDescription(unit: any, lang: Lang): string {
 // AI SEARCH PARAMETER EXTRACTION
 // =====================================================
 async function extractSearchParamsAI(queryText: string, lang: Lang): Promise<{
-  city: string | null;
+  city_variants: string[];
   price_max: number | null;
   rooms: number | null;
 }> {
@@ -132,20 +132,20 @@ async function extractSearchParamsAI(queryText: string, lang: Lang): Promise<{
 Запрос: "${queryText}"
 Язык пользователя: ${lang}
 
-Правила нормализации:
-1. Если город "Питер", "Спб", "Ленинград" -> пиши "Saint Petersburg".
-2. Если город "Мск", "Moscow" -> пиши "Moscow".
-3. Если город "Alanya", "Алания" -> пиши "Alanya".
-4. Если город "Antalya", "Анталия" -> пиши "Antalya".
-5. Если город "Mersin", "Мерсин" -> пиши "Mersin".
-6. Если город "Istanbul", "Стамбул" -> пиши "Istanbul".
-7. Если город "Bodrum", "Бодрум" -> пиши "Bodrum".
-8. Если бюджет не указан -> ставь null.
-9. Rooms: 0=Studio, 1=1+1, 2=2+1, 3=3+1, etc.
+ЗАДАЧА: Если упомянут город, верни ВСЕ возможные варианты его написания (на русском, английском, сокращения).
+
+ПРИМЕРЫ:
+- "Питер" -> ["Санкт-Петербург", "Санкт Петербург", "СПб", "Saint Petersburg", "Petersburg", "Piter"]
+- "Мск" -> ["Москва", "Moscow", "Мск", "MSK"]
+- "Алания" -> ["Alanya", "Алания", "Аланья"]
+- "Стамбул" -> ["Istanbul", "Стамбул", "İstanbul"]
+
+Если бюджет не указан -> ставь null.
+Rooms: 0=Studio, 1=1+1, 2=2+1, 3=3+1, etc.
 
 Верни JSON:
 { 
-  "city": "Название города на английском (как в базе) или null", 
+  "city_variants": ["вариант1", "вариант2", ...] или [],
   "price_max": number | null, 
   "rooms": number | null
 }
@@ -155,13 +155,13 @@ async function extractSearchParamsAI(queryText: string, lang: Lang): Promise<{
     const raw = await askLLM(prompt, "System: Parameter Extractor", true);
     const json = JSON.parse(raw);
     return {
-      city: json.city || null,
+      city_variants: json.city_variants || [],
       price_max: json.price_max || null,
       rooms: json.rooms !== undefined ? json.rooms : null
     };
   } catch (e) {
     console.error("extractSearchParamsAI error:", e);
-    return { city: null, price_max: null, rooms: null };
+    return { city_variants: [], price_max: null, rooms: null };
   }
 }
 
@@ -292,17 +292,16 @@ async function handleShowProperty(
   // The plan said: "In the code of search function...". 
   // Let's normalize the city if it's non-english looking or just always normalize it.
 
-  if (finalCity) {
-    // We can reuse extractSearchParamsAI just for the city normalization part
-    // Or relies on the main flow to have done it?
-    // The main flow calls "askLLM" then "actions".
-    // The "actions" contain the tool args. 
-    // If the LLM was smart enough to call show_property with "Saint Petersburg", we are good.
-    // But the user said "Bot didn't understand Piter". 
-    // So we should enforce normalization here.
+  // AI Parameter Extraction - Generate all city variants
+  let cityVariants: string[] = [];
+  let finalBudgetMax = args?.budget_max || null;
+  let finalRooms = args?.rooms || null;
 
-    const normative = await extractSearchParamsAI(`City: ${finalCity}`, lang);
-    if (normative.city) finalCity = normative.city;
+  if (args?.city) {
+    const normative = await extractSearchParamsAI(`City: ${args.city}`, lang);
+    cityVariants = normative.city_variants;
+    if (normative.price_max) finalBudgetMax = normative.price_max;
+    if (normative.rooms !== null) finalRooms = normative.rooms;
   }
 
   // Build query
@@ -312,8 +311,10 @@ async function handleShowProperty(
     .eq("is_active", true)
     .order("created_at", { ascending: false });
 
-  if (finalCity) {
-    query = query.ilike("city", `%${finalCity}%`);
+  // Use OR query for all city variants (flexible search)
+  if (cityVariants.length > 0) {
+    const orConditions = cityVariants.map(v => `city.ilike.%${v}%`).join(',');
+    query = query.or(orConditions);
   }
   if (budgetMin != null) {
     query = query.gte("price", budgetMin);
