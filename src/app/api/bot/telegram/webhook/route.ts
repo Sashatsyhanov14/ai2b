@@ -370,11 +370,39 @@ async function handleShowProperty(
       : "Interested? Or shall I show another option?";
 
   // AI will translate rawPropertyData based on user language!
-  const caption = [rawPropertyData, addressLine, finalDescription, question]
+  const russianCaption = [rawPropertyData, addressLine, finalDescription, question]
     .filter(Boolean)
     .join(" ");
 
-  await sendPropertyPhotos(token, chatId, unit.id, caption, lang);
+  // CRITICAL: Pass caption through AI for translation!
+  let finalCaption = russianCaption;
+  if (lang === "tr" || lang === "en") {
+    try {
+      const translatePrompt = `
+You are a real estate assistant. Translate this property description to ${lang === "tr" ? "Turkish" : "English"}.
+
+Russian text:
+${russianCaption}
+
+Rules:
+- Translate ALL text to ${lang === "tr" ? "Turkish" : "English"}
+- "Комнат: 2" -> ${lang === "tr" ? "2+1 daire" : "2 rooms"}
+- "Этаж: 5/10" -> ${lang === "tr" ? "5. Kat (10 toplam)" : "Floor 5/10"}
+- Keep prices in $ format
+- Be natural and professional
+
+Return ONLY the translated text, nothing else.
+`;
+      const translated = await askLLM(translatePrompt, "You are a professional translator for real estate.", true);
+      finalCaption = translated.trim() || russianCaption;
+      console.log(`[TRANSLATION] ${lang.toUpperCase()}: ${finalCaption.substring(0, 100)}...`);
+    } catch (e) {
+      console.error("[TRANSLATION ERROR]", e);
+      // Fallback to Russian if translation fails
+    }
+  }
+
+  await sendPropertyPhotos(token, chatId, unit.id, finalCaption, lang);
 
   // Save to session
   if (sessionId) {
@@ -383,7 +411,7 @@ async function handleShowProperty(
         session_id: sessionId,
         bot_id: botId,
         role: "assistant",
-        content: caption,
+        content: finalCaption,
         payload: {
           unit_id: unit.id,
           city: unit.city,
