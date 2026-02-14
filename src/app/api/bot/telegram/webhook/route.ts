@@ -356,22 +356,13 @@ async function handleShowProperty(
     }
   }
 
-  // DON'T send caption with photos - LLM will generate description!
-  // Just send photos
-  await sendPropertyPhotos(token, chatId, unit.id, "", lang);
+  // Send photos WITH caption (Russian) - LLM will translate in its message
+  const caption = `${unit.city}. ${unit.rooms === 0 ? 'Студия' : unit.rooms ? `${unit.rooms}-комнатная` : ''}, ${unit.area_m2 || '?'} m², ${unit.floor || '?'}${unit.floors_total ? `/${unit.floors_total}` : ''} этаж. $${unit.price?.toLocaleString() || '?'}. ${unit.address ? `Адрес: ${unit.address}.` : ''} ${unit.ai_instructions || unit.description || ''}`;
 
-  // Return property data to LLM - it will create description in user's language
-  const propertyInfo = `
-Город: ${unit.city}
-Комнат: ${unit.rooms || '?'}
-Площадь: ${unit.area_m2 || '?'} м²
-Этаж: ${unit.floor || '?'}${unit.floors_total ? `/${unit.floors_total}` : ''}
-Цена: $${unit.price?.toLocaleString() || '?'}
-Адрес: ${unit.address || 'не указан'}
-${unit.ai_instructions || unit.description || ''}
-`.trim();
+  await sendPropertyPhotos(token, chatId, unit.id, caption, lang);
 
-  return propertyInfo;
+  // Return confirmation to LLM (don't duplicate description, it's already under photo!)
+  return `Показал квартиру ID ${unit.id} (${unit.city}, ${unit.rooms}-комнатная, $${unit.price}). Фото отправлены с описанием.`;
 
   // Save to session
   if (sessionId) {
@@ -380,7 +371,7 @@ ${unit.ai_instructions || unit.description || ''}
         session_id: sessionId!,
         bot_id: botId,
         role: "assistant",
-        content: propertyInfo,
+        content: caption,
         payload: {
           unit_id: unit.id,
           city: unit.city,
@@ -707,6 +698,16 @@ EXAMPLE WRONG:
 EXAMPLE RIGHT:
 ✅ User (TR): "Mersin'de daire arıyorum"
 ✅ Bot: "Tamam! İşte bir seçenek: 2+1 daire, 5. Kat, 120 m²" (ВСЁ на турецком!)
+
+⚠️ КРИТИЧЕСКОЕ ПРАВИЛО:
+- Под фото квартиры будет CAPTION на РУССКОМ языке
+- Это техническое ограничение, ЭТО НОРМАЛЬНО!
+- ТЫ МОЖЕШЬ ПОВТОРИТЬ информацию на языке пользователя в своем сообщении!
+
+EXAMPLE:
+User (TR): "Mersin'de daire?"
+✅ Bot sends photo with caption: "Mersin. 2-комнатная, 55 m², 4/11 этаж. $89,000"
+✅ Bot message: "Mersin'de harika bir seçenek buldum! 2+1 daire, 55 m², 4. Kat. Fiyat: $89.000. İlgileniyorsunuz?"
 
 🌍 АБСОЛЮТНЫЙ ЗАПРЕТ НА СМЕНУ ЛОКАЦИИ:
 - Если в диалоге клиент назвал "Москва" → ВСЕ последующие сообщения должны быть ПРО МОСКВУ!
