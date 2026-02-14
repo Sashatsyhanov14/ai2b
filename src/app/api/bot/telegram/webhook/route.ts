@@ -356,25 +356,22 @@ async function handleShowProperty(
     }
   }
 
-  // Pass RAW data to AI - let AI translate everything!
-  const rawPropertyData = `Город: ${unit.city}.Комнат: ${unit.rooms || '?'}.Площадь: ${unit.area_m2 || '?'} м².Этаж: ${unit.floor || '?'}${unit.floors_total ? `/${unit.floors_total}` : ''}.Цена: $${unit.price?.toLocaleString() || '?'}.`;
-  const addressLine = unit.address ? `Адрес: ${unit.address}.` : "";
-  const aiInstructions = unit.ai_instructions?.trim() || "";
-  const descRaw = unit.description?.trim() || "";
-  const shortDesc = descRaw.length > 200 ? `${descRaw.slice(0, 200)}…` : descRaw;
-  const finalDescription = aiInstructions || shortDesc;
+  // DON'T send caption with photos - LLM will generate description!
+  // Just send photos
+  await sendPropertyPhotos(token, chatId, unit.id, "", lang);
 
-  const question =
-    lang === "ru"
-      ? "Интересует? Или показать другой вариант?"
-      : "Interested? Or shall I show another option?";
+  // Return property data to LLM - it will create description in user's language
+  const propertyInfo = `
+Город: ${unit.city}
+Комнат: ${unit.rooms || '?'}
+Площадь: ${unit.area_m2 || '?'} м²
+Этаж: ${unit.floor || '?'}${unit.floors_total ? `/${unit.floors_total}` : ''}
+Цена: $${unit.price?.toLocaleString() || '?'}
+Адрес: ${unit.address || 'не указан'}
+${unit.ai_instructions || unit.description || ''}
+`.trim();
 
-  // Main LLM will translate this caption according to ПРАВИЛО ПЕРЕВОДА in prompt
-  const caption = [rawPropertyData, addressLine, finalDescription, question]
-    .filter(Boolean)
-    .join(" ");
-
-  await sendPropertyPhotos(token, chatId, unit.id, caption, lang);
+  return propertyInfo;
 
   // Save to session
   if (sessionId) {
