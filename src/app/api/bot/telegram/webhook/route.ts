@@ -369,40 +369,12 @@ async function handleShowProperty(
       ? "Интересует? Или показать другой вариант?"
       : "Interested? Or shall I show another option?";
 
-  // AI will translate rawPropertyData based on user language!
-  const russianCaption = [rawPropertyData, addressLine, finalDescription, question]
+  // Main LLM will translate this caption according to ПРАВИЛО ПЕРЕВОДА in prompt
+  const caption = [rawPropertyData, addressLine, finalDescription, question]
     .filter(Boolean)
     .join(" ");
 
-  // CRITICAL: Pass caption through AI for translation!
-  let finalCaption = russianCaption;
-  if (lang === "tr" || lang === "en") {
-    try {
-      const translatePrompt = `
-You are a real estate assistant. Translate this property description to ${lang === "tr" ? "Turkish" : "English"}.
-
-Russian text:
-${russianCaption}
-
-Rules:
-- Translate ALL text to ${lang === "tr" ? "Turkish" : "English"}
-- "Комнат: 2" -> ${lang === "tr" ? "2+1 daire" : "2 rooms"}
-- "Этаж: 5/10" -> ${lang === "tr" ? "5. Kat (10 toplam)" : "Floor 5/10"}
-- Keep prices in $ format
-- Be natural and professional
-
-Return ONLY the translated text, nothing else.
-`;
-      const translated = await askLLM(translatePrompt, "You are a professional translator for real estate.", true);
-      finalCaption = translated.trim() || russianCaption;
-      console.log(`[TRANSLATION] ${lang.toUpperCase()}: ${finalCaption.substring(0, 100)}...`);
-    } catch (e) {
-      console.error("[TRANSLATION ERROR]", e);
-      // Fallback to Russian if translation fails
-    }
-  }
-
-  await sendPropertyPhotos(token, chatId, unit.id, finalCaption, lang);
+  await sendPropertyPhotos(token, chatId, unit.id, caption, lang);
 
   // Save to session
   if (sessionId) {
@@ -411,7 +383,7 @@ Return ONLY the translated text, nothing else.
         session_id: sessionId,
         bot_id: botId,
         role: "assistant",
-        content: finalCaption,
+        content: caption,
         payload: {
           unit_id: unit.id,
           city: unit.city,
