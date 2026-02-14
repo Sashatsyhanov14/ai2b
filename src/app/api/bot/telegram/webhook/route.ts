@@ -377,10 +377,10 @@ ${unit.ai_instructions || unit.description || ''}
   if (sessionId) {
     try {
       await appendMessage({
-        session_id: sessionId,
+        session_id: sessionId!,
         bot_id: botId,
         role: "assistant",
-        content: caption,
+        content: propertyInfo,
         payload: {
           unit_id: unit.id,
           city: unit.city,
