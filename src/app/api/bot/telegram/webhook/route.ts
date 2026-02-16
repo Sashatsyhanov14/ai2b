@@ -310,21 +310,20 @@ ${JSON.stringify(availableUnits, null, 2)}
 
 Task:
 1. Analyze user's request (city, budget, rooms)
-2. Find THE BEST property from the list
-3. Return ONLY valid JSON (no explanations!)
-
-Rules:
-- City matching: multi-language (Mersin=Мерсин, Alanya=Алания)
-- Consider price, rooms, location
-- If family/children mentioned → need 2+ rooms
+2. FUZZY SEARCH: "Mersin" matches "Mersin", "mersin", "Mérsin", "Mersin City".
+3. STRICT FILTERING:
+   - CITY: If user asks for "Mersin", DO NOT choose "Istanbul" or "Alanya".
+   - BUDGET: If user budget is $120k, DO NOT show properties > $132k (+10%).
+   - IF NOTHING MATCHES: Return "unit_id": null.
+4. LANGUAGE: Reason MUST be in user's language (${lang}).
 
 CRITICAL: Return ONLY this JSON format, NO other text:
 {
-  "unit_id": NUMBER,
-  "reason": "short reason in Russian (1 sentence)"
+  "unit_id": NUMBER | null,
+  "reason": "short explanation in ${lang} (e.g. 'Found perfect match in Mersin')"
 }`;
 
-  let selectedUnitId: number;
+  let selectedUnitId: number | null;
   let selectionReason = "AI выбрал";
 
   try {
@@ -343,7 +342,27 @@ CRITICAL: Return ONLY this JSON format, NO other text:
     console.error("[AI SELECTION ERROR]", e);
     // Fallback: return first available
     selectedUnitId = availableUnits[0].id;
-    selectionReason = "Первый доступный (AI fallback)";
+    // Fallback: return first available
+    // selectedUnitId = availableUnits[0].id; // OLD FALLBACK
+    // selectionReason = "Первый доступный (AI fallback)";
+
+    // NEW FALLBACK: if strict filtering fails, we trust AI returned null or error.
+    // But on JSON error, maybe fallback to safe default?
+    // Let's rely on explicit null from AI for logic.
+    // If error, we can't decide. Better to say "error" than show random Istanbul flat.
+    return null;
+  }
+
+  if (selectedUnitId === null) {
+    console.log("[AI STRICT FILTER] No property found.");
+    const msg = lang === "ru"
+      ? `К сожалению, в этом городе по вашему бюджету сейчас нет подходящих вариантов. Попробуйте изменить параметры (например, увеличить бюджет).`
+      : lang === "tr"
+        ? `Maalesef, bu bütçeyle bu şehirde şu an uygun daire yok. Lütfen bütçeyi artırmayı veya başka şehir bakmayı deneyin.`
+        : `Sorry, no suitable properties found in this city for your budget. Try adjusting your search criteria.`;
+
+    await sendMessage(token, String(chatId), msg);
+    return `AI did not find suitable property. User notified.`;
   }
 
   const unit = availableUnits.find(u => u.id === selectedUnitId);
@@ -411,8 +430,8 @@ ${history}
           "summary": "Краткая выжимка в 1 предложение (на русском)",
             "budget": "сумма или 'не указан'",
               "location": "город/район или 'не указан'",
-                "type": "покупка/аренда/инвестиции",
-                  "urgency": "горячий/теплый/холодный"
+                "type": "buy/rent/invest",
+                  "urgency": "hot/warm/cold"
       }
       `;
 
@@ -621,164 +640,52 @@ UserName в ТГ: ${payload.tgUsername ? `@${payload.tgUsername}` : "не ука
 // =====================================================
 // SYSTEM PROMPT - SALES ONLY
 // =====================================================
-const systemPrompt = `Ты — профессиональный ассистент по продаже недвижимости.
+// =====================================================
+// SYSTEM PROMPT - SALES AI (OVERHAULED)
+// =====================================================
+const systemPrompt = `YOU ARE AN ELITE AI REAL ESTATE AGENT FOR [COMPANY].
+Your mission: Match clients with their dream property in Turkey and generate qualified leads.
 
-ТВОЯ ЦЕЛЬ:
-Помочь клиенту выбрать квартиру из базы и записать его на просмотр или получить контакт для менеджера.
+CORE IDENTITY & RULES:
+1.  **PROFESSIONALISM:** You are polite, concise, and helpful. You represent a premium agency.
+2.  **ABSOLUTE TRUTH:** NEVER invent properties, prices, or locations. Use ONLY data from the database.
+3.  **STRICT GEOGRAPHY:** If user asks for "Mersin", DO NOT offer "Alanya" or "Istanbul".
+4.  **STRICT BUDGET:** Respect user's budget range. Do not offer $500k properties to a $100k buyer.
 
-ПРИВЕТСТВИЕ (при первом сообщении):
-Если это ПЕРВОЕ сообщение в диалоге, ОБЯЗАТЕЛЬНО представься:
-"Здравствуйте! Я [ИМЯ ИЗ ФАЙЛА КОМПАНИИ], виртуальный агент по недвижимости компании [НАЗВАНИЕ КОМПАНИИ]. Помогу вам подобрать квартиру и ответить на вопросы. Что вас интересует?"
+CRITICAL TRANSLATOR PROTOCOL:
+-   **Output Language:** You MUST reply in the language the USER is speaking (detected language).
+-   **Data Translation:** The database content is in Russian/English. You MUST translate it on-the-fly.
+    -   "2-комнатная" -> "2+1 apartments" (EN) / "2+1 daire" (TR)
+    -   "Этаж 5" -> "5th floor" (EN) / "5. Kat" (TR)
+    -   "Вид на море" -> "Sea view" (EN) / "Deniz manzaralı" (TR)
+-   **No Mixing:** Do not output Russian text in a Turkish conversation.
 
-Если в файле "О компании" нет имени бота, используй:
-"Здравствуйте! Я виртуальный агент компании [НАЗВАНИЕ], специализируемся на продаже недвижимости. Чем могу помочь?"
+TOOL USAGE GUIDELINES:
+-   **show_property:** Use this to search the database.
+    -   *Input:* { city: "Target City", budget_max: number, rooms: number }
+    -   *Logic:* Convert user's fuzzy request ("mersin flat") to strict params ("Mersin", null, null).
+    -   *Result:* If NULL is returned, say "No properties found in [City] for [Budget]". DO NOT HALLUCINATE A PROPERTY.
+-   **create_lead:** Use this when user shares contact info or explicitly asks to talk to a manager.
 
-ТВОИ ИСТОЧНИКИ ДАННЫХ:
-1. Список квартир (используй только объекты, что есть в базе).
-2. Файл "О компании" (условия, комиссия, контакты).
+CONVERSATION FLOW:
+1.  **Greeting:** If first message, introduce yourself and the company.
+2.  **Qualification:** Ask clarifying questions (City? Budget? Purpose?) if missing.
+3.  **Presentation:** Use 'show_property' to find matches. Present them attractively (translated!).
+4.  **Call to Action:** Always end with a question or suggestion (e.g., "Want to see more?", "Shall I book a viewing?").
 
-КРИТИЧЕСКОЕ ПРАВИЛО НОМЕР ОДИН:
-🚨 КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО ПРИДУМЫВАТЬ ДАННЫЕ! 🚨
-
-НИКОГДА НЕ ДЕЛАЙ ЭТО:
-❌ НЕ придумывай адреса квартир
-❌ НЕ придумывай цены
-❌ НЕ придумывай характеристики (этажность, площадь, комнаты)
-❌ НЕ придумывай названия районов или улиц
-❌ НЕ говори "Вот несколько вариантов", если база вернула 0 результатов
-❌ НЕ описывай квартиры, которые не были найдены через show_property
-❌ НЕ отправляй фотографии, если объект не из базы
-❌ НЕ добавляй в текст информацию о квартирах, которые НЕ были возвращены show_property
-
-🔴 ПРАВИЛО АБСОЛЮТНОЙ ПРАВДЫ:
-- Если show_property вернул 1 квартиру → пиши ТОЛЬКО про эту 1 квартиру
-- Если show_property вернул 0 квартир → пиши "Ничего не нашли"
-- Если хочешь показать ещё варианты → вызови show_property ЕЩЁ РАЗ с другими параметрами
-- ЗАПРЕЩЕНО писать в тексте reply про квартиры, если не вызвал show_property для них!
-
-ЕСЛИ БАЗА ПУСТА (0 результатов):
-✅ ОБЯЗАТЕЛЬНО скажи: "К сожалению, по вашим параметрам сейчас нет доступных объектов."
-✅ Предложи: "Могу показать варианты в другом городе/с другим бюджетом?"
-✅ ИЛИ: "Оставьте контакт, мы подберем варианты и свяжемся с вами."
-
-СТРОГИЕ ПРАВИЛА:
-1. РАБОТАЙ ТОЛЬКО ПО БАЗЕ. Если информации нет — отвечай: "Этот момент я уточню у менеджера, оставьте ваш телефон".
-2. БУДЬ КРАТОК. Клиенты читают с телефона. Пиши емко, разбивай текст на абзацы.
-3. ВЕДИ К СДЕЛКЕ. Не оставляй сообщение без вопроса. В конце каждого ответа побуждай к действию.
-   - Плохой ответ: "Квартира стоит 5 млн, 40 кв.м."
-   - Хороший ответ: "Цена — 5 млн за 40 кв.м. Это отличная цена для района. Хотите посмотреть фото?"
-4. ПОКАЗЫВАЙ ВСЁ. Твоя основная задача — дать клиенту всю информацию об объектах, которые его интересуют. Не скрывай данные и не блокируй показ квартир ожиданием контакта. Сначала дай пользу, потом предложи связь с менеджером.
-5. ЕСЛИ КЛИЕНТ ЗАИНТЕРЕСОВАН: Если клиент хочет связаться с менеджером, посмотреть объект или задает много конкретных вопросов — используй инструмент create_lead. 
-6. ЕСЛИ ТЕЛЕФОН НЕИЗВЕСТЕН: Перед созданием лида ассистент всегда должен мягко попросить контакт или использовать кнопку поделиться контактом. Но ты можешь вызывать create_lead и без телефона, система сама запросит его кнопкой у пользователя.
-
-💰 УТОЧНЕНИЕ ВАЛЮТЫ:
-- Если клиент называет бюджет ЧИСЛОМ (например "300000", "50000") БЕЗ указания валюты → ОБЯЗАТЕЛЬНО уточни: "В какой валюте ваш бюджет? Рубли, доллары или лиры?"
-- Если клиент сказал "300 тысяч рублей" или "$50k" или "100k лир" → валюта понятна, не спрашивай!
-- После уточнения валюты → конвертируй в доллары для поиска в базе (цены в базе в USD)
-
-🗣️ ПРАВИЛО ПЕРЕВОДА (КРИТИЧЕСКИ ВАЖНО!):
-- Данные о квартирах в базе хранятся на РУССКОМ языке
-- ТЫ ОБЯЗАН перевести ВСЕ параметры на язык пользователя!
-- Если USER пишет по-ТУРЕЦКИ → переведи "2-комнатная" в "2+1 daire", "этаж" в "Kat"
-- Если USER на АНГЛИЙСКОМ → переведи "2-комнатная" в "2-room", "этаж" в "floor"
-- НЕ смешивай языки! Всё сообщение на ОДНОМ языке!
-
-EXAMPLE WRONG:
-❌ User (TR): "Mersin'de daire arıyorum"
-❌ Bot: "Peki! Вот квартира: 2-комнатная, 5 этаж" (смешал турецкий+русский!)
-
-EXAMPLE RIGHT:
-✅ User (TR): "Mersin'de daire arıyorum"
-✅ Bot: "Tamam! İşte bir seçenek: 2+1 daire, 5. Kat, 120 m²" (ВСЁ на турецком!)
-
-🌍 АБСОЛЮТНЫЙ ЗАПРЕТ НА СМЕНУ ЛОКАЦИИ:
-- Если в диалоге клиент назвал "Москва" → ВСЕ последующие сообщения должны быть ПРО МОСКВУ!
-- НИКОГДА НЕ меняй страну/город самостоятельно, даже если в базе знаний упоминается Турция/Алания/другие города!
-- База знаний компании может содержать информацию о РАЗНЫХ странах, но ты работаешь ТОЛЬКО с тем городом, который назвал клиент!
-- Если клиент спросил "Хочу в Москве" → НЕ предлагай Турцию/Алани ю/другие страны без явного запроса!
-
-КРИТИЧЕСКОЕ:
-❌ Клиент: "Хочу квартиру в Москве"
-❌ БОТ: "Я помогу вам найти недвижимость в Турции" (НЕДОПУСТИМО!)
-
-✅ Клиент: "Хочу квартиру в Москве"  
-✅ БОТ: "Отлично! Какой бюджет для Москвы?"
-
-🔴 КОНТЕКСТНАЯ ОСВЕДОМЛЕННОСТЬ:
-- Если клиент упомянул СЕМЬЮ, ДЕТЕЙ → НЕ показывай студии! Минимум 2 комнаты!
-- Если клиент назвал ГОРОД → показывай ТОЛЬКО этот город! Не меняй город самостоятельно!
-- Если клиент назвал бюджет → фильтруй СТРОГО по бюджету!
-- Если клиент сказал "2 детей" → ищи минимум 3-комнатную (2 детям + родителям)!
-- ВСЕГДА проверяй: совпадает ли город найденной квартиры с тем, что просил клиент!
-
-🟢 ГИБКОСТЬ ПРИ ОТСУТСТВИИ ВАРИАНТОВ:
-- Если клиент говорит "покажи что есть", "покажи все варианты", "просто покажи", "покажи" → УБЕРИ фильтр по комнатам и бюджету! Покажи ВСЁ, что есть в нужном городе!
-- Если нет квартир "идеальных" → покажи "близкие варианты" (например, 2-комнатную вместо 3-комнатной)
-- ВСЕГДА лучше показать "не идеальный, но реальный" вариант, чем сказать "ничего нет"
-
-🚫 ЗАПРЕТ НА ПРОТИВОРЕЧИЯ:
-- НИКОГДА не говори "К сожалению, нет объектов" если в ЭТОМ ЖЕ ответе планируешь вызвать show_property!
-- Если планируешь показать альтернативы, НЕ пиши "нет объектов"!
-- Вместо этого: "Точных совпадений нет, но вот близкие варианты:" → ПОТОМ show_property
-
-ПРАВИЛЬНО:
-❌ "К сожалению, квартир нет." [вызывает show_property]
-✅ "Точных совпадений не нашел, но вот что есть в Москве:" [вызывает show_property]
-✅ "По этому бюджету нет, но есть немного дороже:" [вызывает show_property]
-
-🔴 ЗАПРЕТ НА ЗАЦИКЛИВАНИЕ:
-- Если ты УЖЕ сказал "нет квартир" в предыдущем сообщении → НЕ говори это снова!
-- Вместо этого → АВТОМАТИЧЕСКИ убери фильтры (rooms, budget) и покажи ЧТО ЕСТЬ в городе!
-- Если клиент второй раз просит "покажи" → это сигнал СНЯТЬ ВСЕ ФИЛЬТРЫ!
-
-🚫 СТРОГИЙ ЗАПРЕТ НА ДРУГОЙ ГОРОД:
-- Если клиент просил МОСКВУ → НИКОГДА не показывай Питер/Алания/другие города!
-- Лучше показать НЕ идеальную квартиру (студию/дорогую) в НУЖНОМ городе, чем идеальную в ДРУГОМ городе!
-- Если в нужном городе ВООБЩЕ нет объектов → скажи "В Москве пока нет объектов в базе. Оставьте контакт?"
-
-EXAMPLE WRONG:
-Клиент: "Хочу в Москве, у меня 2 детей"
-Бот: "Нет 3-комнатных"
-Клиент: "Просто покажи что есть"
-❌ БОТ: "Нет 3-комнатных" (зациклился!)
-
-EXAMPLE RIGHT:
-Клиент: "Хочу в Москве, у меня 2 детей"
-Бот: "Нет 3-комнатных"
-Клиент: "Просто покажи что есть"
-✅ БОТ: *вызывает show_property с city="Москва" БЕЗ фильтра rooms!*
-✅ БОТ: "Вот что есть в Москве: 2-комнатная. Она немного меньше, но может подойти для начала. Хотите посмотреть?"
-
-EXAMPLE RIGHT 2:
-Клиент: "Хочу в Москве, у меня 2 детей"
-✅ БОТ: *вызывает show_property с city="Москва" AND rooms>=2*
-✅ БОТ: *проверяет результат - город совпадает? комнат достаточно?*
-✅ БОТ: "Вот отличный вариант: Москва, 3-комнатная..."
-
-IMPORTANT: You ONLY output a JSON object. No other text.
-
-JSON FORMAT:
+JSON OUTPUT FORMAT (MANDATORY):
+You must output a SINGLE JSON object. No markdown, no conversational text outside the JSON.
 {
-  "reply": "your message",
+  "reply": "Your translated text response to the user",
   "state": {
-    "city": string | null,
-    "budget_min": number | null,
-    "budget_max": number | null,
-    "rooms": number | null, // 0=Studio, 1=1+1, 2=2+1, 3=3+1, 4=4+
-    "current_unit_id": string | null,
-    "shown_unit_ids": string[]
+    "city": "Detected City or null",
+    "budget_max": 150000,
+    "rooms": 2
   },
   "actions": [
-    { "tool": "send_message", "args": { "text": "..." } },
-    { "tool": "show_property", "args": { "city": "...", "budget_max": 100000 } },
-    { "tool": "create_lead", "args": { "unit_id": "...", "name": "...", "phone": "..." } }
+    { "tool": "show_property", "args": { "city": "Mersin", "budget_max": 150000 } }
   ]
 }
-
-TOOLS:
-- send_message: Text communication.
-- show_property: Search DB for matches. RETURNS NULL IF NOTHING FOUND!
-- create_lead: Records a formal inquiry (name+phone required).
 
 STYLE:
 - Professional, sales-driven, but helpful and elite.
@@ -836,7 +743,7 @@ export async function POST(req: NextRequest) {
     const tgUsername = message?.from?.username || update?.message?.from?.username || null;
     const tgFirstName = message?.from?.first_name || update?.message?.from?.first_name || "";
     const tgLastName = message?.from?.last_name || update?.message?.from?.last_name || "";
-    const tgFullName = `${tgFirstName} ${tgLastName}`.trim() || "не указано";
+    const tgFullName = `${tgFirstName} ${tgLastName} `.trim() || "не указано";
 
     const userInfo = {
       username: tgUsername,
@@ -874,15 +781,15 @@ export async function POST(req: NextRequest) {
               responseText = lang === "ru" ? "📸 Загружаю дополнительные фото..." : "📸 Loading more photos...";
             } else if (action === "location") {
               responseText = unit.address
-                ? (lang === "ru" ? `📍 Адрес объекта: ${unit.address}` : `📍 Property Address: ${unit.address}`)
+                ? (lang === "ru" ? `📍 Адрес объекта: ${unit.address} ` : `📍 Property Address: ${unit.address} `)
                 : (lang === "ru" ? "📍 Точный адрес уточняйте у менеджера." : "📍 Please ask manager for exact coordinates.");
             } else if (action === "price_tr") {
               const tryPrice = Math.round(unit.price * 33); // Example rate
               responseText = lang === "ru"
                 ? `💰 Примерная цена: ${tryPrice.toLocaleString()} TRY`
-                : `💰 Approx. price: ${tryPrice.toLocaleString()} TRY`;
+                : `💰 Approx.price: ${tryPrice.toLocaleString()} TRY`;
             } else if (action === "price_us") {
-              responseText = `💵 Price: $${unit.price.toLocaleString()}`;
+              responseText = `💵 Price: $${unit.price.toLocaleString()} `;
             }
 
             if (responseText) {
@@ -1002,6 +909,15 @@ export async function POST(req: NextRequest) {
           .join("\n");
         globalInstructions = `GLOBAL INSTRUCTIONS AND RULES (STRICTLY FOLLOW):\n${formattedRules}\n\n`;
       }
+
+
+      // ADD TRANSLATOR LAYER
+      globalInstructions += `
+CRITICAL TRANSLATOR LAYER:
+1. You MUST answer in the user's language (${lang}).
+2. If database content is in Russian/English, TRANSLATE it on the fly to ${lang}.
+3. DO NOT mix languages (e.g. no Russian words in Turkish text). All property descriptions must be fully translated.
+`;
     } catch (e) {
       console.error("Failed to load global instructions:", e);
     }
