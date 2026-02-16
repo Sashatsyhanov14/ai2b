@@ -300,41 +300,50 @@ async function handleShowProperty(
   }
 
   // Pass ALL properties to AI for selection
-  const aiPrompt = `
-You are a real estate assistant. User asked: "${query}"
+  const aiPrompt = `You are a property selector. Return ONLY valid JSON, nothing else.
+
+User asked: "${query}"
 User language: ${lang}
 
 Available properties (JSON):
 ${JSON.stringify(availableUnits, null, 2)}
 
 Task:
-1. Analyze user's request (city, budget, rooms, etc.)
+1. Analyze user's request (city, budget, rooms)
 2. Find THE BEST property from the list
-3. If exact match not found, choose close option
-4. Return ONLY the property ID (number)
+3. Return ONLY valid JSON (no explanations!)
 
 Rules:
-- User city MUST match property city (multi-language aware: Mersin=Мерсин, Alanya=Алания)
+- City matching: multi-language (Mersin=Мерсин, Alanya=Алания)
 - Consider price, rooms, location
-- If user mentions family/children → need 2+ rooms minimum
+- If family/children mentioned → need 2+ rooms
 
-Return format:
+CRITICAL: Return ONLY this JSON format, NO other text:
 {
   "unit_id": NUMBER,
-  "reason": "why you chose this property (1 sentence)"
-}
-`;
+  "reason": "short reason in Russian (1 sentence)"
+}`;
 
   let selectedUnitId: number;
+  let selectionReason = "AI выбрал";
+
   try {
-    const aiResponse = await askLLM(aiPrompt, "You are a property selector.", true);
-    const parsed = JSON.parse(aiResponse);
+    const aiResponse = await askLLM(aiPrompt, "You are a JSON API. Return ONLY valid JSON.", true);
+    console.log("[AI RAW RESPONSE]", aiResponse.substring(0, 200));
+
+    // Try to extract JSON even if there's extra text
+    const jsonMatch = aiResponse.match(/\{[\s\S]*"unit_id"[\s\S]*\}/);
+    const jsonText = jsonMatch ? jsonMatch[0] : aiResponse;
+
+    const parsed = JSON.parse(jsonText);
     selectedUnitId = parsed.unit_id;
-    console.log(`[AI PROPERTY SELECTION] Chose unit ${selectedUnitId}: ${parsed.reason}`);
+    selectionReason = parsed.reason || "Лучший вариант";
+    console.log(`[AI PROPERTY SELECTION] Chose unit ${selectedUnitId}: ${selectionReason}`);
   } catch (e) {
     console.error("[AI SELECTION ERROR]", e);
     // Fallback: return first available
     selectedUnitId = availableUnits[0].id;
+    selectionReason = "Первый доступный (AI fallback)";
   }
 
   const unit = availableUnits.find(u => u.id === selectedUnitId);
