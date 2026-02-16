@@ -76,6 +76,9 @@ function detectLang(code?: string | null): Lang {
   if (c.startsWith("ru") || c.startsWith("uk") || c.startsWith("be")) {
     return "ru";
   }
+  if (c.startsWith("tr")) {
+    return "tr";
+  }
   return "en";
 }
 
@@ -258,111 +261,93 @@ async function sendPropertyPhotos(
 // HANDLE SHOW PROPERTY
 // =====================================================
 async function handleShowProperty(
-  args: ShowPropertyArgs | undefined,
-  lang: Lang,
-  chatId: string,
-  token: string,
   sessionId: string | null,
-  botId: string
+  chatId: number,
+  query: string,
+  exclude_ids: number[],
+  token: string,
+  botId: string,
+  lang: Lang
 ): Promise<string | null> {
-  const sb = getServerClient();
+  const supabase = getServerClient();
 
-  const city = args?.city?.trim() || null;
-  const budgetMin = args?.budget_min || null;
-  const budgetMax = args?.budget_max || null;
-  const rooms = args?.rooms || null;
-  const excludeIds = args?.exclude_ids || [];
+  // Show typing indicator for better UX
+  await sendTyping(token, String(chatId));
 
-  // AI Parameter Extraction - Generate all city variants
-  let cityVariants: string[] = [];
-  let finalBudgetMax = args?.budget_max || null;
-  let finalRooms = args?.rooms || null;
-
-  if (args?.city) {
-    const normative = await extractSearchParamsAI(`City: ${args.city}`, lang);
-    cityVariants = normative.city_variants;
-    if (normative.price_max) finalBudgetMax = normative.price_max;
-    if (normative.rooms !== null) finalRooms = normative.rooms;
-  }
-
-  // Build query
-  let query = sb
+  // Load ALL properties from database (no filters!)
+  const { data: allUnits, error } = await supabase
     .from("units")
-    .select("*")
-    .eq("is_active", true)
-    .order("created_at", { ascending: false });
+    .select("id, city, address, rooms, floor, floors_total, area_m2, price, description, ai_instructions")
+    .limit(100); // Load top 100
 
-  // Use OR query for all city variants (flexible search)
-  if (cityVariants.length > 0) {
-    console.log(`[CITY SEARCH] Variants for search:`, cityVariants);
-    const orConditions = cityVariants.map(v => `city.ilike.%${v}%`).join(',');
-    query = query.or(orConditions);
-  }
-  if (budgetMin != null) {
-    query = query.gte("price", budgetMin);
-  }
-  if (finalBudgetMax != null) {
-    query = query.lte("price", finalBudgetMax);
-  }
-  if (finalRooms != null) {
-    query = query.eq("rooms", finalRooms);
-  }
-  if (excludeIds.length > 0) {
-    query = query.not("id", "in", `(${excludeIds.join(",")})`);
-  }
-
-  const { data, error } = await query.limit(10);
-
-  if (error) {
-    console.error("show_property query error:", error.message);
-    const msg =
-      lang === "ru"
-        ? "Не удалось загрузить объекты из базы."
-        : "Failed to load properties from database.";
-    await sendMessage(token, chatId, msg);
+  if (error || !allUnits || allUnits.length === 0) {
+    const msg = lang === "ru"
+      ? "Не удалось загрузить базу недвижимости."
+      : "Failed to load property database.";
+    await sendMessage(token, String(chatId), msg);
     return null;
   }
 
-  const list = data || [];
+  // Remove already shown properties
+  const availableUnits = allUnits.filter(u => !exclude_ids.includes(u.id));
 
-  console.log(`[SEARCH RESULT] Found ${list.length} units. First unit city: ${list[0]?.city}`);
+  if (availableUnits.length === 0) {
+    const msg = lang === "ru"
+      ? "Показал все доступные варианты. Больше объектов нет."
+      : "Showed all available options. No more properties.";
+    await sendMessage(token, String(chatId), msg);
+    return null;
+  }
 
-  const unit = list[0];
+  // Pass ALL properties to AI for selection
+  const aiPrompt = `
+You are a real estate assistant. User asked: "${query}"
+User language: ${lang}
 
+Available properties (JSON):
+${JSON.stringify(availableUnits, null, 2)}
+
+Task:
+1. Analyze user's request (city, budget, rooms, etc.)
+2. Find THE BEST property from the list
+3. If exact match not found, choose close option
+4. Return ONLY the property ID (number)
+
+Rules:
+- User city MUST match property city (multi-language aware: Mersin=Мерсин, Alanya=Алания)
+- Consider price, rooms, location
+- If user mentions family/children → need 2+ rooms minimum
+
+Return format:
+{
+  "unit_id": NUMBER,
+  "reason": "why you chose this property (1 sentence)"
+}
+`;
+
+  let selectedUnitId: number;
+  try {
+    const aiResponse = await askLLM(aiPrompt, "You are a property selector.", true);
+    const parsed = JSON.parse(aiResponse);
+    selectedUnitId = parsed.unit_id;
+    console.log(`[AI PROPERTY SELECTION] Chose unit ${selectedUnitId}: ${parsed.reason}`);
+  } catch (e) {
+    console.error("[AI SELECTION ERROR]", e);
+    // Fallback: return first available
+    selectedUnitId = availableUnits[0].id;
+  }
+
+  const unit = availableUnits.find(u => u.id === selectedUnitId);
   if (!unit) {
-    const msg =
-      lang === "ru"
-        ? "По вашим параметрам сейчас нет доступных объектов. Попробуйте изменить город или бюджет."
-        : "No properties match your criteria. Try different city or budget.";
-    await sendMessage(token, chatId, msg);
+    console.error(`[ERROR] AI selected unit ${selectedUnitId} but it's not in available list`);
     return null;
   }
 
-  // CRITICAL: Validate city match
-  if (cityVariants.length > 0) {
-    const foundCity = (unit.city || "").toLowerCase();
-    const matchesAnyVariant = cityVariants.some(v => {
-      const vLower = v.toLowerCase();
-      return foundCity.includes(vLower) || vLower.includes(foundCity);
-    });
+  // Build caption using translation function
+  const caption = buildPropertyDescription(unit, lang);
 
-    if (!matchesAnyVariant) {
-      console.warn(`[CITY MISMATCH BLOCKED] Requested: ${cityVariants.join(', ')}, Found: ${unit.city}`);
-      const msg = lang === "ru"
-        ? `К сожалению, в ${cityVariants[0]} сейчас нет подходящих квартир. Попробуйте другой город или оставьте контакт.`
-        : `Sorry, no properties available in ${cityVariants[0]}. Try another city or leave your contact.`;
-      await sendMessage(token, chatId, msg);
-      return null;
-    }
-  }
-
-  // Send photos WITH caption (Russian) - LLM will translate in its message
-  const caption = `${unit.city}. ${unit.rooms === 0 ? 'Студия' : unit.rooms ? `${unit.rooms}-комнатная` : ''}, ${unit.area_m2 || '?'} m², ${unit.floor || '?'}${unit.floors_total ? `/${unit.floors_total}` : ''} этаж. $${unit.price?.toLocaleString() || '?'}. ${unit.address ? `Адрес: ${unit.address}.` : ''} ${unit.ai_instructions || unit.description || ''}`;
-
-  await sendPropertyPhotos(token, chatId, unit.id, caption, lang);
-
-  // Return confirmation to LLM (don't duplicate description, it's already under photo!)
-  return `Показал квартиру ID ${unit.id} (${unit.city}, ${unit.rooms}-комнатная, $${unit.price}). Фото отправлены с описанием.`;
+  // Send photos
+  await sendPropertyPhotos(token, String(chatId), String(unit.id), caption, lang);
 
   // Save to session
   if (sessionId) {
@@ -378,14 +363,12 @@ async function handleShowProperty(
           ai_instructions: unit.ai_instructions
         },
       });
-
-      // SCORE REMOVED
     } catch (e) {
-      console.error("appendMessage show_property error:", (e as any)?.message);
+      console.error("appendMessage error:", e);
     }
   }
 
-  return unit.id;
+  return `Показал квартиру ID ${unit.id} (${unit.city}, ${unit.rooms}-комнатная, $${unit.price}). AI выбрал эту из ${availableUnits.length} доступных.`;
 }
 
 // =====================================================
@@ -698,16 +681,6 @@ EXAMPLE WRONG:
 EXAMPLE RIGHT:
 ✅ User (TR): "Mersin'de daire arıyorum"
 ✅ Bot: "Tamam! İşte bir seçenek: 2+1 daire, 5. Kat, 120 m²" (ВСЁ на турецком!)
-
-⚠️ КРИТИЧЕСКОЕ ПРАВИЛО:
-- Под фото квартиры будет CAPTION на РУССКОМ языке
-- Это техническое ограничение, ЭТО НОРМАЛЬНО!
-- ТЫ МОЖЕШЬ ПОВТОРИТЬ информацию на языке пользователя в своем сообщении!
-
-EXAMPLE:
-User (TR): "Mersin'de daire?"
-✅ Bot sends photo with caption: "Mersin. 2-комнатная, 55 m², 4/11 этаж. $89,000"
-✅ Bot message: "Mersin'de harika bir seçenek buldum! 2+1 daire, 55 m², 4. Kat. Fiyat: $89.000. İlgileniyorsunuz?"
 
 🌍 АБСОЛЮТНЫЙ ЗАПРЕТ НА СМЕНУ ЛОКАЦИИ:
 - Если в диалоге клиент назвал "Москва" → ВСЕ последующие сообщения должны быть ПРО МОСКВУ!
@@ -1124,13 +1097,15 @@ export async function POST(req: NextRequest) {
           await sendMessage(token, chatId, action.args.text);
         }
       } else if (action.tool === "show_property") {
+        const args = action.args as ShowPropertyArgs;
         await handleShowProperty(
-          action.args as any,
-          lang,
-          chatId,
-          token,
           sessionId,
-          botId
+          Number(chatId),
+          "", // query reconstructed from args
+          args.exclude_ids?.map(id => Number(id)) || [],
+          token,
+          botId,
+          lang
         );
       } else if (action.tool === "create_lead") {
         // SCORE: Hard action - REMOVED
