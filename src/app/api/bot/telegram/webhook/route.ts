@@ -421,7 +421,7 @@ async function handleSqlSearch(
   }
 
   // 3. Post-Filter: Exclude seen
-  const availableUnits = filteredUnits.filter(u => !exclude_ids.includes(u.id));
+  const availableUnits = filteredUnits.filter((u: any) => !exclude_ids.includes(u.id));
 
   if (availableUnits.length === 0) {
     const msg = lang === "ru"
