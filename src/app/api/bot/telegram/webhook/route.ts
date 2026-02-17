@@ -17,28 +17,27 @@ import {
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
-type Lang = "ru" | "en" | "tr";
+type Lang = "ru" | "en" | "tr" | "ar";
 
 // =====================================================
 // TOOL ACTIONS - What the LLM can request
 // =====================================================
 type ToolAction =
   | {
-    tool: "send_message";
-    args: { text: string };
+    tool: "create_lead";
+    args: CreateLeadArgs;
   }
   | {
     tool: "show_property";
     args: ShowPropertyArgs;
   }
   | {
-    tool: "create_lead";
-    args: CreateLeadArgs;
+    tool: "send_message";
+    args: { text: string };
   };
 
 type ShowPropertyArgs = {
   city?: string | null;
-  budget_min?: number | null;
   budget_max?: number | null;
   rooms?: number | null;
   exclude_ids?: string[] | null;
@@ -73,19 +72,16 @@ type LlmPayload = {
 function detectLang(code?: string | null): Lang {
   if (!code) return "ru";
   const c = code.toLowerCase();
-  if (c.startsWith("ru") || c.startsWith("uk") || c.startsWith("be")) {
-    return "ru";
-  }
-  if (c.startsWith("tr")) {
-    return "tr";
-  }
+  if (c.startsWith("ru") || c.startsWith("uk") || c.startsWith("be")) return "ru";
+  if (c.startsWith("tr")) return "tr";
+  if (c.startsWith("ar")) return "ar";
   return "en";
 }
 
 function formatPrice(price: number | null | undefined): string {
   if (price == null) return "цена по запросу";
   const usd = price.toLocaleString("ru-RU");
-  const tryValue = Math.round(price * 34).toLocaleString("ru-RU");
+  const tryValue = Math.round(price * 34).toLocaleString("ru-RU"); // Mock rate
   return `$${usd} (≈${tryValue} ₺)\n*Точную цену в лирах узнаете у менеджера*`;
 }
 
@@ -96,13 +92,15 @@ function buildPropertyDescription(unit: any, lang: Lang): string {
   let rooms = "";
   if (unit.rooms != null) {
     if (unit.rooms === 0) {
-      rooms = lang === "ru" ? "студия" : lang === "tr" ? "stüdyo" : "studio";
+      rooms = lang === "ru" ? "студия" : lang === "tr" ? "stüdyo" : lang === "ar" ? "استوديو" : "studio";
     } else {
       rooms = lang === "ru"
         ? `${unit.rooms}-комнатная`
         : lang === "tr"
           ? `${unit.rooms}+1 daire`
-          : `${unit.rooms}-room`;
+          : lang === "ar"
+            ? `${unit.rooms}+1 شقة`
+            : `${unit.rooms}-room`;
     }
   }
 
@@ -117,13 +115,17 @@ function buildPropertyDescription(unit: any, lang: Lang): string {
         ? `${unit.floor}/${unit.floors_total} этаж`
         : lang === "tr"
           ? `${unit.floor}/${unit.floors_total} Kat`
-          : `${unit.floor}/${unit.floors_total} floor`;
+          : lang === "ar"
+            ? `الطابق ${unit.floor}/${unit.floors_total}`
+            : `${unit.floor}/${unit.floors_total} floor`;
     } else {
       floor = lang === "ru"
         ? `${unit.floor} этаж`
         : lang === "tr"
           ? `${unit.floor} Kat`
-          : `${unit.floor} floor`;
+          : lang === "ar"
+            ? `الطابق ${unit.floor}`
+            : `${unit.floor} floor`;
     }
   }
 
@@ -307,7 +309,7 @@ async function handleAiFullScan(
   // 1. Load ALL mini-data
   const { data: allUnits } = await supabase
     .from("units")
-    .select("id, city, district, price, rooms, project, ai_instructions")
+    .select("id, city, district, price, rooms, project, ai_instructions, features")
     .eq("status", "available");
 
   if (!allUnits || allUnits.length === 0) {
@@ -316,9 +318,11 @@ async function handleAiFullScan(
   }
 
   // 2. Format for AI
-  // Compact format: "#ID City (District) 2+1 $120k ProjectName"
+  // Compact format: "#ID City (District) 2+1 $120k ProjectName Floor/Total [Tags]"
   const listText = allUnits.map((u: any) => {
-    return `#${u.id} ${u.city} ${u.district || ""} ${u.rooms === 0 ? "Studio" : u.rooms + "+1"} $${Math.round(u.price / 1000)}k ${u.project || ""} ${u.ai_instructions || ""}`;
+    const floorInfo = u.floor ? `Fl:${u.floor}` : "";
+    const tags = u.features && Array.isArray(u.features) ? `[${u.features.join(",")}]` : "";
+    return `#${u.id} ${u.city} ${u.district || ""} ${u.rooms === 0 ? "Studio" : u.rooms + "+1"} $${Math.round(u.price / 1000)}k ${u.project || "NoProject"} ${floorInfo} ${tags} ${u.ai_instructions || ""}`;
   }).join("\n");
 
   // 3. Ask AI
@@ -331,17 +335,18 @@ Budget: ${filters.budget_max ? "$" + filters.budget_max : "Any"}
 Rooms: ${filters.rooms ? filters.rooms + "+1" : "Any"}
 Language: ${lang}
 
-DATABASE LIST (Format: #ID City District Rooms Price Project Notes):
+DATABASE LIST (Format: #ID City District Rooms Price Project Notes [Tags]):
 """
 ${listText}
 """
 
 INSTRUCTIONS:
 1. Scan the list. Find IDs that match user's intent.
-2. TOLERATE TYPOS: "Merssiiin" matches "Mersin". "Alania" matches "Alanya".
-3. SEMANTIC MATCH: "Cheap" -> low price. "Near sea" -> check notes/district.
-4. STRICT BUDGET: Do not exceed user budget + 5%.
-5. SELECT THE BEST SINGLE MATCH (or top 2 if very similar).
+2. CHECK TAGS: If user asks for "Gas", "Pool", "Sea", check [Tags] or Notes.
+3. TOLERATE TYPOS: "Merssiiin" matches "Mersin". "Alania" matches "Alanya".
+4. SEMANTIC MATCH: "Cheap" -> low price. "Near sea" -> check notes/district.
+5. STRICT BUDGET: Do not exceed user budget + 5%.
+6. SELECT THE BEST SINGLE MATCH (or top 2 if very similar).
 
 OUTPUT JSON ONLY (Minified):
 { "unit_id": NUMBER | null, "reason": "Short explanation in ${lang}" }
@@ -369,7 +374,11 @@ OUTPUT JSON ONLY (Minified):
     // Nothing found
     const msg = lang === "ru"
       ? `По вашему запросу ничего не найдено.`
-      : `No properties found.`;
+      : lang === "tr"
+        ? `Kriterlerinize uygun emlak bulunamadı.`
+        : lang === "ar"
+          ? `لم يتم العثور على عقارات تطابق طلبك.`
+          : `No properties found.`;
     await sendMessage(token, String(chatId), msg);
     return "Nothing found (AI Scan)";
   }
@@ -393,7 +402,7 @@ async function handleSqlSearch(
   // 1. Build Dynamic Query
   let queryBuilder = supabase
     .from("units")
-    .select("id, city, address, rooms, floor, floors_total, area_m2, price, description, ai_instructions")
+    .select("id, city, address, rooms, floor, floors_total, area_m2, price, description, ai_instructions, features")
     .eq("status", "available");
 
   // Filter by City (Fuzzy ILIKE)
@@ -426,7 +435,11 @@ async function handleSqlSearch(
   if (availableUnits.length === 0) {
     const msg = lang === "ru"
       ? `По вашему запросу (${filters.city || "..."}) ничего не найдено.`
-      : `No properties found matching your criteria.`;
+      : lang === "tr"
+        ? `Kriterlerinize uygun emlak bulunamadı.`
+        : lang === "ar"
+          ? `لم يتم العثور على عقارات تطابق طلبك.`
+          : `No properties found matching your criteria.`;
     await sendMessage(token, String(chatId), msg);
     return "Nothing found (SQL)";
   }
@@ -460,7 +473,7 @@ async function serveUnit(
       await appendMessage({
         session_id: sessionId,
         bot_id: botId,
-        role: "assistant",
+        role: "assistant", // Use assistant role
         content: caption,
         payload: { unit_id: unit.id, city: unit.city, ai_instructions: unit.ai_instructions },
       });
@@ -522,14 +535,24 @@ ${history}
 }
 
 async function requestContact(token: string, chatId: string, lang: Lang) {
-  const text = lang === "ru"
-    ? "Чтобы я передал информацию менеджеру, нажмите кнопку \"Поделиться контактом\" ниже."
-    : "To pass your inquiry to a manager, please click the \"Share Contact\" button below.";
+  let text = "To pass your inquiry to a manager, please click the \"Share Contact\" button below.";
+  let btnText = "Share Contact";
+
+  if (lang === "ru") {
+    text = "Чтобы я передал информацию менеджеру, нажмите кнопку \"Поделиться контактом\" ниже.";
+    btnText = "Поделиться контактом";
+  } else if (lang === "tr") {
+    text = "Bilgilerinizi menajere iletmek için lütfen aşağıdaki \"İletişim Paylaş\" düğmesine tıklayın.";
+    btnText = "İletişim Paylaş";
+  } else if (lang === "ar") {
+    text = "لنقل استفسارك إلى المدير، يرجى النقر على زر \"مشاركة جهة الاتصال\" أدناه.";
+    btnText = "مشاركة جهة الاتصال";
+  }
 
   const keyboard = {
     reply_markup: {
       keyboard: [
-        [{ text: lang === "ru" ? "Поделиться контактом" : "Share Contact", request_contact: true }]
+        [{ text: btnText, request_contact: true }]
       ],
       resize_keyboard: true,
       one_time_keyboard: true
@@ -633,6 +656,9 @@ async function handleCreateLead(
 // =====================================================
 // NOTIFY MANAGERS
 // =====================================================
+// =====================================================
+// NOTIFY MANAGERS
+// =====================================================
 async function notifyManagers(
   lang: Lang,
   token: string,
@@ -656,7 +682,7 @@ async function notifyManagers(
       }
     }
 
-    const summaryPrompt = `Твоя задача — проанализировать диалог между AI-брокером и Клиентом и составить Краткую Карточку Лида для менеджера.
+    const summaryPrompt = `Твоя задача — проанализировать диалог и составить Карточку Лида.
 
 Входящие данные:
 История переписки:
@@ -664,23 +690,21 @@ async function notifyManagers(
 ${conversationHistory || "История недоступна"}
 """
 
-ВЫВЕДИ ОТВЕТ СТРОГО В ТАКОМ ФОРМАТЕ (без лишних слов):
+ВЫВЕДИ ОТВЕТ СТРОГО В ТАКОМ ФОРМАТЕ:
 
-🔥 **НОВЫЙ ЛИД (ТУРЦИЯ)**
-👤 **Язык:** [Русский / English / Türkçe]
-💰 **Бюджет:** [Бюджет клиента]
-🎯 **Цель:** [Инвестиции / ПМЖ / Отдых / Неизвестно]
-🏠 **Интересовали объекты:** [Какие объекты смотрел/обсуждал]
-⚠️ **Важные детали:** [Оплата криптой, питомцы, гражданство и т.д.]
-📊 **Температура:** [Холодный / Теплый / Горячий]
+🔥 **НОВЫЙ ЛИД (TURKEY)**
+👤 **Язык:** [Ru/En/Tr/Ar]
+💰 **Бюджет:** [Бюджет]
+🎯 **Цель:** [Инвестиции/ПМЖ/Отдых]
+❤️ **ИНТЕРЕСОВАЛИ:** [Перечисли ID квартир, которые он лайкнул, запросил фото или спросил цену]
+⚠️ **Нюансы:** [Крипта, Гражданство, Дети и т.д.]
 
-Также добавь советы (например по национальности как лучше общаться и тд).
 Номер телефона: ${lead.phone || "не указан"}
-UserName в ТГ: ${payload.tgUsername ? `@${payload.tgUsername}` : "не указан"}
-Имя: ${payload.tgFullName || lead.name || "не указано"}
+UserName: ${payload.tgUsername ? `@${payload.tgUsername}` : "нет"}
+Имя: ${payload.tgFullName || lead.name || "нет"}
 `;
 
-    const summary = await askLLM(summaryPrompt, "Ты — эксперт CRM, анализирующий диалоги и создающий карточки лидов для менеджеров по недвижимости в Турции.", true);
+    const summary = await askLLM(summaryPrompt, "Ты — эксперт CRM.", true);
     await sb.from("leads").update({ notes: summary }).eq("id", leadId);
 
     const { data: managers } = await sb
@@ -696,8 +720,9 @@ UserName в ТГ: ${payload.tgUsername ? `@${payload.tgUsername}` : "не ука
       if (target.telegram_id) {
         let finalSummary = summary;
         if (target.preferred_lang && target.preferred_lang !== "ru") {
-          const transPrompt = `Translate this lead card into ${target.preferred_lang === 'en' ? 'English' : 'Turkish'}. Keep the emojis and structure exactly the same.\n\n${summary}`;
-          finalSummary = await askLLM(transPrompt, "You are a professional translator for real estate leads.", true);
+          // Simple translation for non-ru managers
+          const transPrompt = `Translate this lead card into ${target.preferred_lang}. Preserve structure/emoji.\n\n${summary}`;
+          finalSummary = await askLLM(transPrompt, "Translator", true);
         }
         await sendMessage(token, String(target.telegram_id), finalSummary);
         await sb.from("telegram_managers").update({ last_notified_at: new Date().toISOString() }).eq("id", target.id);
@@ -709,13 +734,37 @@ UserName в ТГ: ${payload.tgUsername ? `@${payload.tgUsername}` : "не ука
 }
 
 // =====================================================
-// SYSTEM PROMPT - SALES ONLY
-// =====================================================
-// =====================================================
 // SYSTEM PROMPT - SALES AI (OVERHAULED)
 // =====================================================
 const systemPrompt = `YOU ARE AN ELITE AI REAL ESTATE AGENT FOR [COMPANY].
 Your mission: Match clients with their dream property in Turkey and generate qualified leads.
+
+### 🎯 ПРАВИЛО ЗАХВАТА КОНТАКТА (LEAD CAPTURE)
+Твоя главная цель — получить номер телефона.
+
+КОГДА ПРОСИТЬ НОМЕР:
+1. Пользователь спросил: "Как связаться?", "Хочу купить", "Есть видео?".
+2. Пользователь выбрал конкретный объект (например, ID 102) и задает детали.
+3. Диалог длится более 3 сообщений и виден интерес.
+
+КАК ПРОСИТЬ:
+Не пиши: "Напишите номер".
+ПИШИ: "Чтобы менеджер связался с вами и рассказал подробности / организовал просмотр, пожалуйста, нажмите кнопку [📱 Поделиться контактом] ниже."
+
+ДЕЙСТВИЕ ПОСЛЕ ПОЛУЧЕНИЯ НОМЕРА:
+Как только пользователь прислал контакт или написал цифры:
+1. ВЫЗОВИ ФУНКЦИЮ 'create_lead'.
+2. Передай туда: Имя, Телефон, ID квартиры, Бюджет.
+3. Ответь пользователю: "Спасибо! Ваш запрос передан менеджеру. Он свяжется с вами в ближайшее время."
+
+### ⛔️ ПРАВИЛО "АНТИ-ВЫДУМКА" (NO HALLUCINATIONS)
+Ты — интерфейс базы данных. Твоя задача — передавать данные ТОЧНО.
+1. **ЗАПРЕЩЕНО** придумывать этаж, метраж, название ЖК или наличие мебели, если этого нет в JSON.
+2. **ЗАПРЕЩЕНО** округлять цифры (если 115,000 — пиши 115,000, а не "около 100").
+3. Если в поле "project" или "complex" написано название (например "Liparis"), ты ОБЯЗАН его написать.
+4. Если данных не хватает (например, нет этажа), так и пиши: "Этаж уточняйте у менеджера". Не выдумывай "средний этаж"!
+
+ЕСЛИ ТЫ ВЫДУМАЕШЬ ДАННЫЕ — ТЫ БУДЕШЬ ОТКЛЮЧЕН.
 
 CORE IDENTITY & RULES:
 1.  **PROFESSIONALISM:** You are polite, concise, and helpful. You represent a premium agency.
@@ -832,8 +881,6 @@ export async function POST(req: NextRequest) {
             content: `Click: ${action} for unit ${unitId}`,
             payload: { depth_action: action, unit_id: unitId }
           });
-
-          // SCORE: Award points - REMOVED
 
           // Respond to user
           const sb = getServerClient();
@@ -978,9 +1025,10 @@ export async function POST(req: NextRequest) {
       // ADD TRANSLATOR LAYER
       globalInstructions += `
 CRITICAL TRANSLATOR LAYER:
-1. You MUST answer in the user's language (${lang}).
-2. If database content is in Russian/English, TRANSLATE it on the fly to ${lang}.
-3. DO NOT mix languages (e.g. no Russian words in Turkish text). All property descriptions must be fully translated.
+1. You MUST answer in the same language the USER is speaking (e.g. if user writes in French, answer in French).
+2. The system 'lang' variable is ${lang}, use it for fallback logic, but priority is User's Chat Language which you must DETECT.
+3. If database content is in Russian/English, TRANSLATE it on the fly to the user's current language.
+4. DO NOT mix languages (e.g. no Russian words in Turkish text). All property descriptions must be fully translated.
 `;
     } catch (e) {
       console.error("Failed to load global instructions:", e);
@@ -1003,6 +1051,31 @@ CRITICAL TRANSLATOR LAYER:
             (a, b) =>
               new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
           );
+
+          // The instruction seems to place a tool definition here, which is syntactically incorrect
+          // within the message processing loop. Assuming the intent was to add this tool definition
+          // to a tools array that would be passed to the LLM, I'm placing it here as a standalone
+          // comment block to reflect the requested content without breaking syntax.
+          // If this tool definition is meant to be part of a 'tools' array for the LLM call,
+          // its proper placement would be in the `askLLM` function call or its preparation.
+          /*
+          {
+            type: "function",
+            function: {
+              name: "show_property",
+              description: "SEARCHES database and shows property card. USE IMMEDIATELY when user asks to see options. NOTE: Does NOT show video/exact location (those require lead capture).",
+              parameters: {
+                type: "object",
+                properties: {
+                  city: { type: "string" },
+                  budget_max: { type: "number" },
+                  rooms: { type: "number" },
+                  exclude_ids: { type: "array", items: { type: "string" } }
+                }
+              }
+            }
+          },
+          */
 
           for (const msg of ordered) {
             const role =
