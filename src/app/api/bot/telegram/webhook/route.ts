@@ -571,6 +571,8 @@ async function requestContact(token: string, chatId: string, lang: Lang) {
   });
 }
 
+
+
 // =====================================================
 // HANDLE CREATE LEAD
 // =====================================================
@@ -764,38 +766,47 @@ Your mission: Match clients with their dream property in Turkey and generate qua
 3. Если в поле "project" или "complex" написано название (например "Liparis"), ты ОБЯЗАН его написать.
 4. Если данных не хватает (например, нет этажа), так и пиши: "Этаж уточняйте у менеджера". Не выдумывай "средний этаж"!
 
+### 💣 CRITICAL: DO NOT DESCRIBE PROPERTY IN 'reply'
+You MUST use the 'show_property' tool to display property details.
+NEVER write "Here is a nice apartment in Marina Residence..." in the 'reply' field.
+Instead, write: "I found this option for you:" in 'reply', and let the tool show the rest.
+If the tool returns nothing, saying "Here is..." makes you a liar. DON'T DO IT.
+
+### 📊 SYSTEM_DEBUG COMMAND
+If user writes "SYSTEM_DEBUG", output a JSON summary of your internal state and last search results.
+`;
 ЕСЛИ ТЫ ВЫДУМАЕШЬ ДАННЫЕ — ТЫ БУДЕШЬ ОТКЛЮЧЕН.
 
 CORE IDENTITY & RULES:
-1.  **PROFESSIONALISM:** You are polite, concise, and helpful. You represent a premium agency.
-2.  **ABSOLUTE TRUTH:** NEVER invent properties, prices, or locations. Use ONLY data from the database.
-3.  **STRICT GEOGRAPHY:** If user asks for "Mersin", DO NOT offer "Alanya" or "Istanbul".
-4.  **STRICT BUDGET:** Respect user's budget range. Do not offer $500k properties to a $100k buyer.
+1. ** PROFESSIONALISM:** You are polite, concise, and helpful.You represent a premium agency.
+2. ** ABSOLUTE TRUTH:** NEVER invent properties, prices, or locations.Use ONLY data from the database.
+3. ** STRICT GEOGRAPHY:** If user asks for "Mersin", DO NOT offer "Alanya" or "Istanbul".
+4. ** STRICT BUDGET:** Respect user's budget range. Do not offer $500k properties to a $100k buyer.
 
 CRITICAL TRANSLATOR PROTOCOL:
--   **Output Language:** You MUST reply in the language the USER is speaking (detected language).
--   **Data Translation:** The database content is in Russian/English. You MUST translate it on-the-fly.
-    -   "2-комнатная" -> "2+1 apartments" (EN) / "2+1 daire" (TR)
-    -   "Этаж 5" -> "5th floor" (EN) / "5. Kat" (TR)
-    -   "Вид на море" -> "Sea view" (EN) / "Deniz manzaralı" (TR)
--   **No Mixing:** Do not output Russian text in a Turkish conversation.
+-   ** Output Language:** You MUST reply in the language the USER is speaking(detected language).
+-   ** Data Translation:** The database content is in Russian / English.You MUST translate it on - the - fly.
+    - "2-комнатная" -> "2+1 apartments"(EN) / "2+1 daire"(TR)
+  - "Этаж 5" -> "5th floor"(EN) / "5. Kat"(TR)
+  - "Вид на море" -> "Sea view"(EN) / "Deniz manzaralı"(TR)
+  -   ** No Mixing:** Do not output Russian text in a Turkish conversation.
 
 TOOL USAGE GUIDELINES:
--   **show_property:** Use this to search the database.
-    -   *Input:* { city: "Target City", budget_max: number, rooms: number }
-    -   *Logic:* Convert user's fuzzy request ("mersin flat") to strict params ("Mersin", null, null).
-    -   *Result:* If NULL is returned, say "No properties found in [City] for [Budget]". DO NOT HALLUCINATE A PROPERTY.
--   **create_lead:** Use this when user shares contact info or explicitly asks to talk to a manager.
+-   ** show_property:** Use this to search the database.
+    -   * Input:* { city: "Target City", budget_max: number, rooms: number }
+  -   * Logic:* Convert user's fuzzy request ("mersin flat") to strict params ("Mersin", null, null).
+    -   * Result:* If NULL is returned, say "No properties found in [City] for [Budget]".DO NOT HALLUCINATE A PROPERTY.
+-   ** create_lead:** Use this when user shares contact info or explicitly asks to talk to a manager.
 
 CONVERSATION FLOW:
-1.  **Greeting:** If first message, introduce yourself and the company.
-2.  **Qualification:** Ask clarifying questions (City? Budget? Purpose?) if missing.
-3.  **Presentation:** Use 'show_property' to find matches. Present them attractively (translated!).
-4.  **Call to Action:** Always end with a question or suggestion (e.g., "Want to see more?", "Shall I book a viewing?").
+1. ** Greeting:** If first message, introduce yourself and the company.
+2. ** Qualification:** Ask clarifying questions(City ? Budget ? Purpose ?) if missing.
+3. ** Presentation:** Use 'show_property' to find matches.Present them attractively(translated!).
+4. ** Call to Action:** Always end with a question or suggestion(e.g., "Want to see more?", "Shall I book a viewing?").
 
-JSON OUTPUT FORMAT (MANDATORY):
-You must output a SINGLE JSON object. No markdown, no conversational text outside the JSON.
-CRITICAL: Output MUST be minified (single line). Escape newlines in strings with \n.
+JSON OUTPUT FORMAT(MANDATORY):
+You must output a SINGLE JSON object.No markdown, no conversational text outside the JSON.
+  CRITICAL: Output MUST be minified(single line).Escape newlines in strings with \n.
 
 { "reply": "Translated text...", "state": { "city": "Mersin", "budget_max": 0, "rooms": 0 }, "actions": [] }
 
@@ -856,7 +867,7 @@ export async function POST(req: NextRequest) {
     const tgUsername = message?.from?.username || update?.message?.from?.username || null;
     const tgFirstName = message?.from?.first_name || update?.message?.from?.first_name || "";
     const tgLastName = message?.from?.last_name || update?.message?.from?.last_name || "";
-    const tgFullName = `${tgFirstName} ${tgLastName} `.trim() || "не указано";
+    const tgFullName = `${ tgFirstName } ${ tgLastName } `.trim() || "не указано";
 
     const userInfo = {
       username: tgUsername,
@@ -878,7 +889,7 @@ export async function POST(req: NextRequest) {
             session_id: session.id,
             bot_id: botId,
             role: "user",
-            content: `Click: ${action} for unit ${unitId}`,
+            content: `Click: ${ action } for unit ${ unitId }`,
             payload: { depth_action: action, unit_id: unitId }
           });
 
@@ -892,15 +903,15 @@ export async function POST(req: NextRequest) {
               responseText = lang === "ru" ? "📸 Загружаю дополнительные фото..." : "📸 Loading more photos...";
             } else if (action === "location") {
               responseText = unit.address
-                ? (lang === "ru" ? `📍 Адрес объекта: ${unit.address} ` : `📍 Property Address: ${unit.address} `)
+                ? (lang === "ru" ? `📍 Адрес объекта: ${ unit.address } ` : `📍 Property Address: ${ unit.address } `)
                 : (lang === "ru" ? "📍 Точный адрес уточняйте у менеджера." : "📍 Please ask manager for exact coordinates.");
             } else if (action === "price_tr") {
               const tryPrice = Math.round(unit.price * 33); // Example rate
               responseText = lang === "ru"
-                ? `💰 Примерная цена: ${tryPrice.toLocaleString()} TRY`
-                : `💰 Approx.price: ${tryPrice.toLocaleString()} TRY`;
+                ? `💰 Примерная цена: ${ tryPrice.toLocaleString() } TRY`
+                : `💰 Approx.price: ${ tryPrice.toLocaleString() } TRY`;
             } else if (action === "price_us") {
-              responseText = `💵 Price: $${unit.price.toLocaleString()} `;
+              responseText = `💵 Price: $${ unit.price.toLocaleString() } `;
             }
 
             if (responseText) {
@@ -914,400 +925,429 @@ export async function POST(req: NextRequest) {
 
       // Answer callback query to stop loading spinner
       await fetch(`https://api.telegram.org/bot${token}/answerCallbackQuery`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ callback_query_id: cbId }),
+method: "POST",
+  headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ callback_query_id: cbId }),
       });
 
-      return NextResponse.json({ ok: true });
+return NextResponse.json({ ok: true });
     }
 
-    // Find or create session
-    let sessionId: string | null = null;
-    let sessionData: any = {};
-    try {
-      const session = await findOrCreateSession(botId, chatId) as any;
-      sessionId = session.id;
-      sessionData = session.payload || {};
+// Find or create session
+let sessionId: string | null = null;
+let sessionData: any = {};
+try {
+  const session = await findOrCreateSession(botId, chatId) as any;
+  sessionId = session.id;
+  sessionData = session.payload || {};
 
-      // Set Focus ID for tool context
-      if (sessionData.focus_unit_id) {
-        (global as any).focus_unit_id = sessionData.focus_unit_id;
-      }
+  // Set Focus ID for tool context
+  if (sessionData.focus_unit_id) {
+    (global as any).focus_unit_id = sessionData.focus_unit_id;
+  }
 
-      await appendMessage({
-        session_id: session.id,
-        bot_id: botId,
-        role: "user",
-        content: text,
-        payload: { update },
-      });
+  await appendMessage({
+    session_id: session.id,
+    bot_id: botId,
+    role: "user",
+    content: text,
+    payload: { update },
+  });
 
-      // SCORE: Award points for asking a question (text input)
-      // REMOVED FOR AI ANALYST
+  // SCORE: Award points for asking a question (text input)
+  // REMOVED FOR AI ANALYST
 
-      // Mark reactivation as responded if user comes back
-      if (sessionId) {
-        await markReactivationResponded(sessionId);
-      }
-    } catch (e) {
-      console.error("session/appendMessage error:", (e as any)?.message || e);
-    }
+  // Mark reactivation as responded if user comes back
+  if (sessionId) {
+    await markReactivationResponded(sessionId);
+  }
+} catch (e) {
+  console.error("session/appendMessage error:", (e as any)?.message || e);
+}
 
-    // Check for shared contact
-    if (update?.message?.contact) {
-      // If we got a contact, immediately try to create a lead
-      await handleCreateLead({}, lang, chatId, token, sessionId, userInfo);
-      return NextResponse.json({ ok: true });
-    }
+// Check for shared contact
+if (update?.message?.contact) {
+  // If we got a contact, immediately try to create a lead
+  await handleCreateLead({}, lang, chatId, token, sessionId, userInfo);
+  return NextResponse.json({ ok: true });
+}
 
-    // Soft Action Tracking: Count history
-    let messagesCount = 0;
-    let unitsViewedCount = 0;
-    if (sessionId) {
-      const historyRecs = await listMessages(sessionId, 20);
-      messagesCount = historyRecs.filter(m => m.role === 'user').length;
-      unitsViewedCount = historyRecs.filter(m => m.role === 'assistant' && (m.payload as any)?.unit_id).length;
-    }
-
-
-    // Check OpenRouter API key
-    if (!process.env.OPENROUTER_API_KEY) {
-      const msg =
-        lang === "ru"
-          ? "Ошибка конфигурации: OPENROUTER_API_KEY не установлен."
-          : "Config error: OPENROUTER_API_KEY not set.";
-      await sendMessage(token, chatId, msg);
-      return NextResponse.json({ ok: true, mode: "config-error" });
-    }
-
-    // Build message array for LLM
-    type LLMMessage = { role: "system" | "user" | "assistant"; content: string };
-
-    // Load Company Knowledge
-    let companyContext = "";
-    try {
-      const sb = getServerClient();
-      // Check if content_text column exists by trying to select it. If fails, fallback to description.
-      // Or just try select with error handling? 
-      // Safest: select all, check fields in code? NO, select specific fields.
-      // Assuming migration applied or will be applied.
-      const { data: files } = await sb.from("company_files").select("name, description, content_text").eq("is_active", true);
-      if (files && files.length > 0) {
-        companyContext = "\n\nCOMPANY KNOWLEDGE BASE:\n" + files.map((f: any) => {
-          const content = f.content_text || f.description || "";
-          if (!content) return "";
-          return `[${f.name}]: ${content.slice(0, 1000)}`; // limit context size per file
-        }).filter(Boolean).join("\n\n");
-      }
-    } catch (e) {
-      console.error("Failed to load company context:", e);
-    }
-
-    // Load Global Instructions (structured)
-    let globalInstructions = "";
-    try {
-      const sb = getServerClient();
-      const { data: rules } = await sb
-        .from("bot_instructions")
-        .select("text")
-        .eq("is_active", true)
-        .order("created_at", { ascending: true });
-
-      if (rules && rules.length > 0) {
-        const formattedRules = rules
-          .map((r, i) => `${i + 1}. ${r.text}`)
-          .join("\n");
-        globalInstructions = `GLOBAL INSTRUCTIONS AND RULES (STRICTLY FOLLOW):\n${formattedRules}\n\n`;
-      }
+// Soft Action Tracking: Count history
+let messagesCount = 0;
+let unitsViewedCount = 0;
+if (sessionId) {
+  const historyRecs = await listMessages(sessionId, 20);
+  messagesCount = historyRecs.filter(m => m.role === 'user').length;
+  unitsViewedCount = historyRecs.filter(m => m.role === 'assistant' && (m.payload as any)?.unit_id).length;
+}
 
 
-      // ADD TRANSLATOR LAYER
-      globalInstructions += `
+// Check for debug command
+if (text?.startsWith("SYSTEM_DEBUG")) {
+  const debugInfo = await handleDebug(getServerClient());
+  await sendMessage(token, chatId, `📊 DEBUG INFO:\n\n${debugInfo}`);
+  return NextResponse.json({ ok: true });
+}
+
+// Check OpenRouter API key
+if (!process.env.OPENROUTER_API_KEY) {
+  const msg =
+    lang === "ru"
+      ? "Ошибка конфигурации: OPENROUTER_API_KEY не установлен."
+      : "Config error: OPENROUTER_API_KEY not set.";
+  await sendMessage(token, chatId, msg);
+  return NextResponse.json({ ok: true, mode: "config-error" });
+}
+
+// Build message array for LLM
+type LLMMessage = { role: "system" | "user" | "assistant"; content: string };
+
+// Load Company Knowledge
+let companyContext = "";
+try {
+  const sb = getServerClient();
+  // Check if content_text column exists by trying to select it. If fails, fallback to description.
+  // Or just try select with error handling? 
+  // Safest: select all, check fields in code? NO, select specific fields.
+  // Assuming migration applied or will be applied.
+  const { data: files } = await sb.from("company_files").select("name, description, content_text").eq("is_active", true);
+  if (files && files.length > 0) {
+    companyContext = "\n\nCOMPANY KNOWLEDGE BASE:\n" + files.map((f: any) => {
+      const content = f.content_text || f.description || "";
+      if (!content) return "";
+      return `[${f.name}]: ${content.slice(0, 1000)}`; // limit context size per file
+    }).filter(Boolean).join("\n\n");
+  }
+} catch (e) {
+  console.error("Failed to load company context:", e);
+}
+
+// Load Global Instructions (structured)
+let globalInstructions = "";
+try {
+  const sb = getServerClient();
+  const { data: rules } = await sb
+    .from("bot_instructions")
+    .select("text")
+    .eq("is_active", true)
+    .order("created_at", { ascending: true });
+
+  if (rules && rules.length > 0) {
+    const formattedRules = rules
+      .map((r, i) => `${i + 1}. ${r.text}`)
+      .join("\n");
+    globalInstructions = `GLOBAL INSTRUCTIONS AND RULES (STRICTLY FOLLOW):\n${formattedRules}\n\n`;
+  }
+
+
+  // ADD TRANSLATOR LAYER
+  globalInstructions += `
 CRITICAL TRANSLATOR LAYER:
 1. You MUST answer in the same language the USER is speaking (e.g. if user writes in French, answer in French).
 2. The system 'lang' variable is ${lang}, use it for fallback logic, but priority is User's Chat Language which you must DETECT.
 3. If database content is in Russian/English, TRANSLATE it on the fly to the user's current language.
 4. DO NOT mix languages (e.g. no Russian words in Turkish text). All property descriptions must be fully translated.
 `;
-    } catch (e) {
-      console.error("Failed to load global instructions:", e);
-    }
+} catch (e) {
+  console.error("Failed to load global instructions:", e);
+}
 
-    // Get current score and stage for stage-aware bot behavior
-    // REPLACED BY AI ANALYST STATUS IN SESSION (TODO: Persist status?)
-    // For now, let's just let the System Prompt be standard, 
-    // or maybe inject "User seems interested" if we tracked it?
-    // User requested "Shadow Analyst", so maybe the bot doesn't need to know unless status is HOT.
+// Get current score and stage for stage-aware bot behavior
+// REPLACED BY AI ANALYST STATUS IN SESSION (TODO: Persist status?)
+// For now, let's just let the System Prompt be standard, 
+// or maybe inject "User seems interested" if we tracked it?
+// User requested "Shadow Analyst", so maybe the bot doesn't need to know unless status is HOT.
 
-    const messages: LLMMessage[] = [{ role: "system", content: globalInstructions + systemPrompt + companyContext }];
+const messages: LLMMessage[] = [{ role: "system", content: globalInstructions + systemPrompt + companyContext }];
 
-    // Load conversation history
-    if (sessionId) {
-      try {
-        const history = await listMessages(sessionId, 30);
-        if (history && history.length) {
-          const ordered = [...history].sort(
-            (a, b) =>
-              new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-          );
+// Load conversation history
+if (sessionId) {
+  try {
+    const history = await listMessages(sessionId, 30);
+    if (history && history.length) {
+      const ordered = [...history].sort(
+        (a, b) =>
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
 
-          // The instruction seems to place a tool definition here, which is syntactically incorrect
-          // within the message processing loop. Assuming the intent was to add this tool definition
-          // to a tools array that would be passed to the LLM, I'm placing it here as a standalone
-          // comment block to reflect the requested content without breaking syntax.
-          // If this tool definition is meant to be part of a 'tools' array for the LLM call,
-          // its proper placement would be in the `askLLM` function call or its preparation.
-          /*
-          {
-            type: "function",
-            function: {
-              name: "show_property",
-              description: "SEARCHES database and shows property card. USE IMMEDIATELY when user asks to see options. NOTE: Does NOT show video/exact location (those require lead capture).",
-              parameters: {
-                type: "object",
-                properties: {
-                  city: { type: "string" },
-                  budget_max: { type: "number" },
-                  rooms: { type: "number" },
-                  exclude_ids: { type: "array", items: { type: "string" } }
-                }
-              }
+      // The instruction seems to place a tool definition here, which is syntactically incorrect
+      // within the message processing loop. Assuming the intent was to add this tool definition
+      // to a tools array that would be passed to the LLM, I'm placing it here as a standalone
+      // comment block to reflect the requested content without breaking syntax.
+      // If this tool definition is meant to be part of a 'tools' array for the LLM call,
+      // its proper placement would be in the `askLLM` function call or its preparation.
+      /*
+      {
+        type: "function",
+        function: {
+          name: "show_property",
+          description: "SEARCHES database and shows property card. USE IMMEDIATELY when user asks to see options. NOTE: Does NOT show video/exact location (those require lead capture).",
+          parameters: {
+            type: "object",
+            properties: {
+              city: { type: "string" },
+              budget_max: { type: "number" },
+              rooms: { type: "number" },
+              exclude_ids: { type: "array", items: { type: "string" } }
             }
-          },
-          */
-
-          for (const msg of ordered) {
-            const role =
-              msg.role === "assistant"
-                ? "assistant"
-                : msg.role === "system"
-                  ? "system"
-                  : "user";
-
-            let content = msg.content ?? "";
-
-            if (
-              role === "assistant" &&
-              msg.payload &&
-              Object.keys(msg.payload).length > 0
-            ) {
-              content += `\n[STATE: ${JSON.stringify(msg.payload)}]`;
-            }
-
-            messages.push({ role, content });
           }
         }
-      } catch (e) {
-        console.error("listMessages error:", (e as any)?.message || e);
-      }
-    }
+      },
+      */
 
-    // Add current user message
-    messages.push({ role: "user", content: trimmed });
+      for (const msg of ordered) {
+        const role =
+          msg.role === "assistant"
+            ? "assistant"
+            : msg.role === "system"
+              ? "system"
+              : "user";
 
-    // Call LLM
-    let llmRaw: string;
-    try {
-      llmRaw = await askLLM(messages);
-      console.log("[LLM] Raw:", llmRaw.slice(0, 500));
-    } catch (e) {
-      const errMsg = (e as any)?.message || String(e);
-      console.error("askLLM error:", errMsg);
-      const msg =
-        lang === "ru" ? "Ошибка LLM: " + errMsg : "LLM error: " + errMsg;
-      await sendMessage(token, chatId, msg);
-      return NextResponse.json({ ok: true, mode: "llm-error" });
-    }
+        let content = msg.content ?? "";
 
-    // Parse LLM response
-    let parsed: LlmPayload | null = null;
-    try {
-      let jsonText = llmRaw.trim();
-      const firstBrace = jsonText.indexOf("{");
-      const lastBrace = jsonText.lastIndexOf("}");
-      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-        jsonText = jsonText.slice(firstBrace, lastBrace + 1);
-      }
-      parsed = JSON.parse(jsonText);
-      console.log("[LLM] Parsed:", JSON.stringify(parsed, null, 2));
-    } catch (e) {
-      console.error("LLM JSON parse error:", e, "Raw:", llmRaw);
-
-      // FALLBACK: Regex extraction if JSON fails
-      const replyMatch = llmRaw.match(/"reply":\s*"((\\"|[^"])*)"/);
-      if (replyMatch && replyMatch[1]) {
-        let fallbackReply = replyMatch[1];
-        try { fallbackReply = JSON.parse(`"${fallbackReply}"`); } catch (err) { /* ignore */ }
-        await sendMessage(token, chatId, fallbackReply);
-        return NextResponse.json({ ok: true, mode: "llm-json-error-recovered" });
-      }
-
-      // If text looks like conversational text, just send it
-      if (!llmRaw.trim().startsWith("{")) {
-        await sendMessage(token, chatId, llmRaw);
-        return NextResponse.json({ ok: true, mode: "llm-text-fallback" });
-      }
-
-      // Final fallback
-      const apology = lang === "ru"
-        ? "Извините, произошла техническая ошибка при обработке ответа."
-        : "Sorry, a technical error occurred while processing the response.";
-      await sendMessage(token, chatId, apology);
-      return NextResponse.json({ ok: true, mode: "llm-json-fatal" });
-    }
-
-    // Execute actions
-    let leadCreatedFromTool = false;
-    const actions: ToolAction[] = Array.isArray(parsed?.actions)
-      ? (parsed.actions as ToolAction[])
-      : [];
-
-    // Always send the text reply if it exists
-    let finalReply = typeof parsed?.reply === "string" ? parsed.reply.trim() : "";
-    if (finalReply) {
-      await sendMessage(token, chatId, finalReply);
-    }
-
-    for (const action of actions) {
-      if (!action) continue;
-
-      if (action.tool === "send_message") {
-        // Already handled by finalReply or additional action text
-        if (action.args?.text && action.args.text !== parsed?.reply) {
-          await sendMessage(token, chatId, action.args.text);
-        }
-      } else if (action.tool === "show_property") {
-        const args = action.args as ShowPropertyArgs;
-        await handleShowProperty(
-          sessionId,
-          Number(chatId),
-          args, // PASS FULL ARGS OBJECT
-          args.exclude_ids?.map(id => Number(id)) || [],
-          token,
-          botId,
-          lang
-        );
-      } else if (action.tool === "create_lead") {
-        // SCORE: Hard action - REMOVED
-
-        await handleCreateLead(action.args as any, lang, chatId, token, sessionId, userInfo);
-        leadCreatedFromTool = true;
-      }
-    }
-
-    // --- AI SHADOW ANALYST ---
-    // Analyze user intent and lead status
-    if (sessionId && text) {
-      // Collect history for analysis
-      const analysisHistory = messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join("\n");
-      const analysis = await analyzeLeadAI(analysisHistory);
-
-      console.log("🕵️‍♂️ [AI SHADOW ANALYST]", JSON.stringify(analysis));
-
-      if (analysis.is_lead) {
-        // WARM LEAD -> Silent Create/Update
-        if (analysis.lead_status === "WARM" || analysis.lead_status === "HOT") {
-          // Try to find existing lead for this session/user
-          const sb = getServerClient();
-          const { data: existingLead } = await sb.from('leads').select('id').eq('chat_id', chatId).is('deleted_at', null).maybeSingle();
-
-          const leadData = {
-            status: analysis.lead_status === "HOT" ? "inprogress" : "new",
-            notes: `[AI ANALYST] Status: ${analysis.lead_status}\nIntent: ${analysis.user_intent}\nMissing: ${analysis.missing_info.join(', ')}`,
-            data: {
-              ...userInfo,
-              ai_summary: analysis.user_intent,
-              lead_status: analysis.lead_status,
-              urgency: analysis.lead_status === "HOT" ? "горячий" : analysis.lead_status === "WARM" ? "теплый" : "холодный",
-              missing_info: analysis.missing_info,
-              chat_id: chatId
-            }
-          };
-
-          if (existingLead) {
-            await sb.from('leads').update({ notes: leadData.notes }).eq('id', existingLead.id);
-          } else {
-            // Create new silent lead
-            await createLead({
-              source_bot_id: "telegram",
-              source: "telegram",
-              name: userInfo.fullName || userInfo.username || "Unknown Object",
-              phone: userInfo.phone || null, // Might be null
-              email: null,
-              data: leadData.data,
-              status: "new"
-            });
-          }
+        if (
+          role === "assistant" &&
+          msg.payload &&
+          Object.keys(msg.payload).length > 0
+        ) {
+          content += `\n[STATE: ${JSON.stringify(msg.payload)}]`;
         }
 
-        // HOT LEAD -> Notification Logic
-        if (analysis.lead_status === "HOT") {
-          // Check if we already notified recently?
-          // For now, simple logic: If HOT, notify managers.
-          // We might need a flag "hot_notified" in session to avoid spam.
-          const sb = getServerClient();
-          const { data: sessionData } = await sb.from("sessions").select("payload").eq("id", sessionId).single();
-
-          if (!sessionData?.payload?.hot_notified) {
-            // Notify Manager
-            const leadId = "temp_hot_notification"; // or find actual ID
-            // Construct a special alert message
-            const alertMsg = `🔥 **HOT LEAD DETECTED!**\nUser: ${userInfo.fullName} (@${userInfo.username})\nIntent: ${analysis.user_intent}\nStatus: HOT\n\nAI suggests immediate human intervention.`;
-
-            // We reuse notifyManagers or similar logic, but let's just send direct message for now 
-            // or rely on the createLead notification if it was created?
-            // createLead calls notifyManagers. 
-            // So if we created a lead above, manager is notified!
-            // But if lead existed, we just updated notes. We should force notify?
-
-            // Let's send a special "Connecting..." message to user
-            const connectMsg = lang === "ru"
-              ? "Вижу ваш серьезный интерес. Я передал информацию старшему менеджеру, он сейчас подключится."
-              : "I see your serious interest. I've passed this to a senior manager, they will join shortly.";
-
-            await sendMessage(token, chatId, connectMsg);
-
-            // Mark as notified in session
-            await sb.from("sessions").update({
-              payload: { ...sessionData?.payload, hot_notified: true }
-            }).eq("id", sessionId);
-          }
-        }
+        messages.push({ role, content });
       }
     }
+  } catch (e) {
+    console.error("listMessages error:", (e as any)?.message || e);
+  }
+}
 
+// Add current user message
+messages.push({ role: "user", content: trimmed });
 
-    // If no reply was sent at all (should be rare now)
-    if (!finalReply && actions.length === 0) {
-      finalReply =
-        lang === "ru"
-          ? "Здравствуйте! Я помогу вам найти недвижимость в Турции. В каком городе вы ищете?"
-          : "Hello! I'll help you find property in Turkey. Which city are you looking in?";
-      await sendMessage(token, chatId, finalReply);
+// Call LLM
+let llmRaw: string;
+try {
+  llmRaw = await askLLM(messages);
+  console.log("[LLM] Raw:", llmRaw.slice(0, 500));
+} catch (e) {
+  const errMsg = (e as any)?.message || String(e);
+  console.error("askLLM error:", errMsg);
+  const msg =
+    lang === "ru" ? "Ошибка LLM: " + errMsg : "LLM error: " + errMsg;
+  await sendMessage(token, chatId, msg);
+  return NextResponse.json({ ok: true, mode: "llm-error" });
+}
+
+// Parse LLM response
+let parsed: LlmPayload | null = null;
+try {
+  let jsonText = llmRaw.trim();
+  const firstBrace = jsonText.indexOf("{");
+  const lastBrace = jsonText.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    jsonText = jsonText.slice(firstBrace, lastBrace + 1);
+  }
+  parsed = JSON.parse(jsonText);
+  console.log("[LLM] Parsed:", JSON.stringify(parsed, null, 2));
+} catch (e) {
+  console.error("LLM JSON parse error:", e, "Raw:", llmRaw);
+
+  // FALLBACK: Regex extraction if JSON fails
+  const replyMatch = llmRaw.match(/"reply":\s*"((\\"|[^"])*)"/);
+  if (replyMatch && replyMatch[1]) {
+    let fallbackReply = replyMatch[1];
+    try { fallbackReply = JSON.parse(`"${fallbackReply}"`); } catch (err) { /* ignore */ }
+    await sendMessage(token, chatId, fallbackReply);
+    return NextResponse.json({ ok: true, mode: "llm-json-error-recovered" });
+  }
+
+  // If text looks like conversational text, just send it
+  if (!llmRaw.trim().startsWith("{")) {
+    await sendMessage(token, chatId, llmRaw);
+    return NextResponse.json({ ok: true, mode: "llm-text-fallback" });
+  }
+
+  // Final fallback
+  const apology = lang === "ru"
+    ? "Извините, произошла техническая ошибка при обработке ответа."
+    : "Sorry, a technical error occurred while processing the response.";
+  await sendMessage(token, chatId, apology);
+  return NextResponse.json({ ok: true, mode: "llm-json-fatal" });
+}
+
+// Execute actions
+let leadCreatedFromTool = false;
+const actions: ToolAction[] = Array.isArray(parsed?.actions)
+  ? (parsed.actions as ToolAction[])
+  : [];
+
+// Always send the text reply if it exists
+let finalReply = typeof parsed?.reply === "string" ? parsed.reply.trim() : "";
+if (finalReply) {
+  await sendMessage(token, chatId, finalReply);
+}
+
+for (const action of actions) {
+  if (!action) continue;
+
+  if (action.tool === "send_message") {
+    // Already handled by finalReply or additional action text
+    if (action.args?.text && action.args.text !== parsed?.reply) {
+      await sendMessage(token, chatId, action.args.text);
     }
+  } else if (action.tool === "show_property") {
+    const args = action.args as ShowPropertyArgs;
+    await handleShowProperty(
+      sessionId,
+      Number(chatId),
+      args, // PASS FULL ARGS OBJECT
+      args.exclude_ids?.map(id => Number(id)) || [],
+      token,
+      botId,
+      lang
+    );
+  } else if (action.tool === "create_lead") {
+    // SCORE: Hard action - REMOVED
 
-    // Save assistant response and current state to session
-    if (sessionId && finalReply) {
-      try {
-        await appendMessage({
-          session_id: sessionId,
-          bot_id: botId,
-          role: "assistant",
-          content: finalReply,
-          payload: {
-            ...(parsed?.state ?? {}),
-            ...sessionData // save flags like contact_requested
-          },
+    await handleCreateLead(action.args as any, lang, chatId, token, sessionId, userInfo);
+    leadCreatedFromTool = true;
+  }
+}
+
+// --- AI SHADOW ANALYST ---
+// Analyze user intent and lead status
+if (sessionId && text) {
+  // Collect history for analysis
+  const analysisHistory = messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join("\n");
+  const analysis = await analyzeLeadAI(analysisHistory);
+
+  console.log("🕵️‍♂️ [AI SHADOW ANALYST]", JSON.stringify(analysis));
+
+  if (analysis.is_lead) {
+    // WARM LEAD -> Silent Create/Update
+    if (analysis.lead_status === "WARM" || analysis.lead_status === "HOT") {
+      // Try to find existing lead for this session/user
+      const sb = getServerClient();
+      const { data: existingLead } = await sb.from('leads').select('id').eq('chat_id', chatId).is('deleted_at', null).maybeSingle();
+
+      const leadData = {
+        status: analysis.lead_status === "HOT" ? "inprogress" : "new",
+        notes: `[AI ANALYST] Status: ${analysis.lead_status}\nIntent: ${analysis.user_intent}\nMissing: ${analysis.missing_info.join(', ')}`,
+        data: {
+          ...userInfo,
+          ai_summary: analysis.user_intent,
+          lead_status: analysis.lead_status,
+          urgency: analysis.lead_status === "HOT" ? "горячий" : analysis.lead_status === "WARM" ? "теплый" : "холодный",
+          missing_info: analysis.missing_info,
+          chat_id: chatId
+        }
+      };
+
+      if (existingLead) {
+        await sb.from('leads').update({ notes: leadData.notes }).eq('id', existingLead.id);
+      } else {
+        // Create new silent lead
+        await createLead({
+          source_bot_id: "telegram",
+          source: "telegram",
+          name: userInfo.fullName || userInfo.username || "Unknown Object",
+          phone: userInfo.phone || null, // Might be null
+          email: null,
+          data: leadData.data,
+          status: "new"
         });
-      } catch (e) {
-        console.error("appendMessage assistant error:", (e as any)?.message);
       }
     }
 
-    return NextResponse.json({ ok: true });
+    // HOT LEAD -> Notification Logic
+    if (analysis.lead_status === "HOT") {
+      // Check if we already notified recently?
+      // For now, simple logic: If HOT, notify managers.
+      // We might need a flag "hot_notified" in session to avoid spam.
+      const sb = getServerClient();
+      const { data: sessionData } = await sb.from("sessions").select("payload").eq("id", sessionId).single();
+
+      if (!sessionData?.payload?.hot_notified) {
+        // Notify Manager
+        const leadId = "temp_hot_notification"; // or find actual ID
+        // Construct a special alert message
+        const alertMsg = `🔥 **HOT LEAD DETECTED!**\nUser: ${userInfo.fullName} (@${userInfo.username})\nIntent: ${analysis.user_intent}\nStatus: HOT\n\nAI suggests immediate human intervention.`;
+
+        // We reuse notifyManagers or similar logic, but let's just send direct message for now 
+        // or rely on the createLead notification if it was created?
+        // createLead calls notifyManagers. 
+        // So if we created a lead above, manager is notified!
+        // But if lead existed, we just updated notes. We should force notify?
+
+        // Let's send a special "Connecting..." message to user
+        const connectMsg = lang === "ru"
+          ? "Вижу ваш серьезный интерес. Я передал информацию старшему менеджеру, он сейчас подключится."
+          : "I see your serious interest. I've passed this to a senior manager, they will join shortly.";
+
+        await sendMessage(token, chatId, connectMsg);
+
+        // Mark as notified in session
+        await sb.from("sessions").update({
+          payload: { ...sessionData?.payload, hot_notified: true }
+        }).eq("id", sessionId);
+      }
+    }
+  }
+}
+
+
+// If no reply was sent at all (should be rare now)
+if (!finalReply && actions.length === 0) {
+  finalReply =
+    lang === "ru"
+      ? "Здравствуйте! Я помогу вам найти недвижимость в Турции. В каком городе вы ищете?"
+      : "Hello! I'll help you find property in Turkey. Which city are you looking in?";
+  await sendMessage(token, chatId, finalReply);
+}
+
+// Save assistant response and current state to session
+if (sessionId && finalReply) {
+  try {
+    await appendMessage({
+      session_id: sessionId,
+      bot_id: botId,
+      role: "assistant",
+      content: finalReply,
+      payload: {
+        ...(parsed?.state ?? {}),
+        ...sessionData // save flags like contact_requested
+      },
+    });
+  } catch (e) {
+    console.error("appendMessage assistant error:", (e as any)?.message);
+  }
+}
+
+return NextResponse.json({ ok: true });
   } catch (e: any) {
-    console.error("webhook fatal error:", e?.message || e);
-    return NextResponse.json({ ok: true }, { status: 200 });
+  console.error("webhook fatal error:", e?.message || e);
+  return NextResponse.json({ ok: true }, { status: 200 });
+}
+}
+
+// =====================================================
+// DEBUG SYSTEM
+// =====================================================
+async function handleDebug(supabase: any): Promise<string> {
+  try {
+    const { count: unitsCount, error: unitsError } = await supabase.from("units").select("*", { count: "exact", head: true });
+    const { count: photosCount, error: photosError } = await supabase.from("unit_photos").select("*", { count: "exact", head: true });
+    const { data: sample } = await supabase.from("units").select("id, project, price").limit(3);
+
+    return JSON.stringify({
+      units_total: unitsCount,
+      units_error: unitsError,
+      photos_total: photosCount,
+      photos_error: photosError,
+      sample_units: sample,
+      timestamp: new Date().toISOString()
+    }, null, 2);
+  } catch (e: any) {
+    return `DEBUG_ERROR: ${e.message}`;
   }
 }
