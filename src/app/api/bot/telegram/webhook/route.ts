@@ -260,10 +260,13 @@ async function sendPropertyPhotos(
 // =====================================================
 // HANDLE SHOW PROPERTY
 // =====================================================
+// =====================================================
+// HANDLE SHOW PROPERTY (DYNAMIC SEARCH FIX)
+// =====================================================
 async function handleShowProperty(
   sessionId: string | null,
   chatId: number,
-  query: string,
+  filters: ShowPropertyArgs, // CHANGED: Accept structured filters
   exclude_ids: number[],
   token: string,
   botId: string,
@@ -271,132 +274,200 @@ async function handleShowProperty(
 ): Promise<string | null> {
   const supabase = getServerClient();
 
-  // Show typing indicator for better UX
+  // Show typing indicator
   await sendTyping(token, String(chatId));
 
-  // Load ALL properties from database (no filters!)
-  const { data: allUnits, error } = await supabase
-    .from("units")
-    .select("id, city, address, rooms, floor, floors_total, area_m2, price, description, ai_instructions")
-    .limit(100); // Load top 100
+  // --- HYBRID SEARCH STRATEGY ---
+  const { count } = await supabase.from("units").select("*", { count: "exact", head: true }).eq("status", "available");
+  const totalUnits = count || 0;
+  const AI_SCAN_LIMIT = 500; // Cap for full scan
 
-  if (error || !allUnits || allUnits.length === 0) {
-    const msg = lang === "ru"
-      ? "Не удалось загрузить базу недвижимости."
-      : "Failed to load property database.";
-    await sendMessage(token, String(chatId), msg);
+  if (totalUnits <= AI_SCAN_LIMIT) {
+    console.log(`[SEARCH] AI FULL SCAN ACTIVE (${totalUnits} units)`);
+    return await handleAiFullScan(supabase, chatId, filters, exclude_ids, token, botId, lang, sessionId);
+  } else {
+    console.log(`[SEARCH] SQL FILTER ACTIVE (> ${AI_SCAN_LIMIT} units)`);
+    return await handleSqlSearch(supabase, chatId, filters, exclude_ids, token, botId, lang, sessionId);
+  }
+}
+
+// =====================================================
+// STRATEGY 1: AI FULL SCAN (The "Killer Feature")
+// =====================================================
+async function handleAiFullScan(
+  supabase: any,
+  chatId: number,
+  filters: ShowPropertyArgs,
+  exclude_ids: number[],
+  token: string,
+  botId: string,
+  lang: Lang,
+  sessionId: string | null
+): Promise<string | null> {
+  // 1. Load ALL mini-data
+  const { data: allUnits } = await supabase
+    .from("units")
+    .select("id, city, district, price, rooms, project, ai_instructions")
+    .eq("status", "available");
+
+  if (!allUnits || allUnits.length === 0) {
+    await sendMessage(token, String(chatId), lang === "ru" ? "База пуста." : "Database empty.");
     return null;
   }
 
-  // Remove already shown properties
-  const availableUnits = allUnits.filter(u => !exclude_ids.includes(u.id));
+  // 2. Format for AI
+  // Compact format: "#ID City (District) 2+1 $120k ProjectName"
+  const listText = allUnits.map((u: any) => {
+    return `#${u.id} ${u.city} ${u.district || ""} ${u.rooms === 0 ? "Studio" : u.rooms + "+1"} $${Math.round(u.price / 1000)}k ${u.project || ""} ${u.ai_instructions || ""}`;
+  }).join("\n");
+
+  // 3. Ask AI
+  const aiPrompt = `ROLE: Property Database Matcher.
+YOUR TASK: Find matching properties for the user from the provided list.
+
+USER QUERY/FILTERS:
+City: "${filters.city || "Any"}"
+Budget: ${filters.budget_max ? "$" + filters.budget_max : "Any"}
+Rooms: ${filters.rooms ? filters.rooms + "+1" : "Any"}
+Language: ${lang}
+
+DATABASE LIST (Format: #ID City District Rooms Price Project Notes):
+"""
+${listText}
+"""
+
+INSTRUCTIONS:
+1. Scan the list. Find IDs that match user's intent.
+2. TOLERATE TYPOS: "Merssiiin" matches "Mersin". "Alania" matches "Alanya".
+3. SEMANTIC MATCH: "Cheap" -> low price. "Near sea" -> check notes/district.
+4. STRICT BUDGET: Do not exceed user budget + 5%.
+5. SELECT THE BEST SINGLE MATCH (or top 2 if very similar).
+
+OUTPUT JSON ONLY (Minified):
+{ "unit_id": NUMBER | null, "reason": "Short explanation in ${lang}" }
+`;
+
+  let selectedUnitId: number | null = null;
+  let reason = "";
+
+  try {
+    const raw = await askLLM(aiPrompt, "System: Database Scanner", true);
+    const jsonMatch = raw.match(/\{[\s\S]*"unit_id"[\s\S]*\}/);
+    const jsonText = jsonMatch ? jsonMatch[0] : raw;
+    const parsed = JSON.parse(jsonText);
+    selectedUnitId = parsed.unit_id;
+    reason = parsed.reason;
+  } catch (e) {
+    console.error("[AI FULL SCAN ERROR]", e);
+    // Fallback to random if AI fails? No, better safe.
+    return null;
+  }
+
+  if (selectedUnitId && !exclude_ids.includes(selectedUnitId)) {
+    return await serveUnit(supabase, selectedUnitId, token, chatId, lang, sessionId, botId);
+  } else {
+    // Nothing found
+    const msg = lang === "ru"
+      ? `По вашему запросу ничего не найдено.`
+      : `No properties found.`;
+    await sendMessage(token, String(chatId), msg);
+    return "Nothing found (AI Scan)";
+  }
+}
+
+// =====================================================
+// STRATEGY 2: SQL SEARCH (Legacy/Large DB)
+// =====================================================
+async function handleSqlSearch(
+  supabase: any,
+  chatId: number,
+  filters: ShowPropertyArgs,
+  exclude_ids: number[],
+  token: string,
+  botId: string,
+  lang: Lang,
+  sessionId: string | null
+): Promise<string | null> {
+  console.log(`[SQL SEARCH] Filters: ${JSON.stringify(filters)}`);
+
+  // 1. Build Dynamic Query
+  let queryBuilder = supabase
+    .from("units")
+    .select("id, city, address, rooms, floor, floors_total, area_m2, price, description, ai_instructions")
+    .eq("status", "available");
+
+  // Filter by City (Fuzzy ILIKE)
+  if (filters.city) {
+    queryBuilder = queryBuilder.ilike("city", `%${filters.city}%`);
+  }
+
+  // Filter by Budget
+  if (filters.budget_max && filters.budget_max > 0) {
+    queryBuilder = queryBuilder.lte("price", filters.budget_max);
+  }
+
+  // Filter by Rooms
+  if (filters.rooms !== null && filters.rooms !== undefined && filters.rooms > 0) {
+    queryBuilder = queryBuilder.gte("rooms", filters.rooms);
+  }
+
+  // 2. Execute Query
+  const { data: filteredUnits, error } = await queryBuilder.limit(50);
+
+  if (error || !filteredUnits) {
+    console.error("[Search Error]", error);
+    await sendMessage(token, String(chatId), lang === "ru" ? "Ошибка поиска." : "Search error.");
+    return null;
+  }
+
+  // 3. Post-Filter: Exclude seen
+  const availableUnits = filteredUnits.filter(u => !exclude_ids.includes(u.id));
 
   if (availableUnits.length === 0) {
     const msg = lang === "ru"
-      ? "Показал все доступные варианты. Больше объектов нет."
-      : "Showed all available options. No more properties.";
+      ? `По вашему запросу (${filters.city || "..."}) ничего не найдено.`
+      : `No properties found matching your criteria.`;
     await sendMessage(token, String(chatId), msg);
-    return null;
+    return "Nothing found (SQL)";
   }
 
-  // Pass ALL properties to AI for selection
-  const aiPrompt = `You are a property selector. Return ONLY valid JSON, nothing else.
+  // 4. AI Selection (Legacy)
+  return await serveUnit(supabase, availableUnits[0].id, token, chatId, lang, sessionId, botId);
+}
 
-User asked: "${query}"
-User language: ${lang}
+// =====================================================
+// SHARED: SERVE UNIT (Common logic for both strategies)
+// =====================================================
+async function serveUnit(
+  supabase: any,
+  unitId: number,
+  token: string,
+  chatId: number,
+  lang: Lang,
+  sessionId: string | null,
+  botId: string
+): Promise<string | null> {
+  const { data: unit } = await supabase.from("units").select("*").eq("id", unitId).single();
+  if (!unit) return null;
 
-Available properties (JSON):
-${JSON.stringify(availableUnits, null, 2)}
-
-Task:
-1. Analyze user's request (city, budget, rooms)
-2. FUZZY SEARCH: "Mersin" matches "Mersin", "mersin", "Mérsin", "Mersin City".
-3. STRICT FILTERING:
-   - CITY: If user asks for "Mersin", DO NOT choose "Istanbul" or "Alanya".
-   - BUDGET: If user budget is $120k, DO NOT show properties > $132k (+10%).
-   - IF NOTHING MATCHES: Return "unit_id": null.
-4. LANGUAGE: Reason MUST be in user's language (${lang}).
-
-CRITICAL: Return ONLY this JSON format, NO other text:
-{
-  "unit_id": NUMBER | null,
-  "reason": "short explanation in ${lang} (e.g. 'Found perfect match in Mersin')"
-}`;
-
-  let selectedUnitId: number | null;
-  let selectionReason = "AI выбрал";
-
-  try {
-    const aiResponse = await askLLM(aiPrompt, "You are a JSON API. Return ONLY valid JSON.", true);
-    console.log("[AI RAW RESPONSE]", aiResponse.substring(0, 200));
-
-    // Try to extract JSON even if there's extra text
-    const jsonMatch = aiResponse.match(/\{[\s\S]*"unit_id"[\s\S]*\}/);
-    const jsonText = jsonMatch ? jsonMatch[0] : aiResponse;
-
-    const parsed = JSON.parse(jsonText);
-    selectedUnitId = parsed.unit_id;
-    selectionReason = parsed.reason || "Лучший вариант";
-    console.log(`[AI PROPERTY SELECTION] Chose unit ${selectedUnitId}: ${selectionReason}`);
-  } catch (e) {
-    console.error("[AI SELECTION ERROR]", e);
-    // Fallback: return first available
-    selectedUnitId = availableUnits[0].id;
-    // Fallback: return first available
-    // selectedUnitId = availableUnits[0].id; // OLD FALLBACK
-    // selectionReason = "Первый доступный (AI fallback)";
-
-    // NEW FALLBACK: if strict filtering fails, we trust AI returned null or error.
-    // But on JSON error, maybe fallback to safe default?
-    // Let's rely on explicit null from AI for logic.
-    // If error, we can't decide. Better to say "error" than show random Istanbul flat.
-    return null;
-  }
-
-  if (selectedUnitId === null) {
-    console.log("[AI STRICT FILTER] No property found.");
-    const msg = lang === "ru"
-      ? `К сожалению, в этом городе по вашему бюджету сейчас нет подходящих вариантов. Попробуйте изменить параметры (например, увеличить бюджет).`
-      : lang === "tr"
-        ? `Maalesef, bu bütçeyle bu şehirde şu an uygun daire yok. Lütfen bütçeyi artırmayı veya başka şehir bakmayı deneyin.`
-        : `Sorry, no suitable properties found in this city for your budget. Try adjusting your search criteria.`;
-
-    await sendMessage(token, String(chatId), msg);
-    return `AI did not find suitable property. User notified.`;
-  }
-
-  const unit = availableUnits.find(u => u.id === selectedUnitId);
-  if (!unit) {
-    console.error(`[ERROR] AI selected unit ${selectedUnitId} but it's not in available list`);
-    return null;
-  }
-
-  // Build caption using translation function
+  // Build caption & Send
   const caption = buildPropertyDescription(unit, lang);
-
-  // Send photos
   await sendPropertyPhotos(token, String(chatId), String(unit.id), caption, lang);
 
   // Save to session
   if (sessionId) {
     try {
       await appendMessage({
-        session_id: sessionId!,
+        session_id: sessionId,
         bot_id: botId,
         role: "assistant",
         content: caption,
-        payload: {
-          unit_id: unit.id,
-          city: unit.city,
-          ai_instructions: unit.ai_instructions
-        },
+        payload: { unit_id: unit.id, city: unit.city, ai_instructions: unit.ai_instructions },
       });
-    } catch (e) {
-      console.error("appendMessage error:", e);
-    }
+    } catch (e) { console.error("appendMessage error:", e); }
   }
 
-  return `Показал квартиру ID ${unit.id} (${unit.city}, ${unit.rooms}-комнатная, $${unit.price}). AI выбрал эту из ${availableUnits.length} доступных.`;
+  return `Shown unit ${unit.id}`;
 }
 
 // =====================================================
@@ -675,20 +746,13 @@ CONVERSATION FLOW:
 
 JSON OUTPUT FORMAT (MANDATORY):
 You must output a SINGLE JSON object. No markdown, no conversational text outside the JSON.
-{
-  "reply": "Your translated text response to the user",
-  "state": {
-    "city": "Detected City or null",
-    "budget_max": 150000,
-    "rooms": 2
-  },
-  "actions": [
-    { "tool": "show_property", "args": { "city": "Mersin", "budget_max": 150000 } }
-  ]
-}
+CRITICAL: Output MUST be minified (single line). Escape newlines in strings with \n.
+
+{ "reply": "Translated text...", "state": { "city": "Mersin", "budget_max": 0, "rooms": 0 }, "actions": [] }
+
 
 STYLE:
-- Professional, sales-driven, but helpful and elite.
+- Professional, sales - driven, but helpful and elite.
 - Short, punchy messages.
 - Always lead the conversation with a question.
 - No emoji unless user uses them.
@@ -996,9 +1060,28 @@ CRITICAL TRANSLATOR LAYER:
       console.log("[LLM] Parsed:", JSON.stringify(parsed, null, 2));
     } catch (e) {
       console.error("LLM JSON parse error:", e, "Raw:", llmRaw);
-      // Send raw response if JSON parse fails
-      await sendMessage(token, chatId, llmRaw);
-      return NextResponse.json({ ok: true, mode: "llm-text" });
+
+      // FALLBACK: Regex extraction if JSON fails
+      const replyMatch = llmRaw.match(/"reply":\s*"((\\"|[^"])*)"/);
+      if (replyMatch && replyMatch[1]) {
+        let fallbackReply = replyMatch[1];
+        try { fallbackReply = JSON.parse(`"${fallbackReply}"`); } catch (err) { /* ignore */ }
+        await sendMessage(token, chatId, fallbackReply);
+        return NextResponse.json({ ok: true, mode: "llm-json-error-recovered" });
+      }
+
+      // If text looks like conversational text, just send it
+      if (!llmRaw.trim().startsWith("{")) {
+        await sendMessage(token, chatId, llmRaw);
+        return NextResponse.json({ ok: true, mode: "llm-text-fallback" });
+      }
+
+      // Final fallback
+      const apology = lang === "ru"
+        ? "Извините, произошла техническая ошибка при обработке ответа."
+        : "Sorry, a technical error occurred while processing the response.";
+      await sendMessage(token, chatId, apology);
+      return NextResponse.json({ ok: true, mode: "llm-json-fatal" });
     }
 
     // Execute actions
@@ -1026,7 +1109,7 @@ CRITICAL TRANSLATOR LAYER:
         await handleShowProperty(
           sessionId,
           Number(chatId),
-          "", // query reconstructed from args
+          args, // PASS FULL ARGS OBJECT
           args.exclude_ids?.map(id => Number(id)) || [],
           token,
           botId,
