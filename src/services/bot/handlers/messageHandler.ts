@@ -99,7 +99,8 @@ export async function handleMessage(
                     // prompt says: save_lead(phone, name)
                     result = await handleSaveLead(action.args as SaveLeadArgs, chatId, userInfo.username);
                 } else if (action.tool === "get_photos") {
-                    result = await handleGetPhotos(action.args as GetPhotosArgs);
+                    // Update: pass token/chatId for native sending
+                    result = await handleGetPhotos(action.args as GetPhotosArgs, token, chatId);
                 } else {
                     result = "Error: Unknown tool " + (action as any).tool;
                 }
