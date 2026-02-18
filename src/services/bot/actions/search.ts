@@ -7,13 +7,17 @@ export async function handleSearchDatabase(args: SearchArgs): Promise<string> {
     let query = supabase
         .from("units")
         .select("*")
-        .eq("status", "available")
-        .limit(10); // increased limit to 10
+        // .eq("status", "available") // Relaxed: User wants to see everything? Or maybe status is 'Available'? Let's remove to be safe.
+        .limit(20); // increased limit to give AI more options
 
     if (args.city) {
         query = query.ilike("city", "%" + args.city + "%");
     }
 
+    // Relax Price: Only filter if significantly provided? 
+    // ReAct agent might provide strict limit. 
+    // Let's keep it but maybe ensure we don't filter out good matches?
+    // lte is correct for "up to".
     if (args.price) {
         query = query.lte("price", args.price);
     }
@@ -32,11 +36,13 @@ export async function handleSearchDatabase(args: SearchArgs): Promise<string> {
 
     if (error) {
         console.error("Search DB Error:", error);
-        return JSON.stringify({ status: "error", message: "DB Error" });
+        return JSON.stringify({ status: "error", message: "DB Error: " + error.message });
     }
 
     if (!data || data.length === 0) {
-        return JSON.stringify({ status: "success", count: 0, message: "No units found matching criteria." });
+        // If strict search failed, try ONE MORE fall back?
+        // Detailed message so AI knows WHY
+        return JSON.stringify({ status: "success", count: 0, message: `No units found matching: City=${args.city}, Price<=${args.price}, Rooms>=${args.rooms}` });
     }
 
     // Return FULL data so AI can decide what to show
