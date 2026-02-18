@@ -22,7 +22,7 @@ export async function handleMessage(
     // 1. Session
     const session = await findOrCreateSession(botId, chatId);
     const sessionId = session.id;
-    const sessionData = session.payload || {};
+
 
     // 2. Append User Message
     await appendMessage({
