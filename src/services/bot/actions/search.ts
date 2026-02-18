@@ -19,16 +19,9 @@ export async function handleSearchDatabase(args: SearchArgs): Promise<string> {
     }
 
     if (args.rooms) {
-        // Try to match "2+1" fuzzy or exact
-        // Since DB might have int or string, we'll try basic string match if it's text
-        // Or parse if columns are numbers. Assuming 'rooms' is int or text.
-        // Let's use simple text match for robustness if type is unknown, 
-        // or better, if we know schema: 'rooms' appeared to be int (1, 2, 3) or string "2+1".
-        // I'll assume text for flexibility or convert.
-        // Let's strict match if possible, or ilike.
-        // Previous code parsed it. Let's keep it simple: cast columns if needed or just use ilike for text.
-        // Assuming 'rooms' is numeric from previous attempts.
-        const match = args.rooms.match(/^(\d+)/);
+        // Safe handling if AI sends a number (e.g. 2) instead of string "2"
+        const roomStr = String(args.rooms);
+        const match = roomStr.match(/^(\d+)/);
         if (match) {
             const roomNum = parseInt(match[1]);
             query = query.gte("rooms", roomNum);
