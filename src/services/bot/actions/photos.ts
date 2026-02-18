@@ -5,25 +5,29 @@ import { sendMediaGroup, sendPhoto, InputMediaPhoto } from "@/lib/telegram";
 export async function handleGetPhotos(args: GetPhotosArgs, token: string, chatId: string): Promise<string> {
     const supabase = getServerClient();
 
-    const { data, error } = await supabase
+    // 1. Get Unit info (project name)
+    const { data: unitData, error: unitError } = await supabase
         .from("units")
-        .select("media, project")
+        .select("project")
         .eq("id", args.unit_id)
         .single();
 
-    if (error || !data) {
-        return JSON.stringify({ status: "error", message: "Unit not found or no photos" });
+    if (unitError || !unitData) {
+        return JSON.stringify({ status: "error", message: "Unit not found" });
     }
 
-    const media = data.media; // Assuming JSON array or string array
-    let photos: string[] = [];
+    // 2. Get Photos from unit_photos table
+    const { data: photoData, error: photoError } = await supabase
+        .from("unit_photos")
+        .select("url")
+        .eq("unit_id", args.unit_id)
+        .order("sort_order", { ascending: true });
 
-    if (Array.isArray(media)) {
-        photos = media;
-    } else if (typeof media === 'string') {
-        // try json parse if it's a stringified array
-        try { photos = JSON.parse(media); } catch { photos = [media]; }
+    if (photoError) {
+        return JSON.stringify({ status: "error", message: "Error fetching photos" });
     }
+
+    let photos = photoData.map(p => p.url);
 
     // Filter out empty strings or invalid urls if needed
     photos = photos.filter(p => p && typeof p === 'string' && p.startsWith('http'));
@@ -37,12 +41,12 @@ export async function handleGetPhotos(args: GetPhotosArgs, token: string, chatId
 
     try {
         if (limited.length === 1) {
-            await sendPhoto(token, chatId, limited[0], `${data.project || 'Unit'} Photos`);
+            await sendPhoto(token, chatId, limited[0], `${unitData.project || 'Unit'} Photos`);
         } else {
             const mediaGroup: InputMediaPhoto[] = limited.map((url, i) => ({
                 type: 'photo',
                 media: url,
-                caption: i === 0 ? `${data.project || 'Unit'} Photos` : undefined
+                caption: i === 0 ? `${unitData.project || 'Unit'} Photos` : undefined
             }));
             await sendMediaGroup(token, chatId, mediaGroup);
         }
