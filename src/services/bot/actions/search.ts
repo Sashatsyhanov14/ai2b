@@ -46,18 +46,18 @@ export async function handleSearchDatabase(args: SearchArgs): Promise<string> {
     }
 
     // Return FULL data so AI can decide what to show
-    return JSON.stringify({
+    const results = {
         status: "success",
         count: data.length,
         units: data.map(u => ({
             id: u.id,
             city: u.city,
             address: u.address,
-            project: u.project, // if exists in DB schema, otherwise might be project_id? 
-            // In types/units.ts it says project_id, but the original code selected 'project'. 
-            // Let's assume 'project' exists or use safe access.
-            // Actually, let's just dump the whole object, it's safer and gives AI everything.
+            project: u.project,
             ...u
         }))
-    });
+    };
+
+    console.log(`DEBUG JSON: ${JSON.stringify(results, null, 2)}`);
+    return JSON.stringify(results);
 }
