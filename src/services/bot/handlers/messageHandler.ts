@@ -117,7 +117,7 @@ export async function handleMessage(
 
         // Add the tool execution interaction to history context for this turn
         messages.push({ role: "assistant", content: JSON.stringify(payload) });
-        messages.push({ role: "user", content: `Tool Results:\n${toolFeedback}\n\nNow write a response to the user.` });
+        messages.push({ role: "user", content: `Tool Results:\n${toolFeedback}\n\nВАЖНО: Если поиск вернул квартиры, ТЫ ОБЯЗАН СРАЗУ вызвать get_photos для лучшего варианта. НЕ СПРАШИВАЙ разрешения. Вызови инструмент прямо сейчас. Если ничего не найдено - просто ответь.` });
 
         console.log("[Bot] Feeding back tool results...");
         const finalResponse = await askLLM(messages);
