@@ -6,9 +6,9 @@ export async function handleSearchDatabase(args: SearchArgs): Promise<string> {
 
     let query = supabase
         .from("units")
-        .select("id, project, price, rooms, city, area_m2, floor, features, media") // added media just in case, or we fetch it later
+        .select("*")
         .eq("status", "available")
-        .limit(5);
+        .limit(10); // increased limit to 10
 
     if (args.city) {
         query = query.ilike("city", "%" + args.city + "%");
@@ -39,15 +39,19 @@ export async function handleSearchDatabase(args: SearchArgs): Promise<string> {
         return JSON.stringify({ status: "success", count: 0, message: "No units found matching criteria." });
     }
 
+    // Return FULL data so AI can decide what to show
     return JSON.stringify({
         status: "success",
         count: data.length,
         units: data.map(u => ({
             id: u.id,
-            title: `${u.project} (${u.city})`,
-            price: u.price,
-            rooms: u.rooms,
-            features: u.features
+            city: u.city,
+            address: u.address,
+            project: u.project, // if exists in DB schema, otherwise might be project_id? 
+            // In types/units.ts it says project_id, but the original code selected 'project'. 
+            // Let's assume 'project' exists or use safe access.
+            // Actually, let's just dump the whole object, it's safer and gives AI everything.
+            ...u
         }))
     });
 }
