@@ -34,8 +34,8 @@ export async function askLLM(
     messages = promptOrMessages;
   }
 
-  // Claude 3.5 Sonnet - SOTA intelligence
-  const model = "anthropic/claude-3.5-sonnet";
+  // Claude 3 Haiku - excellent intelligence at low cost ($0.25/1M tokens)
+  const model = "anthropic/claude-3-haiku";
 
   const requestBody: any = {
     model,
