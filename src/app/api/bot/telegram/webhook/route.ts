@@ -14,17 +14,27 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    console.log("[Webhook] Received POST request"); // DEBUG
     const update = (await req.json().catch(() => ({}))) as any;
+    console.log("[Webhook] Update payload:", JSON.stringify(update, null, 2)); // DEBUG payload
+
     const token = process.env.TELEGRAM_BOT_TOKEN;
 
     // 1. Basic Validation
-    if (!token) return NextResponse.json({ ok: true });
+    if (!token) {
+      console.error("[Webhook] Error: TELEGRAM_BOT_TOKEN missing");
+      return NextResponse.json({ ok: true });
+    }
 
     // 2. Extract Basic Info
     const message = update?.message ?? update?.edited_message ?? update?.callback_query?.message ?? null;
     const chatIdRaw = message?.chat?.id ?? update?.chat?.id ?? update?.message?.from?.id ?? null;
     const chatId = chatIdRaw ? String(chatIdRaw) : null;
-    if (!chatId) return NextResponse.json({ ok: true });
+
+    if (!chatId) {
+      console.warn("[Webhook] No chatId found in update");
+      return NextResponse.json({ ok: true });
+    }
 
     const text: string =
       message?.text ??
@@ -46,6 +56,7 @@ export async function POST(req: NextRequest) {
 
     // 4. Configuration Check
     if (!process.env.OPENROUTER_API_KEY) {
+      console.error("[Webhook] Error: OPENROUTER_API_KEY missing");
       const msg = lang === "ru" ? "Ошибка: API ключ не настроен." : "Config error: API Key missing.";
       await sendMessage(token, chatId, msg);
       return NextResponse.json({ ok: true });
@@ -54,6 +65,7 @@ export async function POST(req: NextRequest) {
     // 5. Route to Handlers
     // A) Callback Query (Buttons)
     if (update?.callback_query) {
+      console.log(`[Webhook] Handling callback from ${chatId}`);
       await handleCallback(update, token, botId, lang);
       return NextResponse.json({ ok: true });
     }
@@ -72,6 +84,7 @@ export async function POST(req: NextRequest) {
       language_code: langCode
     };
 
+    console.log(`[Webhook] Dispatching message from ${chatId} to handleMessage`);
     await handleMessage(text, chatId, token, botId, userInfo, update);
 
     return NextResponse.json({ ok: true });
