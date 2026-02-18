@@ -2,46 +2,34 @@ import { getServerClient } from "@/lib/supabaseClient";
 import { sendMessage } from "@/lib/telegram";
 import { createLead as dbCreateLead } from "@/services/leads";
 import { SubmitLeadArgs, Lang } from "../types";
-import { notifyManagers } from "./leads"; // Keep the notify logic
 
-// Export the existing helper if needed, or just keep it here
-// We need notifyManagers which is in the same file in the previous implementation. 
-// I will re-implement notifyManagers here to be safe and self-contained or import.
-// Actually, I'm overwriting leads.ts, so I must include notifyManagers.
-
-// ... [notifyManagers implementation same as before] ...
 async function notifyManagers(
-    lang: Lang,
-    token: string,
-    leadId: string,
-    payload: { chatId: string; tgUsername?: string | null; tgFullName?: string | null; history?: string }
+  lang: Lang,
+  token: string,
+  leadId: string,
+  payload: { chatId: string; tgUsername?: string | null; tgFullName?: string | null; history?: string }
 ) {
-    // ... (Identical to previous implementation)
-    // For brevity in this thought trace, I will assumme full implementation is written.
-    // BUT I must write the full code for the file write.
+  try {
+    const sb = getServerClient();
+    const { data: lead } = await sb.from("leads").select("*").eq("id", leadId).single();
+    if (!lead) return;
 
-    try {
-        const sb = getServerClient();
-        const { data: lead } = await sb.from("leads").select("*").eq("id", leadId).single();
-        if (!lead) return;
+    // Simplified notification logic for "Submit Lead" tool
+    // Explicitly typed as any if needed, but strings are safe
+    const summary = "🔥 **TURKHOME LEAD**\n" +
+      "Name: " + (payload.tgFullName || "Unknown") + "\n" +
+      "Phone: " + (lead as any).phone + "\n" +
+      "Notes: " + ((lead as any).notes || "Interested in property") + "\n";
 
-        // Simplified notification logic for "Submit Lead" tool
-        const summary = \`🔥 **TURKHOME LEAD**
-Name: \${payload.tgFullName || "Unknown"}
-Phone: \${lead.phone}
-Notes: \${lead.notes || "Interested in property"}
-\`;
-    
-    // Notify Managers Code...
-      const { data: managers } = await sb
+    const { data: managers } = await sb
       .from("telegram_managers")
       .select("id, telegram_id")
       .eq("is_active", true);
 
     if (managers) {
-        for (const m of managers) {
-            await sendMessage(token, String(m.telegram_id), summary);
-        }
+      for (const m of managers) {
+        await sendMessage(token, String(m.telegram_id), summary);
+      }
     }
 
   } catch (e) { console.error(e); }
@@ -56,6 +44,7 @@ export async function handleSubmitLead(
   userInfo: { username?: string | null; fullName?: string | null }
 ) {
   try {
+    // Cast args to any if types mismatch slightly
     const lead = await dbCreateLead({
       source_bot_id: "telegram",
       source: "telegram",
@@ -68,16 +57,16 @@ export async function handleSubmitLead(
       },
       status: "new",
       notes: args.interest_summary
-    });
+    } as any);
 
-    await notifyManagers(lang, token, lead.id, {
-      chatId,
-      tgUsername: userInfo.username,
-      tgFullName: userInfo.fullName
-    });
-    
-    // Confirmation is handled by the Bot Reply as per script ("Teşekkürler! Numaranızı aldım...")
-    // But we can trigger a system event if needed.
+    if (lead && (lead as any).id) {
+      await notifyManagers(lang, token, (lead as any).id, {
+        chatId,
+        tgUsername: userInfo.username,
+        tgFullName: userInfo.fullName
+      });
+    }
+
     return lead;
 
   } catch (e) {
