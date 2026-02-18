@@ -1,5 +1,6 @@
 import { askLLM } from "@/lib/openrouter";
 import { sendMessage } from "@/lib/telegram";
+import { getServerClient } from "@/lib/supabaseClient";
 import { findOrCreateSession, appendMessage, listMessages } from "@/services/sessions";
 import { SYSTEM_PROMPT } from "../ai/prompts";
 import { LlmPayload, SearchArgs, SaveLeadArgs, GetPhotosArgs } from "../types";
@@ -8,6 +9,7 @@ import { LlmPayload, SearchArgs, SaveLeadArgs, GetPhotosArgs } from "../types";
 import { handleSearchDatabase } from "../actions/search";
 import { handleSaveLead } from "../actions/leads";
 import { handleGetPhotos } from "../actions/photos";
+import { handleGetAgencyInfo } from "../actions/agency";
 
 export async function handleMessage(
     text: string,
@@ -30,7 +32,21 @@ export async function handleMessage(
     });
 
     // 2. Build Context
-    const messages: any[] = [{ role: "system", content: SYSTEM_PROMPT }];
+    // Fetch dynamic instructions
+    const supabase = getServerClient();
+    const { data: instructions } = await supabase
+        .from('bot_instructions')
+        .select('text')
+        .eq('is_active', true)
+        .order('created_at', { ascending: true });
+
+    let dynamicPrompt = SYSTEM_PROMPT;
+    if (instructions && instructions.length > 0) {
+        const rules = instructions.map((r: any) => `- ${r.text}`).join("\n");
+        dynamicPrompt += `\n\n### DASHBOARD INSTRUCTIONS (CRITICAL)\nThe following are strict rules from the agency dashboard:\n${rules}`;
+    }
+
+    const messages: any[] = [{ role: "system", content: dynamicPrompt }];
     const history = await listMessages(sessionId, 10);
     const sortedHistory = (history || []).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
@@ -113,6 +129,8 @@ export async function handleMessage(
                 } else if (action.tool === "get_photos") {
                     result = await handleGetPhotos(action.args as GetPhotosArgs, token, chatId);
                     photosFound = true;
+                } else if (action.tool === "get_agency_info") {
+                    result = await handleGetAgencyInfo();
                 } else {
                     result = "Error: Unknown tool " + (action as any).tool;
                 }

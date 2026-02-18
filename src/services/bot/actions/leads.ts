@@ -31,5 +31,25 @@ export async function handleSaveLead(
         return JSON.stringify({ status: "error", message: "Failed to save lead" });
     }
 
-    return JSON.stringify({ status: "success", lead_id: (data as any).id });
+    // 2. Notify Active Managers
+    const { data: managers } = await supabase
+        .from("telegram_managers")
+        .select("telegram_id")
+        .eq("is_active", true);
+
+    if (managers && managers.length > 0) {
+        const { sendMessage } = await import("@/lib/telegram");
+        const token = process.env.TELEGRAM_BOT_TOKEN;
+        if (token) {
+            const notification = `🚀 **NEW LEAD**\n\n👤 Name: ${args.name || "Unknown"}\n📱 Phone: ${args.phone}\n📝 Note: ${args.info || "No details"}\n🔗 Chat: @${username || "Unknown"}`;
+
+            for (const manager of managers) {
+                if (manager.telegram_id) {
+                    await sendMessage(token, String(manager.telegram_id), notification).catch(e => console.error("Failed to notify manager:", e));
+                }
+            }
+        }
+    }
+
+    return JSON.stringify({ status: "success", lead_id: (data as any).id, message: "Lead saved and managers notified." });
 }
