@@ -1,39 +1,35 @@
-export type Lang = "ru" | "en" | "tr" | "ar";
-
 export type ToolAction =
-    | {
-        tool: "search_units";
-        args: SearchUnitsArgs;
-    }
-    | {
-        tool: "submit_lead";
-        args: SubmitLeadArgs;
-    }
-    | {
-        tool: "get_company_info";
-        args: {};
-    };
+  | { tool: "search_database"; args: SearchArgs }
+  | { tool: "save_lead"; args: SaveLeadArgs }
+  | { tool: "get_photos"; args: GetPhotosArgs };
 
-export type SearchUnitsArgs = {
-    city: string; // Required
-    max_price?: number | null;
-    min_rooms?: string | null; // "1+1", "2+1"
-    project_name?: string | null;
-    exclude_ids?: string[] | null;
+export type SearchArgs = {
+  city?: string;
+  price?: number;
+  rooms?: string;
+  project?: string;
+  query?: string; // Optional raw query if needed
 };
 
-export type SubmitLeadArgs = {
-    user_phone: string; // Required
-    user_name?: string;
-    interest_summary: string; // Required
+export type SaveLeadArgs = {
+  phone: string;
+  name?: string;
+  info?: string; // summary of interest
+};
+
+export type GetPhotosArgs = {
+  unit_id: number | string;
 };
 
 export type LlmPayload = {
-    reply?: string;
-    state?: {
-        [key: string]: any;
-    } | null;
-    actions?: ToolAction[];
+  reply?: string;
+  actions?: ToolAction[];
 };
 
-export type LLMMessage = { role: "system" | "user" | "assistant"; content: string };
+export type MessageRole = "system" | "user" | "assistant" | "tool";
+
+export type LLMMessage = {
+  role: MessageRole;
+  content: string;
+  name?: string; // for tool results
+};

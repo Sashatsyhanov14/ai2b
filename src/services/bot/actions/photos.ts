@@ -1,37 +1,35 @@
 import { getServerClient } from "@/lib/supabaseClient";
-import { sendMessage, sendPhoto, sendMediaGroup } from "@/lib/telegram";
-import { Lang } from "../types";
+import { GetPhotosArgs } from "../types";
 
-export async function sendPropertyPhotos(
-    token: string,
-    chatId: string,
-    unitId: string,
-    caption: string,
-    lang: Lang
-) {
-    const sb = getServerClient();
-    const { data: photos } = await sb
-        .from("unit_photos")
-        .select("url")
-        .eq("unit_id", unitId)
-        .order("sort_order", { ascending: true })
-        .limit(10);
+export async function handleGetPhotos(args: GetPhotosArgs): Promise<string> {
+    const supabase = getServerClient();
 
-    console.log(`[PHOTOS] Unit ${unitId}: Found ${photos?.length || 0} photos`);
+    const { data, error } = await supabase
+        .from("units")
+        .select("media, project")
+        .eq("id", args.unit_id)
+        .single();
 
-    if (!photos || photos.length === 0) {
-        await sendMessage(token, chatId, caption);
-        return;
+    if (error || !data) {
+        return JSON.stringify({ status: "error", message: "Unit not found or no photos" });
     }
 
-    if (photos.length === 1) {
-        await sendPhoto(token, chatId, photos[0].url, caption);
-    } else {
-        const media = photos.map((p: { url: string }, idx: number) => ({
-            type: "photo" as const,
-            media: p.url,
-            caption: idx === 0 ? caption : undefined,
-        }));
-        await sendMediaGroup(token, chatId, media);
+    const media = data.media; // Assuming JSON array or string array
+    let photos: string[] = [];
+
+    if (Array.isArray(media)) {
+        photos = media;
+    } else if (typeof media === 'string') {
+        // try json parse if it's a stringified array
+        try { photos = JSON.parse(media); } catch { photos = [media]; }
     }
+
+    // Limit to 5 photos to not spam
+    const limited = photos.slice(0, 5);
+
+    return JSON.stringify({
+        status: "success",
+        unit_project: data.project,
+        photos: limited
+    });
 }

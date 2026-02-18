@@ -1,15 +1,13 @@
-import { getServerClient } from "@/lib/supabaseClient";
-import { sendMessage } from "@/lib/telegram";
 import { askLLM } from "@/lib/openrouter";
+import { sendMessage } from "@/lib/telegram";
 import { findOrCreateSession, appendMessage, listMessages } from "@/services/sessions";
-import { Lang, LlmPayload, ToolAction, LLMMessage, SearchUnitsArgs, SubmitLeadArgs } from "../types";
-import { detectLang } from "../utils/formatters";
 import { SYSTEM_PROMPT } from "../ai/prompts";
+import { LlmPayload, SearchArgs, SaveLeadArgs, GetPhotosArgs } from "../types";
 
-// Dynamic imports to avoid circular deps if any
-// But for now we just import them directly or use require
-import { handleSearchUnits } from "../actions/search";
-import { handleSubmitLead } from "../actions/leads";
+// The Hands
+import { handleSearchDatabase } from "../actions/search";
+import { handleSaveLead } from "../actions/leads";
+import { handleGetPhotos } from "../actions/photos";
 
 export async function handleMessage(
     text: string,
@@ -19,146 +17,124 @@ export async function handleMessage(
     userInfo: { username?: string | null; fullName?: string | null; phone?: string | null; language_code?: string | null },
     update?: any
 ) {
-    console.log("[Bot] New Message: " + text);
-    const lang = detectLang(userInfo.language_code);
-    const trimmed = text.trim();
+    console.log(`[Bot] Message from ${chatId}: ${text}`);
+    const sessionId = (await findOrCreateSession(botId, chatId)).id;
 
-    // 1. Session Setup
-    const session = await findOrCreateSession(botId, chatId);
-    const sessionId = session.id;
-
-    // 2. Save User Message
+    // 1. Save User Message
     await appendMessage({
         session_id: sessionId,
         bot_id: botId,
         role: "user",
-        content: trimmed,
-        payload: { update },
+        content: text,
+        payload: { update }
     });
 
-    // 3. Prepare AI Context
-    const messages: LLMMessage[] = [{ role: "system", content: SYSTEM_PROMPT }];
+    // 2. Build Context
+    const messages: any[] = [{ role: "system", content: SYSTEM_PROMPT }];
+    const history = await listMessages(sessionId, 10);
+    const sortedHistory = (history || []).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
-    // Load History
-    try {
-        const history = await listMessages(sessionId, 20);
-        if (history && history.length) {
-            const ordered = [...history].sort(
-                (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-            );
-            for (const msg of ordered) {
-                // Cast generic string to specific role union if needed
-                messages.push({ role: msg.role as any, content: msg.content || "" });
-            }
-        }
-    } catch (e) { console.error("History Error:", e); }
-
-    // Add current message
-    messages.push({ role: "user", content: trimmed });
-
-    // 4. THE BRAIN: Ask LLM what to do
-    let llmRaw: string;
-    try {
-        console.log("[Bot] Asking Brain...");
-        llmRaw = await askLLM(messages);
-        console.log("[Bot] Brain said: " + llmRaw);
-    } catch (e: any) {
-        console.error("LLM Dead:", e);
-        await sendMessage(token, chatId, "Service busy. Please try again.");
-        return;
+    for (const msg of sortedHistory) {
+        if (msg.role === 'system') continue;
+        messages.push({ role: msg.role, content: msg.content || "" });
     }
 
-    // 5. THE HANDS: Parse & Execute
-    let parsed: LlmPayload | null = null;
+    // Add current message (already in history? No, listMessages might not have it if we just added it, 
+    // actually appendMessage ADDS it to DB. So sortedHistory SHOULD have it.
+    // BUT listMessages might be slightly cached or eventual consistent? 
+    // Let's rely on sortedHistory having it if we just awaited appendMessage.
+    // WAIT: appendMessage inserts into DB. listMessages fetches from DB.
+    // So 'text' is likely at the end of sortedHistory.
+    // IF NOT, we should verify. 
+    // Safety check: is the last message 'text'?
+    const lastMsg = sortedHistory[sortedHistory.length - 1];
+    if (!lastMsg || lastMsg.content !== text) {
+        // If for some reason DB didn't return it yet, push it manually to context
+        messages.push({ role: "user", content: text });
+    }
+
+    // 3. BRAIN: "THINK"
+    console.log("[Bot] Asking Brain...");
+    const llmResponse = await askLLM(messages);
+    console.log("[Bot] Brain said:", llmResponse);
+
+    // 4. HANDS: Parse & Act
+    let payload: LlmPayload = {};
     try {
-        let jsonText = llmRaw.trim();
-        // Remove markdown blocks if present ( ```json ... ``` )
-        jsonText = jsonText.replace(/^```json/, "").replace(/^```/, "").replace(/```$/, "");
-
-        const firstBrace = jsonText.indexOf("{");
-        const lastBrace = jsonText.lastIndexOf("}");
-
-        if (firstBrace !== -1 && lastBrace !== -1) {
-            jsonText = jsonText.slice(firstBrace, lastBrace + 1);
-            parsed = JSON.parse(jsonText);
+        const cleanJson = llmResponse.replace(/```json/g, "").replace(/```/g, "").trim();
+        const start = cleanJson.indexOf("{");
+        const end = cleanJson.lastIndexOf("}");
+        if (start >= 0 && end >= 0) {
+            payload = JSON.parse(cleanJson.substring(start, end + 1));
         } else {
-            // Fallback: Just send raw text if it's not JSON
-            if (llmRaw.length > 2) await sendMessage(token, chatId, llmRaw);
-            return;
+            // Fallback: AI didn't listen and sent text. Treat as reply.
+            payload = { reply: llmResponse, actions: [] };
         }
     } catch (e) {
-        console.error("JSON Parse Fail:", e);
-        // It might be just text. Send it.
-        await sendMessage(token, chatId, llmRaw);
-        return;
+        console.error("JSON Parse Error:", e);
+        payload = { reply: llmResponse, actions: [] };
     }
 
-    // 6. EXECUTE ACTIONS
-    const actions = parsed?.actions || [];
-
-    // If there is a reply text, send it first (Intro)
-    if (parsed?.reply) {
-        await sendMessage(token, chatId, parsed.reply);
-        // Save assistant reply to history
-        await appendMessage({
-            session_id: sessionId,
-            bot_id: botId,
-            role: "assistant", // Fixed role string
-            content: parsed.reply,
-        });
+    // If AI wants to say something immediately (e.g. "One moment..."), send it.
+    // BUT usually ReAct waits for tools. The prompt says "reply" is optional.
+    if (payload.reply) {
+        await sendMessage(token, chatId, payload.reply);
+        await appendMessage({ session_id: sessionId, bot_id: botId, role: "assistant", content: payload.reply });
     }
 
-    for (const action of actions) {
-        console.log("[Bot] Running Tool: " + action.tool);
-        let toolResult = "";
+    // Execute Tools
+    if (payload.actions && payload.actions.length > 0) {
+        const toolOutputs = [];
 
-        if (action.tool === "search_units") {
-            const args = action.args as SearchUnitsArgs;
-            toolResult = await handleSearchUnits(sessionId, chatId, args, [], token, botId, lang);
-        }
-        else if (action.tool === "submit_lead") {
-            const args = action.args as SubmitLeadArgs;
-            toolResult = await handleSubmitLead(args, lang, chatId, token, sessionId, userInfo);
-        }
-        else if (action.tool === "get_company_info") {
-            toolResult = "TurkHome is a leading agency in Mersin. We offer residence permit assistance and 0% installment plans.";
-        }
-
-        console.log("[Bot] Tool Result: " + toolResult);
-
-        // 7. FEEDBACK LOOP (Optimized)
-        // In a true Agent loop, we would feed this back to LLM.
-        // For now, if the tool returned a result, we might want to show it or let the LLM know.
-        // CURRENT SHORTCUT: The Search Tool returns JSON strings.
-        // We need to send this to the USER? OR formatted?
-        // The Prompt says: "REPLY: Use the tool result to write a natural... response."
-        // This implies we need a SECOND TURN if a tool was called.
-
-        if (toolResult && toolResult.length > 5) {
-            // SECOND TURN: Feed result to AI to generate final answer
-            messages.push({ role: "assistant", content: JSON.stringify(parsed) }); // What valid JSON it generated
-            messages.push({ role: "user", content: "Tool Output: " + toolResult });
-
+        for (const action of payload.actions) {
+            console.log(`[Bot] Tool Call: ${action.tool}`);
+            let result = "";
             try {
-                const finalRaw = await askLLM(messages);
-                const finalParsed = JSON.parse(finalRaw.match(/\{[\s\S]*\}/)?.[0] || "{}");
-
-                if (finalParsed.reply) {
-                    await sendMessage(token, chatId, finalParsed.reply);
-                    await appendMessage({
-                        session_id: sessionId,
-                        bot_id: botId,
-                        role: "assistant",
-                        content: finalParsed.reply,
-                    });
+                if (action.tool === "search_database") {
+                    result = await handleSearchDatabase(action.args as SearchArgs);
+                } else if (action.tool === "save_lead") {
+                    // We inject phone/name if not provided by AI, or trust AI?
+                    // The AI *should* extract it. But if it misses phone, we might have it in userInfo?
+                    // Let's pass args as is, but maybe enhance with system info if needed?
+                    // prompt says: save_lead(phone, name)
+                    result = await handleSaveLead(action.args as SaveLeadArgs, chatId, userInfo.username);
+                } else if (action.tool === "get_photos") {
+                    result = await handleGetPhotos(action.args as GetPhotosArgs);
+                } else {
+                    result = "Error: Unknown tool " + (action as any).tool;
                 }
-            } catch (e) {
-                // Fallback if 2nd turn fails or is just text
-                // Use simple text finding because strict JSON might fail on 2nd turn
-                console.log("2nd Turn Error or Text-only response");
-                // We can just send the tool result if it's readable? No, it's JSON.
-                // We'll trust the AI 1st turn reply covered it OR the user sees "Done".
+            } catch (err: any) {
+                console.error(`Tool Fail: ${(action as any).tool}`, err);
+                result = JSON.stringify({ status: "error", message: err.message });
             }
+            toolOutputs.push(`Tool '${action.tool}' output: ${result}`);
         }
+
+        // 5. OBSERVATION -> BRAIN
+        // Feed tool outputs back to AI to generate final natural response
+        const toolFeedback = toolOutputs.join("\n\n");
+
+        // Add the tool execution interaction to history context for this turn
+        messages.push({ role: "assistant", content: JSON.stringify(payload) });
+        messages.push({ role: "user", content: `Tool Results:\n${toolFeedback}\n\nNow write a response to the user.` });
+
+        console.log("[Bot] Feeding back tool results...");
+        const finalResponse = await askLLM(messages);
+
+        // Parse final response. It might be JSON again (if loop) or just text.
+        // The prompt says "Always JSON". So we accept JSON.
+        // If it returns { reply: "..." }, we send that.
+        let finalReply = finalResponse;
+        try {
+            const clean = finalResponse.replace(/```json/g, "").replace(/```/g, "").trim();
+            if (clean.startsWith("{")) {
+                const p = JSON.parse(clean);
+                if (p.reply) finalReply = p.reply;
+            }
+        } catch (e) { /* just text */ }
+
+        await sendMessage(token, chatId, finalReply);
+        await appendMessage({ session_id: sessionId, bot_id: botId, role: "assistant", content: finalReply });
     }
 }
+
