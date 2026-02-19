@@ -8,7 +8,7 @@ export async function handleGetPhotos(args: GetPhotosArgs, token: string, chatId
     // 1. Get Unit info (project name)
     const { data: unitData, error: unitError } = await supabase
         .from("units")
-        .select("project")
+        .select("title")
         .eq("id", args.unit_id)
         .single();
 
@@ -41,12 +41,12 @@ export async function handleGetPhotos(args: GetPhotosArgs, token: string, chatId
 
     try {
         if (limited.length === 1) {
-            await sendPhoto(token, chatId, limited[0], `${unitData.project || 'Unit'} Photos`);
+            await sendPhoto(token, chatId, limited[0], `${unitData.title || 'Unit'} Photos`);
         } else {
             const mediaGroup: InputMediaPhoto[] = limited.map((url, i) => ({
                 type: 'photo',
                 media: url,
-                caption: i === 0 ? `${unitData.project || 'Unit'} Photos` : undefined
+                caption: i === 0 ? `${unitData.title || 'Unit'} Photos` : undefined
             }));
             await sendMediaGroup(token, chatId, mediaGroup);
         }

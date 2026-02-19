@@ -155,6 +155,15 @@ export async function handleMessage(
                     result = JSON.stringify({ status: "error", message: err.message });
                 }
                 toolOutputs.push(`Tool '${action.tool}' result: ${result}`);
+
+                // TEMPORARY DEBUG: Show user how many units were returned
+                if (action.tool === "search_database") {
+                    try {
+                        const parsed = JSON.parse(result);
+                        console.log(`[DEBUG] Search returned ${parsed.count} units`);
+                        await sendMessage(token, chatId, `🔍 DEBUG: Найдено ${parsed.count} объектов в базе`);
+                    } catch { }
+                }
             }
 
             // Build Observation for next turn

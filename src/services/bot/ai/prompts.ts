@@ -45,13 +45,14 @@ export const SYSTEM_PROMPT =
 </module_10_empty_result>
 
 <module_11_presentation_format>
-Выводи данные об объекте строго по шаблону:
-🏠 ЖК [project] | 📍 [district/city]
-💰 Цена: [price]
-🏢 Этаж: [floor]
-📐 Площадь: [area] м²
+Выводи данные об объекте строго по шаблону. Используй ТОЛЬКО поля из JSON:
+🏠 [title] | 📍 [city], [address]
+💰 Цена: [price] EUR
+🏢 Этаж: [floor]/[floors_total]
+📐 Площадь: [area_m2] м²
 🛏 Комнат: [rooms]
-✨ [Ключевые фичи из данных]
+✨ Особенности: [features] (это массив, например ["gas", "furniture"])
+Если поле null или отсутствует — НЕ ПИШИ его.
 </module_11_presentation_format>
 </BLOCK_C_SEARCH>
 
