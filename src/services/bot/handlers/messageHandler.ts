@@ -87,13 +87,13 @@ export async function handleMessage(
             loopCount++;
             console.log(`[Bot] Turn ${loopCount}: Asking Brain...`);
 
-            // FORCE LANGUAGE INJECTION EVERY TURN
-            const currentMessages = [...messages, {
+            // Inject language into system prompt (position 0) — Claude needs system at START
+            messages[0] = {
                 role: "system",
-                content: `(SYSTEM AUTO-INJECTION) The user is speaking ${userLang}. YOU MUST REPLY IN ${userLang}. DO NOT SWITCH LANGUAGES.`
-            }];
+                content: dynamicPrompt + `\n\n<LANGUAGE_OVERRIDE>User language: ${userLang}. Reply in ${userLang}.</LANGUAGE_OVERRIDE>`
+            };
 
-            const llmResponse = await askLLM(currentMessages);
+            const llmResponse = await askLLM(messages);
             console.log(`[Bot] Turn ${loopCount}: Brain said:`, llmResponse);
 
             // Parse Response
@@ -111,6 +111,8 @@ export async function handleMessage(
                 console.error("JSON Parse Error:", e, "Raw:", llmResponse);
                 payload = { reply: llmResponse, actions: [] };
             }
+
+            console.log(`[Bot] Parsed: reply="${payload.reply?.substring(0, 50)}..." actions=${JSON.stringify(payload.actions)}`);
 
             // Send Text Reply — Module 20: Only send if AI has something to say
             if (payload.reply && payload.reply.trim().length > 0) {
