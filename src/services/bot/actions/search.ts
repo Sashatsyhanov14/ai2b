@@ -4,12 +4,8 @@ import { SearchArgs } from "../types";
 export async function handleSearchDatabase(args: SearchArgs): Promise<string> {
     const supabase = getServerClient();
 
-    // 1. Primary Filtered Search
-    // Limit to 25 to prevent context flooding
-    let query = supabase.from("units")
-        .select("id, project, city, district, price, rooms, floor, area, status, created_at")
-        .limit(25)
-        .order('created_at', { ascending: false });
+    // 1. Primary Filtered Search — select ALL columns so AI sees everything
+    let query = supabase.from("units").select("*").limit(25).order('created_at', { ascending: false });
 
     if (args.city) query = query.ilike("city", "%" + args.city + "%");
     if (args.price) query = query.lte("price", args.price);
@@ -28,15 +24,11 @@ export async function handleSearchDatabase(args: SearchArgs): Promise<string> {
         return JSON.stringify({ status: "error", message: "DB Error: " + error.message });
     }
 
-    // 2. Fallback: Broad Search
+    // 2. Fallback: Broad Search (drop price/rooms, keep city)
     if (!data || data.length === 0) {
         console.log("Strict search returned 0. Trying broad search...");
-        let broadQuery = supabase.from("units")
-            .select("id, project, city, district, price, rooms, floor, area, status")
-            .limit(25)
-            .order('created_at', { ascending: false });
+        let broadQuery = supabase.from("units").select("*").limit(25).order('created_at', { ascending: false });
 
-        // Keep city if present, ignore price/rooms
         if (args.city) {
             broadQuery = broadQuery.ilike("city", "%" + args.city + "%");
         }
@@ -44,14 +36,14 @@ export async function handleSearchDatabase(args: SearchArgs): Promise<string> {
         const { data: broadData, error: broadError } = await broadQuery;
 
         if (broadError) {
-            return JSON.stringify({ status: "success", count: 0, message: "No units found even with broad search." });
+            return JSON.stringify({ status: "success", count: 0, message: "No units found." });
         }
 
         if (broadData && broadData.length > 0) {
             return JSON.stringify({
                 status: "success",
                 count: broadData.length,
-                note: "STRICT SEARCH FAILED. Showing BROAD results (ignored price/rooms). Process these to find the best match.",
+                note: "Exact match not found. Showing all available in this city.",
                 units: broadData
             });
         }
@@ -59,13 +51,9 @@ export async function handleSearchDatabase(args: SearchArgs): Promise<string> {
         return JSON.stringify({ status: "success", count: 0, message: "No units found." });
     }
 
-    const results = {
+    return JSON.stringify({
         status: "success",
         count: data.length,
         units: data
-    };
-
-    // Debug log valid for server logs
-    console.log(`DEBUG JSON: Found ${data.length} units.`);
-    return JSON.stringify(results);
+    });
 }
