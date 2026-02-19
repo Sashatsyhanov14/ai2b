@@ -160,7 +160,7 @@ export async function handleMessage(
             let systemInjection = "";
 
             if (toolFeedback.includes('"count":') && !toolFeedback.includes('"count":0') && !photosFound) {
-                systemInjection = "\n\nCRITICAL: You found units. NOW YOU MUST CALL get_photos(unit_id).";
+                systemInjection = "\n\nCRITICAL: You found units. NOW YOU MUST CALL get_photos(unit_id) for the BEST matching unit ID from the list. DO NOT ASK. JUST CALL IT.";
             }
 
             // RE-INJECT LANGUAGE REMINDER IN TOOL RESULTS TOO
