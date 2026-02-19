@@ -5,7 +5,7 @@ export async function handleSearchDatabase(args: SearchArgs): Promise<string> {
     const supabase = getServerClient();
 
     // 1. Primary Filtered Search
-    let query = supabase.from("units").select("*").limit(50);
+    let query = supabase.from("units").select("*").limit(100).order('created_at', { ascending: false });
 
     if (args.city) query = query.ilike("city", "%" + args.city + "%");
     if (args.price) query = query.lte("price", args.price);
@@ -27,7 +27,7 @@ export async function handleSearchDatabase(args: SearchArgs): Promise<string> {
     // 2. Fallback: Broad Search
     if (!data || data.length === 0) {
         console.log("Strict search returned 0. Trying broad search...");
-        let broadQuery = supabase.from("units").select("*").limit(50);
+        let broadQuery = supabase.from("units").select("*").limit(100).order('created_at', { ascending: false });
 
         // Keep city if present, ignore price/rooms
         if (args.city) {
