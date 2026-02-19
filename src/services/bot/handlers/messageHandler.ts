@@ -112,8 +112,8 @@ export async function handleMessage(
                 payload = { reply: llmResponse, actions: [] };
             }
 
-            // Send Text Reply (Intermediate or Final)
-            if (payload.reply) {
+            // Send Text Reply — Module 20: Only send if AI has something to say
+            if (payload.reply && payload.reply.trim().length > 0) {
                 await sendMessage(token, chatId, payload.reply);
                 await appendMessage({ session_id: sessionId, bot_id: botId, role: "assistant", content: payload.reply });
                 finalUserReply = payload.reply;
@@ -152,21 +152,22 @@ export async function handleMessage(
                     console.error(`Tool Fail: ${(action as any).tool}`, err);
                     result = JSON.stringify({ status: "error", message: err.message });
                 }
-                toolOutputs.push(`Tool '${action.tool}' output: ${result}`);
+                toolOutputs.push(`Tool '${action.tool}' result: ${result}`);
             }
 
-            // Observation
+            // Build Observation for next turn
             const toolFeedback = toolOutputs.join("\n\n");
             let systemInjection = "";
 
+            // Module 12: Auto-trigger photos after search
             if (toolFeedback.includes('"count":') && !toolFeedback.includes('"count":0') && !photosFound) {
-                systemInjection = "\n\nCRITICAL: You found units. NOW YOU MUST CALL get_photos(unit_id) for the BEST matching unit ID from the list. DO NOT ASK. JUST CALL IT.";
+                systemInjection = "\n\n[Module 12 TRIGGER]: Units found. Pick best 'id' and call get_photos(unit_id). Use module_11 format for presentation.";
             }
 
-            // RE-INJECT LANGUAGE REMINDER IN TOOL RESULTS TOO
-            systemInjection += `\n\nREMINDER: USER LANGUAGE IS ${userLang}. REPLY IN ${userLang}.`;
+            // Module 5: Language reminder
+            systemInjection += `\n\n[Module 5 REMINDER]: User language is ${userLang}. Reply in ${userLang}.`;
 
-            messages.push({ role: "user", content: `Tool Results:\n${toolFeedback}${systemInjection}` });
+            messages.push({ role: "user", content: `<tool_results>\n${toolFeedback}\n</tool_results>${systemInjection}` });
         }
     } catch (globalErr: any) {
         console.error("CRITICAL MESSAGE HANDLER ERROR:", globalErr);
