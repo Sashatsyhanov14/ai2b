@@ -11,6 +11,18 @@ import { handleSaveLead } from "../actions/leads";
 import { handleGetPhotos } from "../actions/photos";
 import { handleGetAgencyInfo } from "../actions/agency";
 
+// Helper to detect language from recent history
+function detectLanguage(history: any[]): string {
+    const recentUserMsgs = history.filter(m => m.role === 'user').slice(-3);
+    const text = recentUserMsgs.map(m => m.content).join(" ").toLowerCase();
+
+    // Simple heuristic
+    if (/[а-яА-ЯёЁ]/.test(text)) return "Russian";
+    if (/[ğüşıöçĞÜŞİÖÇ]/.test(text)) return "Turkish";
+    if (text.includes("merhaba") || text.includes("selam")) return "Turkish";
+    return "Russian"; // Default to Russian if unsure/mixed
+}
+
 export async function handleMessage(
     text: string,
     chatId: string,
@@ -56,19 +68,15 @@ export async function handleMessage(
             messages.push({ role: msg.role, content: msg.content || "" });
         }
 
-        // Add current message (already in history? No, listMessages might not have it if we just added it, 
-        // actually appendMessage ADDS it to DB. So sortedHistory SHOULD have it.
-        // BUT listMessages might be slightly cached or eventual consistent? 
-        // Let's rely on sortedHistory having it if we just awaited appendMessage.
-        // WAIT: appendMessage inserts into DB. listMessages fetches from DB.
-        // So 'text' is likely at the end of sortedHistory.
-        // IF NOT, we should verify. 
         // Safety check: is the last message 'text'?
         const lastMsg = sortedHistory[sortedHistory.length - 1];
         if (!lastMsg || lastMsg.content !== text) {
-            // If for some reason DB didn't return it yet, push it manually to context
             messages.push({ role: "user", content: text });
         }
+
+        // DETECT LANGUAGE
+        const userLang = detectLanguage(messages);
+        console.log(`[Bot] Detected Language: ${userLang}`);
 
         // 3. BRAIN: "THINK" (Start of ReAct Loop)
         let loopCount = 0;
@@ -79,7 +87,13 @@ export async function handleMessage(
             loopCount++;
             console.log(`[Bot] Turn ${loopCount}: Asking Brain...`);
 
-            const llmResponse = await askLLM(messages);
+            // FORCE LANGUAGE INJECTION EVERY TURN
+            const currentMessages = [...messages, {
+                role: "system",
+                content: `(SYSTEM AUTO-INJECTION) The user is speaking ${userLang}. YOU MUST REPLY IN ${userLang}. DO NOT SWITCH LANGUAGES.`
+            }];
+
+            const llmResponse = await askLLM(currentMessages);
             console.log(`[Bot] Turn ${loopCount}: Brain said:`, llmResponse);
 
             // Parse Response
@@ -91,13 +105,10 @@ export async function handleMessage(
                 if (start >= 0 && end >= 0) {
                     payload = JSON.parse(cleanJson.substring(start, end + 1));
                 } else {
-                    // Should not happen with good prompt, but fallback
                     payload = { reply: llmResponse, actions: [] };
                 }
             } catch (e: any) {
                 console.error("JSON Parse Error:", e, "Raw:", llmResponse);
-                // Fallback: If AI didn't output JSON, maybe it just talked.
-                // Try to use the raw response as the reply if it's not a JSON error
                 payload = { reply: llmResponse, actions: [] };
             }
 
@@ -105,16 +116,16 @@ export async function handleMessage(
             if (payload.reply) {
                 await sendMessage(token, chatId, payload.reply);
                 await appendMessage({ session_id: sessionId, bot_id: botId, role: "assistant", content: payload.reply });
-                finalUserReply = payload.reply; // Track last reply
+                finalUserReply = payload.reply;
             }
 
             // Check for Actions
             if (!payload.actions || payload.actions.length === 0) {
                 console.log("[Bot] No actions. Turn complete.");
-                break; // No more tools, we are done
+                break;
             }
 
-            // Add Assistant's "Thought/Call" to history
+            // Add to history
             messages.push({ role: "assistant", content: JSON.stringify(payload) });
 
             // Execute Tools
@@ -148,19 +159,15 @@ export async function handleMessage(
             const toolFeedback = toolOutputs.join("\n\n");
             let systemInjection = "";
 
-            // Critical: If we just searched and found stuff, FORCE photos next context
             if (toolFeedback.includes('"count":') && !toolFeedback.includes('"count":0') && !photosFound) {
-                systemInjection = "\n\nCRITICAL: You found units. NOW YOU MUST CALL get_photos(unit_id) for the best option. DO NOT ASK. JUST CALL IT.";
+                systemInjection = "\n\nCRITICAL: You found units. NOW YOU MUST CALL get_photos(unit_id).";
             }
 
-            // Critical: Maintain Language
-            systemInjection += "\n\nREMINDER: REPLY IN THE USER'S LANGUAGE.";
+            // RE-INJECT LANGUAGE REMINDER IN TOOL RESULTS TOO
+            systemInjection += `\n\nREMINDER: USER LANGUAGE IS ${userLang}. REPLY IN ${userLang}.`;
 
             messages.push({ role: "user", content: `Tool Results:\n${toolFeedback}${systemInjection}` });
-
-            // Loop continues to next iteration to let Brain process the results
         }
-
     } catch (globalErr: any) {
         console.error("CRITICAL MESSAGE HANDLER ERROR:", globalErr);
         await sendMessage(token, chatId, "Произошла ошибка. Попробуйте еще раз.");
