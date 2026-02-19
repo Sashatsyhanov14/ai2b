@@ -4,31 +4,16 @@ import { SearchArgs } from "../types";
 export async function handleSearchDatabase(args: SearchArgs): Promise<string> {
     const supabase = getServerClient();
 
-    let query = supabase
-        .from("units")
-        .select("*")
-        // .eq("status", "available") // Relaxed: User wants to see everything? Or maybe status is 'Available'? Let's remove to be safe.
-        .limit(20); // increased limit to give AI more options
+    // 1. Primary Filtered Search
+    let query = supabase.from("units").select("*").limit(50);
 
-    if (args.city) {
-        query = query.ilike("city", "%" + args.city + "%");
-    }
-
-    // Relax Price: Only filter if significantly provided? 
-    // ReAct agent might provide strict limit. 
-    // Let's keep it but maybe ensure we don't filter out good matches?
-    // lte is correct for "up to".
-    if (args.price) {
-        query = query.lte("price", args.price);
-    }
-
+    if (args.city) query = query.ilike("city", "%" + args.city + "%");
+    if (args.price) query = query.lte("price", args.price);
     if (args.rooms) {
-        // Safe handling if AI sends a number (e.g. 2) instead of string "2"
         const roomStr = String(args.rooms);
         const match = roomStr.match(/^(\d+)/);
         if (match) {
-            const roomNum = parseInt(match[1]);
-            query = query.gte("rooms", roomNum);
+            query = query.gte("rooms", parseInt(match[1]));
         }
     }
 
@@ -39,23 +24,38 @@ export async function handleSearchDatabase(args: SearchArgs): Promise<string> {
         return JSON.stringify({ status: "error", message: "DB Error: " + error.message });
     }
 
+    // 2. Fallback: Broad Search
     if (!data || data.length === 0) {
-        // If strict search failed, try ONE MORE fall back?
-        // Detailed message so AI knows WHY
-        return JSON.stringify({ status: "success", count: 0, message: `No units found matching: City=${args.city}, Price<=${args.price}, Rooms>=${args.rooms}` });
+        console.log("Strict search returned 0. Trying broad search...");
+        let broadQuery = supabase.from("units").select("*").limit(50);
+
+        // Keep city if present, ignore price/rooms
+        if (args.city) {
+            broadQuery = broadQuery.ilike("city", "%" + args.city + "%");
+        }
+
+        const { data: broadData, error: broadError } = await broadQuery;
+
+        if (broadError) {
+            return JSON.stringify({ status: "success", count: 0, message: "No units found even with broad search." });
+        }
+
+        if (broadData && broadData.length > 0) {
+            return JSON.stringify({
+                status: "success",
+                count: broadData.length,
+                note: "STRICT SEARCH FAILED. Showing BROAD results (ignored price/rooms). Process these to find the best match.",
+                units: broadData
+            });
+        }
+
+        return JSON.stringify({ status: "success", count: 0, message: "No units found." });
     }
 
-    // Return FULL data so AI can decide what to show
     const results = {
         status: "success",
         count: data.length,
-        units: data.map(u => ({
-            id: u.id,
-            city: u.city,
-            address: u.address,
-            project: u.project,
-            ...u
-        }))
+        units: data
     };
 
     console.log(`DEBUG JSON: ${JSON.stringify(results, null, 2)}`);
