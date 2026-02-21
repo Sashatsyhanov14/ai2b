@@ -98,14 +98,19 @@ export async function handleMessage(
 
             console.log(`[Bot] Parsed: reply="${payload.reply?.substring(0, 50) || ""}..." actions=${JSON.stringify(payload.actions)}`);
 
-            // PIPE: Send text reply if LLM generated one
-            if (payload.reply && payload.reply.trim().length > 0) {
+            // Decide if we should send this reply to the user
+            // Only send if: no actions (final reply) OR actions contain get_photos (presentation + photos combo)
+            const hasActions = payload.actions && payload.actions.length > 0;
+            const isPhotosCombo = hasActions && payload.actions!.some((a: any) => a.tool === "get_photos");
+            const shouldSend = !hasActions || isPhotosCombo;
+
+            if (payload.reply && payload.reply.trim().length > 0 && shouldSend) {
                 await sendMessage(token, chatId, payload.reply);
                 await appendMessage({ session_id: sessionId, bot_id: botId, role: "assistant", content: payload.reply });
             }
 
             // No actions = conversation turn complete
-            if (!payload.actions || payload.actions.length === 0) {
+            if (!hasActions) {
                 console.log("[Bot] No actions. Done.");
                 break;
             }
@@ -114,7 +119,7 @@ export async function handleMessage(
             messages.push({ role: "assistant", content: JSON.stringify(payload) });
             const toolOutputs = [];
 
-            for (const action of payload.actions) {
+            for (const action of payload.actions ?? []) {
                 console.log(`[Bot] Executing tool: ${action.tool}`, JSON.stringify(action.args));
                 let result = "";
                 try {
