@@ -73,6 +73,8 @@ export async function handleMessage(
         let loopCount = 0;
         const MAX_LOOPS = 5;
 
+        let searchCalledThisLoop = false; // Track if real data was fetched
+
         while (loopCount < MAX_LOOPS) {
             loopCount++;
             console.log(`[Bot] Turn ${loopCount}: Asking LLM...`);
@@ -98,8 +100,28 @@ export async function handleMessage(
 
             console.log(`[Bot] Parsed: reply="${payload.reply?.substring(0, 50) || ""}..." actions=${JSON.stringify(payload.actions)}`);
 
+            // GUARDRAIL: If LLM presents apartments (🏠) without search in this loop, force search
+            const hasApartmentPresentation = payload.reply && payload.reply.includes("🏠");
+            const hasSearchAction = payload.actions?.some((a: any) => a.tool === "search_database");
+
+            if (hasApartmentPresentation && !searchCalledThisLoop && !hasSearchAction) {
+                console.log("[Bot] GUARDRAIL: LLM hallucinated apartments without search. Forcing search...");
+                payload.reply = "";
+                payload.actions = [{ tool: "search_database", args: {} }];
+            }
+
+            // GUARDRAIL: Strip multiple apartments — only allow 1 per reply
+            if (payload.reply) {
+                const apartmentMarkers = (payload.reply.match(/🏠/g) || []).length;
+                if (apartmentMarkers > 1) {
+                    console.log("[Bot] GUARDRAIL: Multiple apartments in reply. Trimming to first.");
+                    const firstIdx = payload.reply.indexOf("🏠");
+                    const secondIdx = payload.reply.indexOf("🏠", firstIdx + 1);
+                    payload.reply = payload.reply.substring(0, secondIdx).trim();
+                }
+            }
+
             // Decide if we should send this reply to the user
-            // Only send if: no actions (final reply) OR actions contain get_photos (presentation + photos combo)
             const hasActions = payload.actions && payload.actions.length > 0;
             const isPhotosCombo = hasActions && payload.actions!.some((a: any) => a.tool === "get_photos");
             const shouldSend = !hasActions || isPhotosCombo;
@@ -125,6 +147,7 @@ export async function handleMessage(
                 try {
                     if (action.tool === "search_database") {
                         result = await handleSearchDatabase(action.args as SearchArgs);
+                        searchCalledThisLoop = true;
                     } else if (action.tool === "save_lead") {
                         result = await handleSaveLead(action.args as SaveLeadArgs, chatId, userInfo.username);
                     } else if (action.tool === "get_photos") {
