@@ -141,8 +141,13 @@ export async function handleMessage(
                 console.log(`[Bot] Tool result (${action.tool}):`, result.substring(0, 200));
                 toolOutputs.push(`Tool '${action.tool}' result: ${result}`);
             }
+            // If photos were sent, this is the final step. Stop the loop.
+            if (isPhotosCombo) {
+                console.log("[Bot] Photos sent. Presentation complete.");
+                break;
+            }
 
-            // PIPE: Return tool results to LLM. No code-level logic, no hints.
+            // PIPE: Return tool results to LLM for next turn.
             const toolFeedback = toolOutputs.join("\n\n");
             messages.push({ role: "user", content: `<tool_results>\n${toolFeedback}\n</tool_results>` });
         }
