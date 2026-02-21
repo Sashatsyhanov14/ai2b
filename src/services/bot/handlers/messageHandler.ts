@@ -127,10 +127,10 @@ export async function handleMessage(
                     } else if (action.tool === "get_agency_info") {
                         result = await handleGetAgencyInfo();
                     } else {
-                        result = JSON.stringify({ status: "error", message: "Unknown tool: " + action.tool });
+                        result = JSON.stringify({ status: "error", message: "Unknown tool: " + (action as any).tool });
                     }
                 } catch (err: any) {
-                    console.error(`[Bot] Tool error: ${action.tool}`, err.message);
+                    console.error(`[Bot] Tool error: ${(action as any).tool}`, err.message);
                     result = JSON.stringify({ status: "error", message: err.message });
                 }
                 console.log(`[Bot] Tool result (${action.tool}):`, result.substring(0, 200));
