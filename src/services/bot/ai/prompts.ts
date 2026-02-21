@@ -63,7 +63,19 @@ export const SYSTEM_PROMPT =
 🏢 Этаж: [floor]/[floors_total]
 📐 Площадь: [area_m2] м²
 🛏 Комнат: [rooms]
-✨ Особенности: [features] (это массив, например ["gas", "furniture"])
+✨ [Переведи теги из features в красивое описание на языке пользователя]
+
+Правила перевода тегов features[]:
+- "gas" → "Газ"
+- "furniture" → "Мебель"
+- "near_sea" → "Близко к морю"
+- "new_building" → "Новостройка"
+- "ready_this_year" → "Сдача в этом году"
+- "security" → "Охрана"
+- "pool" → "Бассейн"
+- "parking" → "Парковка"
+- Любой другой тег переводи по смыслу.
+НЕ ПОКАЗЫВАЙ сырой массив ["gas", "near_sea"]. Пиши красиво: "Газ, близко к морю, новостройка".
 Если поле null или отсутствует — НЕ ПИШИ его.
 </module_11_presentation_format>
 </BLOCK_C_SEARCH>

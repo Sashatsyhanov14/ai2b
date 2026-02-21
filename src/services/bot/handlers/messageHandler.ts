@@ -5,23 +5,11 @@ import { findOrCreateSession, appendMessage, listMessages } from "@/services/ses
 import { SYSTEM_PROMPT } from "../ai/prompts";
 import { LlmPayload, SearchArgs, SaveLeadArgs, GetPhotosArgs } from "../types";
 
-// The Hands
+// The Hands (Tools)
 import { handleSearchDatabase } from "../actions/search";
 import { handleSaveLead } from "../actions/leads";
 import { handleGetPhotos } from "../actions/photos";
 import { handleGetAgencyInfo } from "../actions/agency";
-
-// Helper to detect language from recent history
-function detectLanguage(history: any[]): string {
-    const recentUserMsgs = history.filter(m => m.role === 'user').slice(-3);
-    const text = recentUserMsgs.map(m => m.content).join(" ").toLowerCase();
-
-    // Simple heuristic
-    if (/[а-яА-ЯёЁ]/.test(text)) return "Russian";
-    if (/[ğüşıöçĞÜŞİÖÇ]/.test(text)) return "Turkish";
-    if (text.includes("merhaba") || text.includes("selam")) return "Turkish";
-    return "Russian"; // Default to Russian if unsure/mixed
-}
 
 export async function handleMessage(
     text: string,
@@ -44,8 +32,7 @@ export async function handleMessage(
             payload: { update }
         });
 
-        // 2. Build Context
-        // Fetch dynamic instructions
+        // 2. Build Context (Code = Pipe: just fetch data and pass to LLM)
         const supabase = getServerClient();
         const { data: instructions } = await supabase
             .from('bot_instructions')
@@ -56,86 +43,79 @@ export async function handleMessage(
         let dynamicPrompt = SYSTEM_PROMPT;
         if (instructions && instructions.length > 0) {
             const rules = instructions.map((r: any) => `- ${r.text}`).join("\n");
-            dynamicPrompt += `\n\n### DASHBOARD INSTRUCTIONS (CRITICAL)\nThe following are strict rules from the agency dashboard:\n${rules}`;
+            dynamicPrompt += `\n\n### DASHBOARD INSTRUCTIONS (CRITICAL)\n${rules}`;
         }
 
+        // Add user language_code from Telegram as context for LLM
+        const langHint = userInfo.language_code || "ru";
+        dynamicPrompt += `\n\n<USER_CONTEXT>Telegram language_code: ${langHint}</USER_CONTEXT>`;
+
         const messages: any[] = [{ role: "system", content: dynamicPrompt }];
+
+        // Load history
         const history = await listMessages(sessionId, 10);
-        const sortedHistory = (history || []).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        const sortedHistory = (history || []).sort((a, b) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
 
         for (const msg of sortedHistory) {
             if (msg.role === 'system') continue;
             messages.push({ role: msg.role, content: msg.content || "" });
         }
 
-        // Safety check: is the last message 'text'?
+        // Avoid duplicate of current message
         const lastMsg = sortedHistory[sortedHistory.length - 1];
         if (!lastMsg || lastMsg.content !== text) {
             messages.push({ role: "user", content: text });
         }
 
-        // DETECT LANGUAGE
-        const userLang = detectLanguage(messages);
-        console.log(`[Bot] Detected Language: ${userLang}`);
-
-        // 3. BRAIN: "THINK" (Start of ReAct Loop)
+        // 3. THE LOOP: LLM decides everything. Code just routes.
         let loopCount = 0;
         const MAX_LOOPS = 5;
-        let finalUserReply = "";
 
         while (loopCount < MAX_LOOPS) {
             loopCount++;
-            console.log(`[Bot] Turn ${loopCount}: Asking Brain...`);
-
-            // Inject language into system prompt (position 0) — Claude needs system at START
-            messages[0] = {
-                role: "system",
-                content: dynamicPrompt + `\n\n<LANGUAGE_OVERRIDE>User language: ${userLang}. Reply in ${userLang}.</LANGUAGE_OVERRIDE>`
-            };
+            console.log(`[Bot] Turn ${loopCount}: Asking LLM...`);
 
             const llmResponse = await askLLM(messages);
-            console.log(`[Bot] Turn ${loopCount}: Brain said:`, llmResponse);
+            console.log(`[Bot] Turn ${loopCount}: LLM said:`, llmResponse);
 
-            // Parse Response
+            // Parse JSON response
             let payload: LlmPayload = {};
             try {
-                const cleanJson = llmResponse.replace(/```json/g, "").replace(/```/g, "").trim();
-                const start = cleanJson.indexOf("{");
-                const end = cleanJson.lastIndexOf("}");
+                const clean = llmResponse.replace(/```json/g, "").replace(/```/g, "").trim();
+                const start = clean.indexOf("{");
+                const end = clean.lastIndexOf("}");
                 if (start >= 0 && end >= 0) {
-                    payload = JSON.parse(cleanJson.substring(start, end + 1));
+                    payload = JSON.parse(clean.substring(start, end + 1));
                 } else {
                     payload = { reply: llmResponse, actions: [] };
                 }
             } catch (e: any) {
-                console.error("JSON Parse Error:", e, "Raw:", llmResponse);
+                console.error("JSON Parse Error:", e.message, "Raw:", llmResponse);
                 payload = { reply: llmResponse, actions: [] };
             }
 
-            console.log(`[Bot] Parsed: reply="${payload.reply?.substring(0, 50)}..." actions=${JSON.stringify(payload.actions)}`);
+            console.log(`[Bot] Parsed: reply="${payload.reply?.substring(0, 50) || ""}..." actions=${JSON.stringify(payload.actions)}`);
 
-            // Send Text Reply — Module 20: Only send if AI has something to say
+            // PIPE: Send text reply if LLM generated one
             if (payload.reply && payload.reply.trim().length > 0) {
                 await sendMessage(token, chatId, payload.reply);
                 await appendMessage({ session_id: sessionId, bot_id: botId, role: "assistant", content: payload.reply });
-                finalUserReply = payload.reply;
             }
 
-            // Check for Actions
+            // No actions = conversation turn complete
             if (!payload.actions || payload.actions.length === 0) {
-                console.log("[Bot] No actions. Turn complete.");
+                console.log("[Bot] No actions. Done.");
                 break;
             }
 
-            // Add to history
+            // PIPE: Execute tool calls from LLM
             messages.push({ role: "assistant", content: JSON.stringify(payload) });
-
-            // Execute Tools
             const toolOutputs = [];
-            let photosFound = false;
 
             for (const action of payload.actions) {
-                console.log(`[Bot] Tool Call: ${action.tool}`);
+                console.log(`[Bot] Executing tool: ${action.tool}`, JSON.stringify(action.args));
                 let result = "";
                 try {
                     if (action.tool === "search_database") {
@@ -144,32 +124,22 @@ export async function handleMessage(
                         result = await handleSaveLead(action.args as SaveLeadArgs, chatId, userInfo.username);
                     } else if (action.tool === "get_photos") {
                         result = await handleGetPhotos(action.args as GetPhotosArgs, token, chatId);
-                        photosFound = true;
                     } else if (action.tool === "get_agency_info") {
                         result = await handleGetAgencyInfo();
                     } else {
-                        result = "Error: Unknown tool " + (action as any).tool;
+                        result = JSON.stringify({ status: "error", message: "Unknown tool: " + action.tool });
                     }
                 } catch (err: any) {
-                    console.error(`Tool Fail: ${(action as any).tool}`, err);
+                    console.error(`[Bot] Tool error: ${action.tool}`, err.message);
                     result = JSON.stringify({ status: "error", message: err.message });
                 }
+                console.log(`[Bot] Tool result (${action.tool}):`, result.substring(0, 200));
                 toolOutputs.push(`Tool '${action.tool}' result: ${result}`);
             }
 
-            // Build Observation for next turn
+            // PIPE: Return tool results to LLM. No code-level logic, no hints.
             const toolFeedback = toolOutputs.join("\n\n");
-            let systemInjection = "";
-
-            // Module 12: Auto-trigger photos after search
-            if (toolFeedback.includes('"count":') && !toolFeedback.includes('"count":0') && !photosFound) {
-                systemInjection = "\n\n[Module 12 TRIGGER]: Units found. Pick best 'id' and call get_photos(unit_id). Use module_11 format for presentation.";
-            }
-
-            // Module 5: Language reminder
-            systemInjection += `\n\n[Module 5 REMINDER]: User language is ${userLang}. Reply in ${userLang}.`;
-
-            messages.push({ role: "user", content: `<tool_results>\n${toolFeedback}\n</tool_results>${systemInjection}` });
+            messages.push({ role: "user", content: `<tool_results>\n${toolFeedback}\n</tool_results>` });
         }
     } catch (globalErr: any) {
         console.error("CRITICAL MESSAGE HANDLER ERROR:", globalErr);
