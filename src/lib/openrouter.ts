@@ -34,8 +34,8 @@ export async function askLLM(
     messages = promptOrMessages;
   }
 
-  // Claude 3 Haiku - excellent intelligence at low cost ($0.25/1M tokens)
-  const model = "anthropic/claude-3-haiku";
+  // Claude 3.5 Haiku - smart, follows instructions, affordable ($1/1M input, $5/1M output)
+  const model = "anthropic/claude-3.5-haiku";
 
   const requestBody: any = {
     model,
