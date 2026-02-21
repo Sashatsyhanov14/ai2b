@@ -43,11 +43,7 @@ export async function askLLM(
     max_tokens: 2048, // Limit tokens to avoid overspending
   };
 
-  // Add JSON response format for models that support it
-  // This helps ensure consistent JSON output
-  if (!model.includes("o1") && !model.includes("o3") && !noJson) {
-    requestBody.response_format = { type: "json_object" };
-  }
+  // Note: no response_format — we handle JSON parsing manually in messageHandler
 
   console.log("[OpenRouter] Requesting model:", model, "messages count:", messages.length);
 
