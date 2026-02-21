@@ -40,13 +40,14 @@ export async function handleGetPhotos(args: GetPhotosArgs, token: string, chatId
     const limited = photos.slice(0, 10);
 
     try {
+        const caption = unitData.title ? `📸 ${unitData.title}` : '📸 Фото объекта';
         if (limited.length === 1) {
-            await sendPhoto(token, chatId, limited[0], `${unitData.title || 'Unit'} Photos`);
+            await sendPhoto(token, chatId, limited[0], caption);
         } else {
             const mediaGroup: InputMediaPhoto[] = limited.map((url, i) => ({
                 type: 'photo',
                 media: url,
-                caption: i === 0 ? `${unitData.title || 'Unit'} Photos` : undefined
+                caption: i === 0 ? caption : undefined
             }));
             await sendMediaGroup(token, chatId, mediaGroup);
         }
