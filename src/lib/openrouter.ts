@@ -34,8 +34,8 @@ export async function askLLM(
     messages = promptOrMessages;
   }
 
-  // Claude 3.5 Haiku - smart, follows instructions, affordable ($1/1M input, $5/1M output)
-  const model = "anthropic/claude-3.5-haiku";
+  // Claude 3.5 Haiku - smart, follows instructions, affordable
+  const model = "anthropic/claude-3-5-haiku-20241022";
 
   const requestBody: any = {
     model,
@@ -58,8 +58,8 @@ export async function askLLM(
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    console.error("[OpenRouter] API error:", res.status, text);
-    throw new Error(`OpenRouter error: ${res.status} ${text}`);
+    console.error("[OpenRouter] API error:", res.status, text.substring(0, 500));
+    throw new Error(`OpenRouter error ${res.status}: ${text.substring(0, 200)}`);
   }
 
   const json = await res.json();
