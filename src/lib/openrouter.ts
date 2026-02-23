@@ -34,8 +34,8 @@ export async function askLLM(
     messages = promptOrMessages;
   }
 
-  // Claude 3.5 Haiku - smart, follows instructions, affordable
-  const model = "anthropic/claude-3-5-haiku-20241022";
+  // Claude 3.5 Haiku
+  const model = "anthropic/claude-3-5-haiku";
 
   const requestBody: any = {
     model,
