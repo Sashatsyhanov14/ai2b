@@ -34,8 +34,8 @@ export async function askLLM(
     messages = promptOrMessages;
   }
 
-  // Claude 3.5 Haiku
-  const model = "anthropic/claude-3-5-haiku";
+  // GPT-4o-mini - stable, strict with rules, does not hallucinate, and affordable (~$0.15/1M tokens)
+  const model = "openai/gpt-4o-mini";
 
   const requestBody: any = {
     model,
