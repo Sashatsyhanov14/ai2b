@@ -1,6 +1,6 @@
 import { getServerClient } from "@/lib/supabaseClient";
 import { GetPhotosArgs } from "../types";
-import { sendMediaGroup, sendPhoto, InputMediaPhoto } from "@/lib/telegram";
+import { sendMediaGroup, sendPhoto, InputMediaPhoto, sendMessage } from "@/lib/telegram";
 
 export async function handleGetPhotos(args: GetPhotosArgs, token: string, chatId: string): Promise<string> {
     const supabase = getServerClient();
@@ -13,6 +13,7 @@ export async function handleGetPhotos(args: GetPhotosArgs, token: string, chatId
         .single();
 
     if (unitError || !unitData) {
+        await sendMessage(token, chatId, "❌ Объект не найден в базе.");
         return JSON.stringify({ status: "error", message: "Unit not found" });
     }
 
@@ -24,6 +25,7 @@ export async function handleGetPhotos(args: GetPhotosArgs, token: string, chatId
         .order("sort_order", { ascending: true });
 
     if (photoError) {
+        await sendMessage(token, chatId, "❌ Ошибка при загрузке фотографий.");
         return JSON.stringify({ status: "error", message: "Error fetching photos" });
     }
 
@@ -33,6 +35,7 @@ export async function handleGetPhotos(args: GetPhotosArgs, token: string, chatId
     photos = photos.filter(p => p && typeof p === 'string' && p.startsWith('http'));
 
     if (photos.length === 0) {
+        await sendMessage(token, chatId, "К сожалению, для этого объекта пока нет фотографий 😔");
         return JSON.stringify({ status: "success", message: "Unit found but has no photos." });
     }
 
@@ -54,6 +57,7 @@ export async function handleGetPhotos(args: GetPhotosArgs, token: string, chatId
         return JSON.stringify({ status: "success", message: `Sent ${limited.length} photos to user.` });
     } catch (e: any) {
         console.error("Failed to send photos:", e);
+        await sendMessage(token, chatId, "❌ Ошибка Telegram при отправке фотографий.");
         return JSON.stringify({ status: "error", message: "Failed to send photos to Telegram: " + e.message });
     }
 }
