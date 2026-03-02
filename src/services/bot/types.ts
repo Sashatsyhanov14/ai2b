@@ -2,6 +2,7 @@ export type ToolAction =
   | { tool: "search_database"; args: SearchArgs }
   | { tool: "save_lead"; args: SaveLeadArgs }
   | { tool: "get_photos"; args: GetPhotosArgs }
+  | { tool: "get_unit_description"; args: { unit_id: number | string } }
   | { tool: "get_agency_info"; args: {} };
 
 export type SearchArgs = {

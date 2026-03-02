@@ -9,6 +9,7 @@ import { LlmPayload, SearchArgs, SaveLeadArgs, GetPhotosArgs } from "../types";
 import { handleSearchDatabase } from "../actions/search";
 import { handleSaveLead } from "../actions/leads";
 import { handleGetPhotos } from "../actions/photos";
+import { handleGetDescription } from "../actions/description";
 import { handleGetAgencyInfo } from "../actions/agency";
 
 export async function handleMessage(
@@ -152,6 +153,8 @@ export async function handleMessage(
                         result = await handleSaveLead(action.args as SaveLeadArgs, chatId, userInfo.username);
                     } else if (action.tool === "get_photos") {
                         result = await handleGetPhotos(action.args as GetPhotosArgs, token, chatId);
+                    } else if (action.tool === "get_unit_description") {
+                        result = await handleGetDescription(action.args as any);
                     } else if (action.tool === "get_agency_info") {
                         result = await handleGetAgencyInfo();
                     } else {

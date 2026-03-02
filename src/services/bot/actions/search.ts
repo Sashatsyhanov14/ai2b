@@ -4,10 +4,10 @@ import { SearchArgs } from "../types";
 export async function handleSearchDatabase(args: SearchArgs): Promise<string> {
     const supabase = getServerClient();
 
-    // DUMP THE ENTIRE TABLE. AI is the brain — it decides.
+    // DUMP THE ENTIRE TABLE but exclude "description" to save tokens and prevent Vercel timeouts.
     const { data, error } = await supabase
         .from("units")
-        .select("*");
+        .select("id, city, address, type, rooms, floor, floors_total, area_m2, price, status, title, features, is_active");
 
     if (error) {
         console.error("Search DB Error:", error);
