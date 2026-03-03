@@ -153,7 +153,28 @@ export async function handleMessage(
                 let result = "";
                 try {
                     if (action.tool === "search_database") {
-                        result = await handleSearchDatabase(action.args as SearchArgs);
+                        const rawResult = await handleSearchDatabase(action.args as SearchArgs);
+                        try {
+                            const parsed = JSON.parse(rawResult);
+                            if (parsed.units && Array.isArray(parsed.units)) {
+                                // Extract all UUIDs mentioned by assistant in recent history
+                                const assistantHistory = messages
+                                    .filter((m: any) => m.role === "assistant")
+                                    .map((m: any) => m.content)
+                                    .join(" ");
+                                const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+                                const shownIds = Array.from(assistantHistory.matchAll(uuidRegex)).map((m: any) => m[0]);
+
+                                // Filter out already shown units
+                                parsed.units = parsed.units.filter((u: any) => !shownIds.includes(u.id));
+                                parsed.count = parsed.units.length;
+                                result = JSON.stringify(parsed);
+                            } else {
+                                result = rawResult;
+                            }
+                        } catch (e) {
+                            result = rawResult;
+                        }
                         searchCalledThisLoop = true;
                     } else if (action.tool === "save_lead") {
                         result = await handleSaveLead(action.args as SaveLeadArgs, chatId, userInfo.username);
