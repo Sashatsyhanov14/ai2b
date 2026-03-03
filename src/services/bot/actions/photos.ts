@@ -13,7 +13,7 @@ export async function handleGetPhotos(args: GetPhotosArgs, token: string, chatId
         .single();
 
     if (unitError || !unitData) {
-        await sendMessage(token, chatId, "❌ Объект не найден в базе.");
+        await sendMessage(token, chatId, `❌ Объект (ID: ${args.unit_id}) не найден в базе.`);
         return JSON.stringify({ status: "error", message: "Unit not found" });
     }
 
@@ -35,7 +35,7 @@ export async function handleGetPhotos(args: GetPhotosArgs, token: string, chatId
     photos = photos.filter(p => p && typeof p === 'string' && p.startsWith('http'));
 
     if (photos.length === 0) {
-        await sendMessage(token, chatId, "К сожалению, для этого объекта пока нет фотографий 😔");
+        await sendMessage(token, chatId, `К сожалению, для этого объекта (ID: ${args.unit_id}) пока нет фотографий 😔`);
         return JSON.stringify({ status: "success", message: "Unit found but has no photos." });
     }
 
