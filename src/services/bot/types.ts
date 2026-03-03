@@ -25,6 +25,7 @@ export type GetPhotosArgs = {
 
 export type LlmPayload = {
   reply?: string;
+  manager_message?: string | null;
   actions?: ToolAction[];
 };
 

@@ -132,6 +132,13 @@ export async function handleMessage(
                 await appendMessage({ session_id: sessionId, bot_id: botId, role: "assistant", content: payload.reply });
             }
 
+            // Handle manager messaging if requested
+            if (payload.manager_message && payload.manager_message.trim().length > 0) {
+                const managerChatId = process.env.MANAGER_CHAT_ID || "-1002347895289";
+                console.log(`[Bot] Sending manager_message to ${managerChatId}`);
+                await sendMessage(token, managerChatId, `⚠️ СООБЩЕНИЕ ОТ ИИ-БОТА:\nОт: @${userInfo.username || userInfo.phone || chatId}\n\n${payload.manager_message}`);
+            }
+
             // No actions = conversation turn complete
             if (!hasActions) {
                 if (!payload.reply || payload.reply.trim().length === 0) {
