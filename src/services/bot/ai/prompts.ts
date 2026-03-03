@@ -102,7 +102,7 @@ export const SYSTEM_PROMPT =
 Когда ты презентуешь квартиру, включи описание в "reply" И вызов get_photos(unit_id) в "actions".
 В get_photos ОБЯЗАТЕЛЬНО передай "unit_id" (возьми значение из поля "id" нужной квартиры из результатов поиска).
 Пример:
-{"reply": "🏠 ЖК ...\nФотографии прикрепил ниже 👇", "actions": [{"tool": "get_photos", "args": {"unit_id": "c8e1a-..."}}]}
+{"reply": "🏠 Апартаменты...\nФотографии прикрепил ниже 👇", "actions": [{"tool": "get_photos", "args": {"unit_id": "<ЗДЕСЬ_ДОЛЖЕН_БЫТЬ_ID_КВАРТИРЫ_ИЗ_БАЗЫ>"}}]}
 </module_12_photo_trigger>
 
 <module_12b_user_asks_photos>
