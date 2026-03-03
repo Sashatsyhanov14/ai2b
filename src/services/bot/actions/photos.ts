@@ -2,18 +2,24 @@ import { getServerClient } from "@/lib/supabaseClient";
 import { GetPhotosArgs } from "../types";
 import { sendMediaGroup, sendPhoto, InputMediaPhoto, sendMessage } from "@/lib/telegram";
 
-export async function handleGetPhotos(args: GetPhotosArgs, token: string, chatId: string): Promise<string> {
+export async function handleGetPhotos(args: any, token: string, chatId: string): Promise<string> {
     const supabase = getServerClient();
+
+    const unitId = args.unit_id || args.id;
+
+    if (!unitId) {
+        return JSON.stringify({ status: "error", message: "CRITICAL: You must provide a valid 'unit_id' (the 'id' of the property from search results). Do not call get_photos without an ID." });
+    }
 
     // 1. Get Unit info (project name)
     const { data: unitData, error: unitError } = await supabase
         .from("units")
         .select("title")
-        .eq("id", args.unit_id)
+        .eq("id", unitId)
         .single();
 
     if (unitError || !unitData) {
-        await sendMessage(token, chatId, `❌ Объект (ID: ${args.unit_id}) не найден в базе.`);
+        await sendMessage(token, chatId, `❌ Объект (ID: ${unitId}) не найден в базе.`);
         return JSON.stringify({ status: "error", message: "Unit not found" });
     }
 
@@ -21,7 +27,7 @@ export async function handleGetPhotos(args: GetPhotosArgs, token: string, chatId
     const { data: photoData, error: photoError } = await supabase
         .from("unit_photos")
         .select("url")
-        .eq("unit_id", args.unit_id)
+        .eq("unit_id", unitId)
         .order("sort_order", { ascending: true });
 
     if (photoError) {
@@ -35,7 +41,7 @@ export async function handleGetPhotos(args: GetPhotosArgs, token: string, chatId
     photos = photos.filter(p => p && typeof p === 'string' && p.startsWith('http'));
 
     if (photos.length === 0) {
-        await sendMessage(token, chatId, `К сожалению, для этого объекта (ID: ${args.unit_id}) пока нет фотографий 😔`);
+        await sendMessage(token, chatId, `К сожалению, для этого объекта (ID: ${unitId}) пока нет фотографий 😔`);
         return JSON.stringify({ status: "success", message: "Unit found but has no photos." });
     }
 
