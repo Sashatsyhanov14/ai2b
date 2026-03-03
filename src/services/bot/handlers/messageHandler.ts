@@ -134,9 +134,23 @@ export async function handleMessage(
 
             // Handle manager messaging if requested
             if (payload.manager_message && payload.manager_message.trim().length > 0) {
-                const managerChatId = process.env.MANAGER_CHAT_ID || "-1002347895289";
-                console.log(`[Bot] Sending manager_message to ${managerChatId}`);
-                await sendMessage(token, managerChatId, `⚠️ СООБЩЕНИЕ ОТ ИИ-БОТА:\nОт: @${userInfo.username || userInfo.phone || chatId}\n\n${payload.manager_message}`);
+                console.log(`[Bot] Sending manager_message to all active managers`);
+                const { getServerClient } = await import("@/lib/supabaseClient");
+                const supabase = getServerClient();
+                const { data: managers } = await supabase.from("telegram_managers").select("telegram_id").eq("is_active", true);
+
+                const finalMsg = `⚠️ СООБЩЕНИЕ ОТ ИИ-БОТА:\nОт: @${userInfo.username || userInfo.phone || chatId}\n\n${payload.manager_message}`;
+
+                if (managers && managers.length > 0) {
+                    for (const m of managers) {
+                        if (m.telegram_id) {
+                            await sendMessage(token, String(m.telegram_id), finalMsg).catch(e => console.error("Failed to notify manager:", e));
+                        }
+                    }
+                } else {
+                    const fallbackChatId = process.env.MANAGER_CHAT_ID || "-1002347895289";
+                    await sendMessage(token, fallbackChatId, finalMsg).catch(e => console.error("Failed to notify fallback manager:", e));
+                }
             }
 
             // No actions = conversation turn complete
