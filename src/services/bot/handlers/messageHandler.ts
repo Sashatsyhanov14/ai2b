@@ -134,6 +134,12 @@ export async function handleMessage(
 
             // No actions = conversation turn complete
             if (!hasActions) {
+                if (!payload.reply || payload.reply.trim().length === 0) {
+                    console.log("[Bot] GUARDRAIL: LLM stayed silent. Forcing fallback reply.");
+                    const fallback = "К сожалению, других подходящих вариантов по этому запросу сейчас нет. Хотите поискать с другими параметрами (город, бюджет) или мне переключить вас на менеджера?";
+                    await sendMessage(token, chatId, fallback);
+                    await appendMessage({ session_id: sessionId, bot_id: botId, role: "assistant", content: fallback });
+                }
                 console.log("[Bot] No actions. Done.");
                 break;
             }
