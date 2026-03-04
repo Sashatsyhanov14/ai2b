@@ -1,16 +1,12 @@
-import { askLLM } from "@/lib/openrouter";
 import { sendMessage } from "@/lib/telegram";
 import { getServerClient } from "@/lib/supabaseClient";
 import { findOrCreateSession, appendMessage, listMessages } from "@/services/sessions";
-import { SYSTEM_PROMPT } from "../ai/prompts";
-import { LlmPayload, SearchArgs, SaveLeadArgs, GetPhotosArgs } from "../types";
+import { runRouterAgent, runCommunicationAgent, RoleMessage } from "../ai/agents";
 
-// The Hands (Tools)
+// Tools
 import { handleSearchDatabase } from "../actions/search";
 import { handleSaveLead } from "../actions/leads";
 import { handleGetPhotos } from "../actions/photos";
-import { handleGetDescription } from "../actions/description";
-import { handleGetAgencyInfo } from "../actions/agency";
 
 export async function handleMessage(
     text: string,
@@ -33,7 +29,7 @@ export async function handleMessage(
             payload: { update }
         });
 
-        // 2. Build Context (Code = Pipe: just fetch data and pass to LLM)
+        // 2. Build Context
         const supabase = getServerClient();
         const { data: instructions } = await supabase
             .from('bot_instructions')
@@ -41,27 +37,33 @@ export async function handleMessage(
             .eq('is_active', true)
             .order('created_at', { ascending: true });
 
-        let dynamicPrompt = SYSTEM_PROMPT;
-        if (instructions && instructions.length > 0) {
-            const rules = instructions.map((r: any) => `- ${r.text}`).join("\n");
-            dynamicPrompt += `\n\n### DASHBOARD INSTRUCTIONS (CRITICAL)\n${rules}`;
-        }
+        const rules = instructions && instructions.length > 0
+            ? instructions.map((r: any) => `- ${r.text}`).join("\n")
+            : "Общайся вежливо и помогай клиенту.";
 
-        // Add user language_code from Telegram as context for LLM
-        const langHint = userInfo.language_code || "ru";
-        dynamicPrompt += `\n\n<USER_CONTEXT>Telegram language_code: ${langHint}</USER_CONTEXT>`;
+        const { data: companyInfoRows } = await supabase
+            .from('company_info')
+            .select('key, value')
+            .eq('is_active', true);
 
-        const messages: any[] = [{ role: "system", content: dynamicPrompt }];
+        const companyInfoStr = companyInfoRows && companyInfoRows.length > 0
+            ? companyInfoRows.map(r => `${r.key}: ${r.value}`).join("\n")
+            : "";
 
-        // Load history
+        const botKnowledge = `[ПРАВИЛА]:\n${rules}\n\n[О КОМПАНИИ]:\n${companyInfoStr}`;
+
+        // Load history for LLM
         const history = await listMessages(sessionId, 10);
         const sortedHistory = (history || []).sort((a, b) =>
             new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         );
 
+        const messages: RoleMessage[] = [];
         for (const msg of sortedHistory) {
-            if (msg.role === 'system') continue;
-            messages.push({ role: msg.role, content: msg.content || "" });
+            if (msg.role === 'system' || !msg.content) continue;
+            // Map our DB role to RoleMessage role
+            const role = msg.role === 'assistant' ? 'assistant' : 'user';
+            messages.push({ role, content: msg.content });
         }
 
         // Avoid duplicate of current message
@@ -70,164 +72,106 @@ export async function handleMessage(
             messages.push({ role: "user", content: text });
         }
 
-        // 3. THE LOOP: LLM decides everything. Code just routes.
-        let loopCount = 0;
-        const MAX_LOOPS = 5;
+        // 3. MULTI-AGENT PIPELINE
+        console.log(`[Bot] Executing Router Agent...`);
+        const routerInstruction = await runRouterAgent(messages);
+        console.log(`[Bot] Router decision:`, JSON.stringify(routerInstruction));
 
-        let searchCalledThisLoop = false; // Track if real data was fetched
+        const route = routerInstruction.route;
+        let finalReplyText = "";
+        let unitsFound: any[] = [];
 
-        while (loopCount < MAX_LOOPS) {
-            loopCount++;
-            console.log(`[Bot] Turn ${loopCount}: Asking LLM...`);
+        switch (route) {
+            case "ignore":
+                console.log("[Bot] Route: ignore. Not replying.");
+                return;
 
-            const llmResponse = await askLLM(messages);
-            console.log(`[Bot] Turn ${loopCount}: LLM said:`, llmResponse);
+            case "search_apartments":
+                console.log("[Bot] Route: search_apartments. Querying DB...", routerInstruction.search_params);
+                try {
+                    const rawResult = await handleSearchDatabase(routerInstruction.search_params || {});
+                    const parsed = JSON.parse(rawResult);
 
-            // Parse JSON response
-            let payload: LlmPayload = {};
-            try {
-                const clean = llmResponse.replace(/```json/g, "").replace(/```/g, "").trim();
-                const start = clean.indexOf("{");
-                const end = clean.lastIndexOf("}");
-                if (start >= 0 && end >= 0) {
-                    payload = JSON.parse(clean.substring(start, end + 1));
-                } else {
-                    payload = { reply: llmResponse, actions: [] };
-                }
-            } catch (e: any) {
-                console.error("JSON Parse Error:", e.message, "Raw:", llmResponse);
-                payload = { reply: llmResponse, actions: [] };
-            }
+                    if (parsed.units && Array.isArray(parsed.units)) {
+                        // Anti-repeat logic
+                        const assistantHistory = messages
+                            .filter(m => m.role === "assistant")
+                            .map(m => m.content)
+                            .join(" ");
+                        const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+                        const shownIds = Array.from(assistantHistory.matchAll(uuidRegex)).map((m: any) => m[0]);
 
-            console.log(`[Bot] Parsed: reply="${payload.reply?.substring(0, 50) || ""}..." actions=${JSON.stringify(payload.actions)}`);
-
-            // GUARDRAIL: If LLM presents apartments (🏠) without search in this loop, force search
-            const hasApartmentPresentation = typeof payload.reply === "string" && payload.reply.includes("🏠");
-            const hasSearchAction = Array.isArray(payload.actions) && payload.actions.some((a: any) => a.tool === "search_database");
-
-            if (hasApartmentPresentation && !searchCalledThisLoop && !hasSearchAction) {
-                console.log("[Bot] GUARDRAIL: LLM hallucinated apartments without search. Forcing search...");
-                payload.reply = "";
-                payload.actions = [{ tool: "search_database", args: {} }];
-            }
-
-            // Guardrail: Ensure they don't hallucinate multiple apartments in a single reply
-            if (typeof payload.reply === "string") {
-                const apartmentMarkers = (payload.reply.match(/🏠/g) || []).length;
-                if (apartmentMarkers > 1) {
-                    console.log("[Bot] GUARDRAIL TRIGGERED: LLM tried to present multiple apartments. Forcing tool call.");
-                    payload.reply = "Кажется, я нашел несколько вариантов. Дай мне секунду, чтобы выбрать лучший для вас...";
-                    if (!hasSearchAction) { // Use hasSearchAction from above, or re-evaluate if needed
-                        payload.actions = [{ tool: "search_database", args: { query: "recent" } }];
+                        unitsFound = parsed.units.filter((u: any) => !shownIds.includes(u.id));
                     }
+                } catch (e) {
+                    console.error("Search failed:", e);
                 }
-            }
 
-            // Decide if we should send this reply to the user
-            const hasActions = Array.isArray(payload.actions) && payload.actions.length > 0;
-            const isPhotosCombo = hasActions && payload.actions!.some((a: any) => a.tool === "get_photos");
-            const shouldSend = !hasActions || isPhotosCombo;
+                // Compile data for Communication Agent
+                const dbData = unitsFound.length > 0
+                    ? JSON.stringify(unitsFound.slice(0, 3), null, 2)
+                    : "Квартиры по этому запросу не найдены. Предложи изменить параметры (город, бюджет).";
 
-            if (typeof payload.reply === "string" && payload.reply.trim().length > 0 && shouldSend) {
-                await sendMessage(token, chatId, payload.reply);
-                await appendMessage({ session_id: sessionId, bot_id: botId, role: "assistant", content: payload.reply });
-            }
+                // Generate text
+                console.log("[Bot] Executing Communication Agent (Search Result)...");
+                finalReplyText = await runCommunicationAgent(messages, botKnowledge, dbData);
+                break;
 
-            // Handle manager messaging if requested
-            if (typeof payload.manager_message === "string" && payload.manager_message.trim().length > 0) {
-                console.log(`[Bot] Sending manager_message to all active managers`);
-                const supabase = getServerClient();
+            case "capture_lead":
+                console.log("[Bot] Route: capture_lead. Saving lead...");
+                const leadParams = routerInstruction.lead_info || {};
+                const phone = leadParams.phone || userInfo.phone || "Unknown";
+                const name = leadParams.name || userInfo.fullName || userInfo.username || "Client";
+                const info = leadParams.summary || "No details";
+
+                await handleSaveLead({ phone, name, info }, chatId, userInfo.username);
+
+                // Alert managers
+                const alertMsg = `⚠️ НОВЫЙ ЛИД ОТ ИИ-БОТА:\nОт: @${userInfo.username || chatId}\nИмя: ${name}\nТелефон: ${phone}\nКонтекст: ${info}`;
                 const { data: managers } = await supabase.from("telegram_managers").select("telegram_id").eq("is_active", true);
-
-                const finalMsg = `⚠️ СООБЩЕНИЕ ОТ ИИ-БОТА:\nОт: @${userInfo.username || userInfo.phone || chatId}\n\n${payload.manager_message}`;
-
                 if (managers && managers.length > 0) {
                     for (const m of managers) {
                         if (m.telegram_id) {
-                            await sendMessage(token, String(m.telegram_id), finalMsg).catch(e => console.error("Failed to notify manager:", e));
+                            await sendMessage(token, String(m.telegram_id), alertMsg).catch(() => { });
                         }
                     }
-                } else {
-                    const fallbackChatId = process.env.MANAGER_CHAT_ID || "-1002347895289";
-                    await sendMessage(token, fallbackChatId, finalMsg).catch(e => console.error("Failed to notify fallback manager:", e));
                 }
-            }
 
-            // No actions = conversation turn complete
-            if (!hasActions) {
-                if (typeof payload.reply !== "string" || payload.reply.trim().length === 0) {
-                    console.log("[Bot] GUARDRAIL: LLM stayed silent. Forcing fallback reply.");
-                    const fallback = "К сожалению, других подходящих вариантов по этому запросу сейчас нет. Хотите поискать с другими параметрами (город, бюджет) или мне переключить вас на менеджера?";
-                    await sendMessage(token, chatId, fallback);
-                    await appendMessage({ session_id: sessionId, bot_id: botId, role: "assistant", content: fallback });
-                }
-                console.log("[Bot] No actions. Done.");
+                // Generate text
+                console.log("[Bot] Executing Communication Agent (Lead Captured)...");
+                finalReplyText = await runCommunicationAgent(messages, botKnowledge, "Контактные данные успешно переданы менеджеру. Менеджер скоро свяжется с клиентом. Скажи спасибо.");
                 break;
-            }
 
-            // PIPE: Execute tool calls from LLM
-            messages.push({ role: "assistant", content: JSON.stringify(payload) });
-            const toolOutputs = [];
-
-            const safeActions = Array.isArray(payload.actions) ? payload.actions : [];
-            for (const action of safeActions) {
-                console.log(`[Bot] Executing tool: ${action.tool}`, JSON.stringify(action.args));
-                let result = "";
-                try {
-                    if (action.tool === "search_database") {
-                        const rawResult = await handleSearchDatabase(action.args as SearchArgs);
-                        try {
-                            const parsed = JSON.parse(rawResult);
-                            if (parsed.units && Array.isArray(parsed.units)) {
-                                // Extract all UUIDs mentioned by assistant in recent history
-                                const assistantHistory = messages
-                                    .filter((m: any) => m.role === "assistant")
-                                    .map((m: any) => m.content)
-                                    .join(" ");
-                                const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
-                                const shownIds = Array.from(assistantHistory.matchAll(uuidRegex)).map((m: any) => m[0]);
-
-                                // Filter out already shown units
-                                parsed.units = parsed.units.filter((u: any) => !shownIds.includes(u.id));
-                                parsed.count = parsed.units.length;
-                                result = JSON.stringify(parsed);
-                            } else {
-                                result = rawResult;
-                            }
-                        } catch (e) {
-                            result = rawResult;
-                        }
-                        searchCalledThisLoop = true;
-                    } else if (action.tool === "save_lead") {
-                        result = await handleSaveLead(action.args as SaveLeadArgs, chatId, userInfo.username);
-                    } else if (action.tool === "get_photos") {
-                        result = await handleGetPhotos(action.args as GetPhotosArgs, token, chatId);
-                    } else if (action.tool === "get_unit_description") {
-                        result = await handleGetDescription(action.args as any);
-                    } else if (action.tool === "get_agency_info") {
-                        result = await handleGetAgencyInfo();
-                    } else {
-                        result = JSON.stringify({ status: "error", message: "Unknown tool: " + (action as any).tool });
-                    }
-                } catch (err: any) {
-                    console.error(`[Bot] Tool error: ${(action as any).tool}`, err.message);
-                    result = JSON.stringify({ status: "error", message: err.message });
-                }
-                console.log(`[Bot] Tool result (${action.tool}):`, result.substring(0, 200));
-                toolOutputs.push(`Tool '${action.tool}' result: ${result}`);
-            }
-            // If photos were sent, this is the final step. Stop the loop.
-            if (isPhotosCombo) {
-                console.log("[Bot] Photos sent. Presentation complete.");
+            case "communicate":
+            default:
+                console.log("[Bot] Route: communicate. Executing Communication Agent...");
+                finalReplyText = await runCommunicationAgent(messages, botKnowledge, "Просто ответь на вопрос клиента. База данных не задействована. Контекст: " + routerInstruction.context_for_communication);
                 break;
-            }
-
-            // PIPE: Return tool results to LLM for next turn.
-            const toolFeedback = toolOutputs.join("\n\n");
-            messages.push({ role: "user", content: `<tool_results>\n${toolFeedback}\n</tool_results>` });
         }
+
+        // 4. Final Output to User
+        if (finalReplyText) {
+            console.log("[Bot] Sending final text to Telegram...");
+            await sendMessage(token, chatId, finalReplyText);
+            await appendMessage({ session_id: sessionId, bot_id: botId, role: "assistant", content: finalReplyText });
+        }
+
+        // 5. Send Photos strictly AFTER text message if we found units
+        if (route === "search_apartments" && unitsFound.length > 0) {
+            console.log(`[Bot] Sending photos for ${unitsFound.length} units...`);
+            // Only send photos for the top 3 presented
+            const displayedUnits = unitsFound.slice(0, 3);
+            for (const unit of displayedUnits) {
+                if (unit.id) {
+                    await handleGetPhotos({ unit_id: String(unit.id) }, token, chatId).catch(e => console.error("Error sending photo for", unit.id, e));
+                }
+            }
+        }
+
+        console.log("[Bot] Turn complete.");
+
     } catch (globalErr: any) {
         console.error("CRITICAL MESSAGE HANDLER ERROR:", globalErr);
-        await sendMessage(token, chatId, "Произошла ошибка. Попробуйте еще раз. Текст ошибки: " + (globalErr?.message || String(globalErr)));
+        await sendMessage(token, chatId, "Произошла ошибка системы. Попробуйте еще раз. Текст: " + (globalErr?.message || String(globalErr)));
     }
 }
