@@ -102,8 +102,8 @@ export async function handleMessage(
             console.log(`[Bot] Parsed: reply="${payload.reply?.substring(0, 50) || ""}..." actions=${JSON.stringify(payload.actions)}`);
 
             // GUARDRAIL: If LLM presents apartments (🏠) without search in this loop, force search
-            const hasApartmentPresentation = payload.reply && payload.reply.includes("🏠");
-            const hasSearchAction = payload.actions?.some((a: any) => a.tool === "search_database");
+            const hasApartmentPresentation = typeof payload.reply === "string" && payload.reply.includes("🏠");
+            const hasSearchAction = Array.isArray(payload.actions) && payload.actions.some((a: any) => a.tool === "search_database");
 
             if (hasApartmentPresentation && !searchCalledThisLoop && !hasSearchAction) {
                 console.log("[Bot] GUARDRAIL: LLM hallucinated apartments without search. Forcing search...");
@@ -111,31 +111,31 @@ export async function handleMessage(
                 payload.actions = [{ tool: "search_database", args: {} }];
             }
 
-            // GUARDRAIL: Strip multiple apartments — only allow 1 per reply
-            if (payload.reply) {
+            // Guardrail: Ensure they don't hallucinate multiple apartments in a single reply
+            if (typeof payload.reply === "string") {
                 const apartmentMarkers = (payload.reply.match(/🏠/g) || []).length;
                 if (apartmentMarkers > 1) {
-                    console.log("[Bot] GUARDRAIL: Multiple apartments in reply. Trimming to first.");
-                    const firstIdx = payload.reply.indexOf("🏠");
-                    const secondIdx = payload.reply.indexOf("🏠", firstIdx + 1);
-                    payload.reply = payload.reply.substring(0, secondIdx).trim();
+                    console.log("[Bot] GUARDRAIL TRIGGERED: LLM tried to present multiple apartments. Forcing tool call.");
+                    payload.reply = "Кажется, я нашел несколько вариантов. Дай мне секунду, чтобы выбрать лучший для вас...";
+                    if (!hasSearchAction) { // Use hasSearchAction from above, or re-evaluate if needed
+                        payload.actions = [{ tool: "search_database", args: { query: "recent" } }];
+                    }
                 }
             }
 
             // Decide if we should send this reply to the user
-            const hasActions = payload.actions && payload.actions.length > 0;
+            const hasActions = Array.isArray(payload.actions) && payload.actions.length > 0;
             const isPhotosCombo = hasActions && payload.actions!.some((a: any) => a.tool === "get_photos");
             const shouldSend = !hasActions || isPhotosCombo;
 
-            if (payload.reply && payload.reply.trim().length > 0 && shouldSend) {
+            if (typeof payload.reply === "string" && payload.reply.trim().length > 0 && shouldSend) {
                 await sendMessage(token, chatId, payload.reply);
                 await appendMessage({ session_id: sessionId, bot_id: botId, role: "assistant", content: payload.reply });
             }
 
             // Handle manager messaging if requested
-            if (payload.manager_message && payload.manager_message.trim().length > 0) {
+            if (typeof payload.manager_message === "string" && payload.manager_message.trim().length > 0) {
                 console.log(`[Bot] Sending manager_message to all active managers`);
-                const { getServerClient } = await import("@/lib/supabaseClient");
                 const supabase = getServerClient();
                 const { data: managers } = await supabase.from("telegram_managers").select("telegram_id").eq("is_active", true);
 
@@ -155,7 +155,7 @@ export async function handleMessage(
 
             // No actions = conversation turn complete
             if (!hasActions) {
-                if (!payload.reply || payload.reply.trim().length === 0) {
+                if (typeof payload.reply !== "string" || payload.reply.trim().length === 0) {
                     console.log("[Bot] GUARDRAIL: LLM stayed silent. Forcing fallback reply.");
                     const fallback = "К сожалению, других подходящих вариантов по этому запросу сейчас нет. Хотите поискать с другими параметрами (город, бюджет) или мне переключить вас на менеджера?";
                     await sendMessage(token, chatId, fallback);
@@ -169,7 +169,8 @@ export async function handleMessage(
             messages.push({ role: "assistant", content: JSON.stringify(payload) });
             const toolOutputs = [];
 
-            for (const action of payload.actions ?? []) {
+            const safeActions = Array.isArray(payload.actions) ? payload.actions : [];
+            for (const action of safeActions) {
                 console.log(`[Bot] Executing tool: ${action.tool}`, JSON.stringify(action.args));
                 let result = "";
                 try {
@@ -227,6 +228,6 @@ export async function handleMessage(
         }
     } catch (globalErr: any) {
         console.error("CRITICAL MESSAGE HANDLER ERROR:", globalErr);
-        await sendMessage(token, chatId, "Произошла ошибка. Попробуйте еще раз.");
+        await sendMessage(token, chatId, "Произошла ошибка. Попробуйте еще раз. Текст ошибки: " + (globalErr?.message || String(globalErr)));
     }
 }
