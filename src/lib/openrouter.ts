@@ -40,7 +40,7 @@ export async function askLLM(
   const requestBody: any = {
     model,
     messages,
-    max_tokens: 2048, // Limit tokens to avoid overspending
+    max_tokens: 1000, // Reduced to avoid 402 out-of-credits error
   };
 
   if (!noJson) {
