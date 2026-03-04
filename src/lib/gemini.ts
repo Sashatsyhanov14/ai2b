@@ -15,7 +15,7 @@ export async function askLLM(
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set.");
 
-    const modelName = "google/gemini-2.0-flash-exp:free";
+    const modelName = "google/gemini-2.0-pro-exp-02-05:free";
 
     let messages: any[] = [];
 
