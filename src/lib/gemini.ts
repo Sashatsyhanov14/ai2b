@@ -4,109 +4,86 @@ type Message = {
 };
 
 /**
- * Ask LLM via Google Gemini API (Native REST)
- * @param promptOrMessages - Either a string prompt or an array of messages for full conversation history
- * @param system - System prompt (only used when promptOrMessages is a string)
+ * Ask LLM via OpenRouter API (Free Gemini 2.0 Pro Experimental)
  */
 export async function askLLM(
-    promptOrMessages: string | Message[],
+    promptOrMessages: string | Message[] | any[],
     system?: string,
     noJson: boolean = false,
     jsonSchema?: any
 ): Promise<string> {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error("GEMINI_API_KEY is not set. Настройте GEMINI_API_KEY в Vercel и .env.local");
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set.");
 
-    let inputMessages: Message[];
+    const modelName = "google/gemini-2.0-flash-exp:free";
+
+    let messages: any[] = [];
 
     if (typeof promptOrMessages === "string") {
-        inputMessages = [
-            {
-                role: "system",
-                content:
-                    system ??
-                    "Ты — вежливый, понятный ассистент. Отвечай кратко, по делу и на языке пользователя.",
-            },
-            { role: "user", content: promptOrMessages },
-        ];
+        if (system) {
+            messages.push({ role: "system", content: system });
+        } else {
+            messages.push({ role: "system", content: "Ты помощник." });
+        }
+        messages.push({ role: "user", content: promptOrMessages });
     } else {
-        inputMessages = promptOrMessages;
+        // Find existing system prompt
+        const hasSystem = promptOrMessages.some(m => m.role === "system");
+        if (system && !hasSystem) {
+            messages.push({ role: "system", content: system });
+        }
+        messages.push(...(promptOrMessages as any[]));
     }
-
-    // 1. Extract system instruction
-    const systemMessages = inputMessages.filter((m) => m.role === "system");
-    const systemInstructionText = systemMessages.map((m) => m.content).join("\n\n");
-
-    // 2. Map history to Gemini format
-    const contents: any[] = [];
-
-    for (const m of inputMessages) {
-        if (m.role === "system") continue;
-
-        // Gemini roles: "user" | "model"
-        const role = m.role === "assistant" ? "model" : "user";
-
-        // Empty strings are not allowed in Gemini textual parts.
-        const text = m.content && m.content.trim().length > 0 ? m.content : " ";
-
-        contents.push({
-            role,
-            parts: [{ text }],
-        });
-    }
-
-    // Gemini strict constraint: the conversation history contents must start with a user role
-    if (contents.length > 0 && contents[0].role === "model") {
-        // Prepend a silent user ping to fix the sequence
-        contents.unshift({
-            role: "user",
-            parts: [{ text: "Здравствуйте" }]
-        });
-    }
-
-    const modelName = "gemini-2.0-flash"; // Fast and capable model
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
     const requestBody: any = {
-        contents,
-        generationConfig: {
-            maxOutputTokens: 2048,
-        },
+        model: modelName,
+        messages,
+        max_tokens: 4000,
     };
 
-    if (systemInstructionText) {
-        requestBody.systemInstruction = {
-            parts: [{ text: systemInstructionText }]
-        };
-    }
-
-    // Native JSON Mode support in Gemini
     if (!noJson) {
-        requestBody.generationConfig.responseMimeType = "application/json";
+        requestBody.response_format = { type: "json_object" };
         if (jsonSchema) {
-            requestBody.generationConfig.responseSchema = jsonSchema;
+            // Note: OpenRouter Gemini doesn't always strictly support the json_schema object, 
+            // so we inject the schema into the latest system prompt as a bulletproof fallback rule.
+            const schemaString = JSON.stringify(jsonSchema, null, 2);
+            // Append rules to the system message
+            let systemMsg = messages.find(m => m.role === "system");
+            if (!systemMsg) {
+                systemMsg = { role: "system", content: "" };
+                messages.unshift(systemMsg);
+            }
+            systemMsg.content += `\n\n[CRITICAL RULE]: You MUST output strictly in JSON format according to this JSON Schema:\n${schemaString}\n\nDo not include any text before or after the JSON block. Do not wrap in markdown \`\`\`json.`;
         }
     }
 
-    console.log(`[Gemini] Requesting model: ${modelName}, messages count: ${contents.length}`);
+    console.log(`[OpenRouter/Gemini] Requesting model: ${modelName}, messages: ${messages.length}`);
 
-    const res = await fetch(url, {
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
+            "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json",
+            "HTTP-Referer": "https://ai2b.app", // Optional
+            "X-Title": "AI2B Agent Army", // Optional
         },
         body: JSON.stringify(requestBody),
     });
 
     if (!res.ok) {
         const text = await res.text().catch(() => "");
-        console.error("[Gemini] API error:", res.status, text.substring(0, 500));
-        throw new Error(`Gemini API error ${res.status}: ${text.substring(0, 200)}`);
+        throw new Error(`OpenRouter API error ${res.status}: ${text.substring(0, 500)}`);
     }
 
     const json = await res.json();
-    const content: string | undefined = json?.candidates?.[0]?.content?.parts?.[0]?.text;
+    let content = json?.choices?.[0]?.message?.content ?? "";
 
-    console.log("[Gemini] Response content length:", content?.length ?? 0);
-    return content ?? "";
+    // Clean up if the model wrapped it in markdown anyway
+    content = content.trim();
+    if (!noJson) {
+        content = content.replace(/^```json/, "").replace(/```$/, "").trim();
+    }
+
+    console.log("[OpenRouter/Gemini] Response content length:", content.length);
+    return content;
 }
