@@ -6,7 +6,8 @@ export type ToolAction =
   | { tool: "get_agency_info"; args: {} };
 
 export type SearchArgs = {
-  city?: string;
+  id?: string;
+  search_keywords?: string[];
   price?: number;
   rooms?: string;
   project?: string;

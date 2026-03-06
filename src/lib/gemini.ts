@@ -4,7 +4,7 @@ type Message = {
 };
 
 /**
- * Ask LLM via OpenRouter API (Free Gemini 2.0 Pro Experimental)
+ * Ask LLM via Polza AI API
  */
 export async function askLLM(
     promptOrMessages: string | Message[] | any[],
@@ -12,10 +12,11 @@ export async function askLLM(
     noJson: boolean = false,
     jsonSchema?: any
 ): Promise<string> {
-    const apiKey = process.env.OPENROUTER_API_KEY;
-    if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set.");
+    const apiKey = process.env.POLZA_API_KEY;
+    if (!apiKey) throw new Error("POLZA_API_KEY is not set.");
 
-    const modelName = "google/gemini-2.0-pro-exp-02-05:free";
+    // You can change this to any model supported by Polza AI (e.g., 'gpt-4o', 'gemini-1.5-pro', 'claude-3-5-sonnet')
+    const modelName = "gpt-4o";
 
     let messages: any[] = [];
 
@@ -44,8 +45,6 @@ export async function askLLM(
     if (!noJson) {
         requestBody.response_format = { type: "json_object" };
         if (jsonSchema) {
-            // Note: OpenRouter Gemini doesn't always strictly support the json_schema object, 
-            // so we inject the schema into the latest system prompt as a bulletproof fallback rule.
             const schemaString = JSON.stringify(jsonSchema, null, 2);
             // Append rules to the system message
             let systemMsg = messages.find(m => m.role === "system");
@@ -57,22 +56,20 @@ export async function askLLM(
         }
     }
 
-    console.log(`[OpenRouter/Gemini] Requesting model: ${modelName}, messages: ${messages.length}`);
+    console.log(`[Polza AI] Requesting model: ${modelName}, messages: ${messages.length}`);
 
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const res = await fetch("https://polza.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
             "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json",
-            "HTTP-Referer": "https://ai2b.app", // Optional
-            "X-Title": "AI2B Agent Army", // Optional
         },
         body: JSON.stringify(requestBody),
     });
 
     if (!res.ok) {
         const text = await res.text().catch(() => "");
-        throw new Error(`OpenRouter API error ${res.status}: ${text.substring(0, 500)}`);
+        throw new Error(`Polza API error ${res.status}: ${text.substring(0, 500)}`);
     }
 
     const json = await res.json();
@@ -84,6 +81,6 @@ export async function askLLM(
         content = content.replace(/^```json/, "").replace(/```$/, "").trim();
     }
 
-    console.log("[OpenRouter/Gemini] Response content length:", content.length);
+    console.log("[Polza AI] Response content length:", content.length);
     return content;
 }

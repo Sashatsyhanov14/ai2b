@@ -77,6 +77,35 @@ export async function handleMessage(
         const routerInstruction = await runRouterAgent(messages);
         console.log(`[Bot] Router decision:`, JSON.stringify(routerInstruction));
 
+        // VIP RADAR ALERT
+        if (routerInstruction.is_vip) {
+            console.log("[Bot] 🚨 VIP CLIENT DETECTED 🚨 Alerting managers...");
+            const alertMsg = `🔥 <b>VIP-КЛИЕНТ В ИИ-БОТЕ!</b> 🔥\n\n👤 Пользователь: @${userInfo.username || chatId}\n💬 Сообщение: "${text}"\n🤖 <i>Бот продолжает диалог, но советуем перехватить чат!</i>`;
+
+            // Reusing supabase client defined above
+            const { data: managers } = await supabase.from("telegram_managers").select("telegram_id").eq("is_active", true);
+            if (managers && managers.length > 0) {
+                for (const m of managers) {
+                    if (m.telegram_id) {
+                        try {
+                            // Using standard telegram fetch to support HTML parse mode
+                            await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    chat_id: m.telegram_id,
+                                    text: alertMsg,
+                                    parse_mode: "HTML"
+                                })
+                            });
+                        } catch (e) {
+                            console.error("VIP Alert failed:", e);
+                        }
+                    }
+                }
+            }
+        }
+
         const route = routerInstruction.route;
         let finalReplyText = "";
         let unitsFound: any[] = [];
@@ -87,30 +116,42 @@ export async function handleMessage(
                 return;
 
             case "search_apartments":
-                console.log("[Bot] Route: search_apartments. Querying DB...", routerInstruction.search_params);
-                try {
-                    const rawResult = await handleSearchDatabase(routerInstruction.search_params || {});
-                    const parsed = JSON.parse(rawResult);
+                console.log("[Bot] Route: search_apartments.");
+                const searchTasks = Array.isArray(routerInstruction.search_params)
+                    ? routerInstruction.search_params
+                    : [routerInstruction.search_params || {}];
 
-                    if (parsed.units && Array.isArray(parsed.units)) {
-                        // Anti-repeat logic
-                        const assistantHistory = messages
-                            .filter(m => m.role === "assistant")
-                            .map(m => m.content)
-                            .join(" ");
-                        const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
-                        const shownIds = Array.from(assistantHistory.matchAll(uuidRegex)).map((m: any) => m[0]);
+                for (let i = 0; i < searchTasks.length; i++) {
+                    console.log(`[Bot] Executing Multi-Search attempt ${i + 1}/${searchTasks.length}...`, searchTasks[i]);
+                    try {
+                        const rawResult = await handleSearchDatabase(searchTasks[i]);
+                        const parsed = JSON.parse(rawResult);
 
-                        unitsFound = parsed.units.filter((u: any) => !shownIds.includes(u.id));
+                        if (parsed.units && Array.isArray(parsed.units) && parsed.units.length > 0) {
+                            // Anti-repeat logic
+                            const assistantHistory = messages
+                                .filter(m => m.role === "assistant")
+                                .map(m => m.content)
+                                .join(" ");
+                            const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+                            const shownIds = Array.from(assistantHistory.matchAll(uuidRegex)).map((m: any) => m[0]);
+
+                            const newUnits = parsed.units.filter((u: any) => !shownIds.includes(u.id));
+                            if (newUnits.length > 0) {
+                                unitsFound = newUnits;
+                                console.log(`[Bot] Found ${unitsFound.length} new properties on attempt ${i + 1}. Breaking search loop.`);
+                                break;
+                            }
+                        }
+                    } catch (e) {
+                        console.error("Search failed on attempt", i + 1, e);
                     }
-                } catch (e) {
-                    console.error("Search failed:", e);
                 }
 
                 // Compile data for Communication Agent
                 const dbData = unitsFound.length > 0
                     ? JSON.stringify(unitsFound.slice(0, 3), null, 2)
-                    : "Квартиры по этому запросу не найдены. Предложи изменить параметры (город, бюджет).";
+                    : "Квартиры по этому запросу и всем запасным вариантам (бюджет+, без планировки) НЕ НАЙДЕНЫ. Предложи изменить параметры кардинально (другой город).";
 
                 // Generate text
                 console.log("[Bot] Executing Communication Agent (Search Result)...");
