@@ -271,7 +271,7 @@ export default function LeadsPageClient() {
                     </div>
                     <div className="bg-neutral-900 p-4">
                       <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">Email</span>
-                      <p className="text-sm text-neutral-200">{selectedLead.email || "—"}</p>
+                      <p className="text-sm text-neutral-200">{selectedLead.data?.email || selectedLead.email || "—"}</p>
                     </div>
                     <div className="bg-neutral-900 p-4">
                       <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">{t("leads.table.source")}</span>
@@ -291,17 +291,34 @@ export default function LeadsPageClient() {
                   <div className="rounded-3xl border border-neutral-800 bg-neutral-900/40 p-6 space-y-4 border-l-4 border-l-blue-600">
                     <div className="space-y-1">
                       <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">{t("leads.card.temperature")}</span>
-                      <div className="flex items-center gap-2 text-rose-500 font-bold">
-                        <Activity className="h-4 w-4" /> Теплый (Пример)
+                      <div className="flex items-center gap-2 font-bold">
+                        {selectedLead.data?.temperature === 'hot' ? (
+                          <span className="text-rose-500 flex items-center gap-2"><Flame className="h-4 w-4" /> Горячий 🔥</span>
+                        ) : selectedLead.data?.temperature === 'warm' ? (
+                          <span className="text-amber-500 flex items-center gap-2"><Activity className="h-4 w-4" /> Теплый ☀️</span>
+                        ) : (
+                          <span className="text-blue-500 flex items-center gap-2"><Activity className="h-4 w-4" /> Холодный ❄️</span>
+                        )}
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">{t("leads.card.interestedIn")}</span>
-                      <div className="flex flex-wrap gap-2">
-                        <span className="px-3 py-1.5 rounded-xl bg-neutral-950 border border-neutral-800 text-xs text-neutral-300">Konak Resort #123</span>
-                        <span className="px-3 py-1.5 rounded-xl bg-neutral-950 border border-neutral-800 text-xs text-neutral-300">Villa Azure</span>
+                    {selectedLead.data?.budget && (
+                      <div className="space-y-1 pt-2">
+                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Бюджет</span>
+                        <div className="flex items-center gap-2 text-emerald-500 font-bold">
+                          <Wallet className="h-4 w-4" /> ${selectedLead.data.budget.toLocaleString()}
+                        </div>
                       </div>
-                    </div>
+                    )}
+                    {selectedLead.data?.interested_units && selectedLead.data.interested_units.length > 0 && (
+                      <div className="space-y-2 pt-2">
+                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">{t("leads.card.interestedIn")}</span>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedLead.data.interested_units.map((unit: string, i: number) => (
+                            <span key={i} className="px-3 py-1.5 rounded-xl bg-neutral-950 border border-neutral-800 text-xs text-neutral-300">{unit}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <div className="space-y-1 pt-2 border-t border-neutral-800">
                       <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-2">{t("leads.card.sessionData")}</span>
                       <pre className="text-[10px] font-mono p-4 bg-neutral-950 rounded-xl overflow-x-auto text-neutral-600">

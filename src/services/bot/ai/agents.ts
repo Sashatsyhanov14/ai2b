@@ -34,11 +34,15 @@ export const RouterSchema = {
         },
         instructions_for_manager_agent: {
             type: "object",
-            description: "Секретный вызов менеджера. Заполни, если клиент 'Горячий' (VIP, бюджет > $300k, ВНЖ, коммерция) ИЛИ если оставил телефон. Иначе null.",
+            description: "Секретный вызов менеджера. Вызывай, если клиент оставил КОНТАКТЫ (телефон/почту) ИЛИ если он 'Горячий/Теплый' (целеустремленно ищет квартиру, задает точечные вопросы по покупке, имеет бюджет). Собирай всю известную инфу из диалога.",
             properties: {
-                reason: { type: "string", description: "Почему зовем человека? (например: 'Оставил номер', 'VIP клиент ищет виллу')" },
+                reason: { type: "string", description: "Почему зовем человека или сохраняем лид? (например: 'Оставил номер', 'Интересуется виллами, теплый клиент')" },
                 client_name: { type: "string" },
-                client_phone: { type: "string" }
+                client_phone: { type: "string" },
+                client_email: { type: "string" },
+                budget: { type: "number", description: "Ожидаемый бюджет клиента в долларах, если известен" },
+                interested_units: { type: "array", items: { type: "string" }, description: "Какие лоты или города/районы заинтересовали клиента" },
+                lead_temperature: { type: "string", description: "Оценка готовности к покупке: 'cold', 'warm', 'hot'" }
             }
         }
     },
@@ -58,7 +62,11 @@ const ROUTER_SYSTEM_PROMPT = `
 Например, если клиент пишет "Ищу виллу за 500к для ВНЖ, вот мой номер", ты должен:
 - Дать указание COMMUNICATION AGENT: "Поблагодари, скажи что сейчас ищем подходящие VIP виллы."
 - Дать указание SEARCH AGENT: "Искать виллы до 500000".
-- Дать указание MANAGER AGENT: "VIP лид! Срочно подключиться."
+- Дать указание MANAGER AGENT: Заполни reason, budget, temperature: "hot", client_phone.
+
+ЕСЛИ ТЫ ВИДИШЬ, ЧТО КЛИЕНТ ГОРЯЧИЙ ИЛИ ТЕПЛЫЙ (выбирает из предложенного, спрашивает детали, хочет инвестировать), НО НОМЕРА ЕЩЕ НЕТ:
+- Дать указание MANAGER AGENT: Заполни всю найденную CRM аналитику (budget, interested_units, temperature: "warm" / "hot"), оставь phone/email пустыми.
+- Дать указание COMMUNICATION AGENT: Ответь на вопросы и ОБЯЗАТЕЛЬНО нативно попроси клиента оставить контактный номер (WhatsApp/Telegram) или почту для связи с менеджером!
 
 УЧИТЫВАЙ ПРАВИЛА КОМПАНИИ И ИНФОРМАЦИЮ ПРИ ПРИНЯТИИ РЕШЕНИЙ!
 

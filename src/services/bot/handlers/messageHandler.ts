@@ -90,26 +90,37 @@ export async function handleMessage(
             const mgr = routerInstruction.instructions_for_manager_agent;
             const phone = mgr.client_phone || userInfo.phone || "Unknown";
             const name = mgr.client_name || userInfo.fullName || userInfo.username || "Client";
-            const reason = mgr.reason || "Специфичный запрос или нужен звонок";
+            const reason = mgr.reason || "Аналитика диалога";
+            const email = mgr.client_email || null;
+            const budget = mgr.budget || null;
+            const interested_units = mgr.interested_units || [];
+            const temp = mgr.lead_temperature || "cold";
 
-            if (mgr.client_phone || userInfo.phone) {
-                await handleSaveLead({ phone, name, info: reason }, chatId, userInfo.username);
+            if (phone !== "Unknown" || temp === "warm" || temp === "hot") {
+                await handleSaveLead({ phone, name, info: reason, email, budget, interested_units, temperature: temp } as any, chatId, userInfo.username);
             }
 
-            const alertMsg = `🔥 <b>ВНИМАНИЕ МЕНЕДЖЕРАМ! (ИИ-БОТ)</b> 🔥\n\n👤 Пользователь: @${userInfo.username || chatId}\n📞 Телефон: ${phone}\n💬 Причина вызова: ${reason}\n\n🤖 <i>ИИ продолжает диалог, но вы можете перехватить!</i>`;
+            let alertMsg = `🔥 <b>ВНИМАНИЕ МЕНЕДЖЕРАМ! (ИИ-БОТ)</b> 🔥\n\n👤 Пользователь: @${userInfo.username || chatId}\n👤 Имя: ${name}\n📞 Контакт: ${phone !== "Unknown" ? phone : "Пока не оставил"}\n💬 Инфо: ${reason}`;
+            if (budget) alertMsg += `\n💰 Бюджет: $${budget}`;
+            if (temp) alertMsg += `\n🌡 Горячесть: ${temp === 'hot' ? '🔥 Горячий' : temp === 'warm' ? '☀️ Теплый' : '❄️ Холодный'}`;
+            if (interested_units && interested_units.length > 0) alertMsg += `\n🏢 Интересы: ${interested_units.join(', ')}`;
+            alertMsg += `\n\n🤖 <i>ИИ продолжает диалог, но вы можете перехватить!</i>`;
 
-            const { data: managers } = await supabase.from("telegram_managers").select("telegram_id").eq("is_active", true);
-            if (managers && managers.length > 0) {
-                for (const m of managers) {
-                    if (m.telegram_id) {
-                        try {
-                            await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ chat_id: m.telegram_id, text: alertMsg, parse_mode: "HTML" })
-                            });
-                        } catch (e) {
-                            console.error("Manager Alert failed:", e);
+            // Only spam Telegram if they left a phone OR if they are super hot.
+            if (phone !== "Unknown" || temp === "hot") {
+                const { data: managers } = await supabase.from("telegram_managers").select("telegram_id").eq("is_active", true);
+                if (managers && managers.length > 0) {
+                    for (const m of managers) {
+                        if (m.telegram_id) {
+                            try {
+                                await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ chat_id: m.telegram_id, text: alertMsg, parse_mode: "HTML" })
+                                });
+                            } catch (e) {
+                                console.error("Manager Alert failed:", e);
+                            }
                         }
                     }
                 }

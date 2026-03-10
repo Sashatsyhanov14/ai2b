@@ -18,6 +18,10 @@ export type SaveLeadArgs = {
   phone: string;
   name?: string;
   info?: string; // summary of interest
+  email?: string;
+  budget?: number;
+  interested_units?: string[];
+  temperature?: string;
 };
 
 export type GetPhotosArgs = {

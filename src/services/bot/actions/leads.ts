@@ -8,23 +8,44 @@ export async function handleSaveLead(
 ): Promise<string> {
     const supabase = getServerClient();
 
-    const { data, error } = await supabase
+    // First look for existing active lead from this chat
+    const { data: existing } = await supabase
         .from("leads")
-        .insert({
-            source: "telegram",
-            source_bot_id: "telegram",
-            phone: args.phone,
-            name: args.name || "Unknown",
-            data: {
-                chat_id: chatId,
-                tg_username: username,
-                interest: args.info
-            },
-            status: "new",
-            notes: args.info || "Bot Lead"
-        } as any)
-        .select()
-        .single();
+        .select("id")
+        .eq("status", "new")
+        .contains("data", { chat_id: chatId })
+        .maybeSingle();
+
+    const payload = {
+        source: "telegram",
+        source_bot_id: "telegram",
+        phone: args.phone !== "Unknown" ? args.phone : null,
+        name: args.name || "Unknown",
+        data: {
+            chat_id: chatId,
+            tg_username: username,
+            interest: args.info,
+            email: args.email,
+            budget: args.budget,
+            interested_units: args.interested_units,
+            temperature: args.temperature || "cold",
+            score: args.temperature === 'hot' ? 100 : args.temperature === 'warm' ? 50 : 10
+        },
+        status: "new",
+        notes: args.info || "Bot Lead"
+    };
+
+    let data, error;
+
+    if (existing) {
+        const res = await supabase.from("leads").update(payload).eq("id", existing.id).select().single();
+        data = res.data;
+        error = res.error;
+    } else {
+        const res = await supabase.from("leads").insert(payload as any).select().single();
+        data = res.data;
+        error = res.error;
+    }
 
     if (error) {
         console.error("Save Lead Error:", error);
