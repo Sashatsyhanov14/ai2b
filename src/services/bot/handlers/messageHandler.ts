@@ -74,120 +74,94 @@ export async function handleMessage(
 
         // 3. MULTI-AGENT PIPELINE
         console.log(`[Bot] Executing Router Agent...`);
-        const routerInstruction = await runRouterAgent(messages);
+        const routerInstruction = await runRouterAgent(messages, botKnowledge);
         console.log(`[Bot] Router decision:`, JSON.stringify(routerInstruction));
 
-        // VIP RADAR ALERT
-        if (routerInstruction.is_vip) {
-            console.log("[Bot] 🚨 VIP CLIENT DETECTED 🚨 Alerting managers...");
-            const alertMsg = `🔥 <b>VIP-КЛИЕНТ В ИИ-БОТЕ!</b> 🔥\n\n👤 Пользователь: @${userInfo.username || chatId}\n💬 Сообщение: "${text}"\n🤖 <i>Бот продолжает диалог, но советуем перехватить чат!</i>`;
+        let unitsFound: any[] = [];
+        let finalReplyText = "";
 
-            // Reusing supabase client defined above
+        // A. MANAGER AGENT (Alerts & Leads)
+        if (routerInstruction.instructions_for_manager_agent) {
+            console.log("[Bot] 🚨 MANAGER AGENT TRIGGERED 🚨");
+            const mgr = routerInstruction.instructions_for_manager_agent;
+            const phone = mgr.client_phone || userInfo.phone || "Unknown";
+            const name = mgr.client_name || userInfo.fullName || userInfo.username || "Client";
+            const reason = mgr.reason || "Специфичный запрос или нужен звонок";
+
+            if (mgr.client_phone || userInfo.phone) {
+                await handleSaveLead({ phone, name, info: reason }, chatId, userInfo.username);
+            }
+
+            const alertMsg = `🔥 <b>ВНИМАНИЕ МЕНЕДЖЕРАМ! (ИИ-БОТ)</b> 🔥\n\n👤 Пользователь: @${userInfo.username || chatId}\n📞 Телефон: ${phone}\n💬 Причина вызова: ${reason}\n\n🤖 <i>ИИ продолжает диалог, но вы можете перехватить!</i>`;
+
             const { data: managers } = await supabase.from("telegram_managers").select("telegram_id").eq("is_active", true);
             if (managers && managers.length > 0) {
                 for (const m of managers) {
                     if (m.telegram_id) {
                         try {
-                            // Using standard telegram fetch to support HTML parse mode
                             await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({
-                                    chat_id: m.telegram_id,
-                                    text: alertMsg,
-                                    parse_mode: "HTML"
-                                })
+                                body: JSON.stringify({ chat_id: m.telegram_id, text: alertMsg, parse_mode: "HTML" })
                             });
                         } catch (e) {
-                            console.error("VIP Alert failed:", e);
+                            console.error("Manager Alert failed:", e);
                         }
                     }
                 }
             }
         }
 
-        const route = routerInstruction.route;
-        let finalReplyText = "";
-        let unitsFound: any[] = [];
+        // B. SEARCH AGENT
+        if (routerInstruction.instructions_for_search_agent) {
+            console.log("[Bot] 🔍 SEARCH AGENT TRIGGERED ");
+            const baseParams = routerInstruction.instructions_for_search_agent;
 
-        switch (route) {
-            case "ignore":
-                console.log("[Bot] Route: ignore. Not replying.");
-                return;
+            const searchTasks = [
+                baseParams,
+                { ...baseParams, rooms: undefined, price: baseParams.price ? baseParams.price * 1.2 : undefined },
+                { ...baseParams, rooms: undefined, price: undefined }
+            ];
 
-            case "search_apartments":
-                console.log("[Bot] Route: search_apartments.");
-                const searchTasks = Array.isArray(routerInstruction.search_params)
-                    ? routerInstruction.search_params
-                    : [routerInstruction.search_params || {}];
+            for (let i = 0; i < searchTasks.length; i++) {
+                console.log(`[Bot] Executing Multi-Search attempt ${i + 1}/${searchTasks.length}...`, searchTasks[i]);
+                try {
+                    const rawResult = await handleSearchDatabase(searchTasks[i]);
+                    const parsed = JSON.parse(rawResult);
 
-                for (let i = 0; i < searchTasks.length; i++) {
-                    console.log(`[Bot] Executing Multi-Search attempt ${i + 1}/${searchTasks.length}...`, searchTasks[i]);
-                    try {
-                        const rawResult = await handleSearchDatabase(searchTasks[i]);
-                        const parsed = JSON.parse(rawResult);
+                    if (parsed.units && Array.isArray(parsed.units) && parsed.units.length > 0) {
+                        const assistantHistory = messages.filter(m => m.role === "assistant").map(m => m.content).join(" ");
+                        const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+                        const shownIds = Array.from(assistantHistory.matchAll(uuidRegex)).map((m: any) => m[0]);
 
-                        if (parsed.units && Array.isArray(parsed.units) && parsed.units.length > 0) {
-                            // Anti-repeat logic
-                            const assistantHistory = messages
-                                .filter(m => m.role === "assistant")
-                                .map(m => m.content)
-                                .join(" ");
-                            const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
-                            const shownIds = Array.from(assistantHistory.matchAll(uuidRegex)).map((m: any) => m[0]);
-
-                            const newUnits = parsed.units.filter((u: any) => !shownIds.includes(u.id));
-                            if (newUnits.length > 0) {
-                                unitsFound = newUnits;
-                                console.log(`[Bot] Found ${unitsFound.length} new properties on attempt ${i + 1}. Breaking search loop.`);
-                                break;
-                            }
+                        const newUnits = parsed.units.filter((u: any) => !shownIds.includes(u.id));
+                        if (newUnits.length > 0) {
+                            unitsFound = newUnits;
+                            console.log(`[Bot] Found ${unitsFound.length} new properties on attempt ${i + 1}. Breaking search loop.`);
+                            break;
                         }
-                    } catch (e) {
-                        console.error("Search failed on attempt", i + 1, e);
                     }
+                } catch (e) {
+                    console.error("Search failed on attempt", i + 1, e);
                 }
+            }
+        }
 
-                // Compile data for Communication Agent
-                const dbData = unitsFound.length > 0
+        // C. COMMUNICATION AGENT
+        if (routerInstruction.instructions_for_communication_agent) {
+            console.log("[Bot] 🗣 COMMUNICATION AGENT TRIGGERED");
+
+            let dbData = "База данных не запрашивалась.";
+            if (routerInstruction.instructions_for_search_agent) {
+                dbData = unitsFound.length > 0
                     ? JSON.stringify(unitsFound.slice(0, 3), null, 2)
-                    : "Квартиры по этому запросу и всем запасным вариантам (бюджет+, без планировки) НЕ НАЙДЕНЫ. Предложи изменить параметры кардинально (другой город).";
+                    : "Квартиры по запросу (и всем авто-запасным вариантам: бюджет+, любой тип) НЕ НАЙДЕНЫ. Предложи изменить параметры кардинально.";
+            }
 
-                // Generate text
-                console.log("[Bot] Executing Communication Agent (Search Result)...");
-                finalReplyText = await runCommunicationAgent(messages, botKnowledge, dbData);
-                break;
+            const customInstruction = routerInstruction.instructions_for_communication_agent;
+            const fullInstruction = `[УКАЗАНИЕ ОТ ДИСПЕТЧЕРА]:\n${customInstruction}\n\n[ИСТОРИЯ И КОНТЕКСТ]:\nОпирайся на историю диалога, отвечай на языке клиента и учитывай правила компании!`;
 
-            case "capture_lead":
-                console.log("[Bot] Route: capture_lead. Saving lead...");
-                const leadParams = routerInstruction.lead_info || {};
-                const phone = leadParams.phone || userInfo.phone || "Unknown";
-                const name = leadParams.name || userInfo.fullName || userInfo.username || "Client";
-                const info = leadParams.summary || "No details";
-
-                await handleSaveLead({ phone, name, info }, chatId, userInfo.username);
-
-                // Alert managers
-                const alertMsg = `⚠️ НОВЫЙ ЛИД ОТ ИИ-БОТА:\nОт: @${userInfo.username || chatId}\nИмя: ${name}\nТелефон: ${phone}\nКонтекст: ${info}`;
-                const { data: managers } = await supabase.from("telegram_managers").select("telegram_id").eq("is_active", true);
-                if (managers && managers.length > 0) {
-                    for (const m of managers) {
-                        if (m.telegram_id) {
-                            await sendMessage(token, String(m.telegram_id), alertMsg).catch(() => { });
-                        }
-                    }
-                }
-
-                // Generate text
-                console.log("[Bot] Executing Communication Agent (Lead Captured)...");
-                finalReplyText = await runCommunicationAgent(messages, botKnowledge, "Контактные данные успешно переданы менеджеру. Менеджер скоро свяжется с клиентом. Скажи спасибо.");
-                break;
-
-            case "communicate":
-            default:
-                console.log("[Bot] Route: communicate. Executing Communication Agent...");
-                finalReplyText = await runCommunicationAgent(messages, botKnowledge, "Просто ответь на вопрос клиента. База данных не задействована. Контекст: " + routerInstruction.context_for_communication);
-                break;
+            finalReplyText = await runCommunicationAgent(messages, botKnowledge, dbData + "\n\n" + fullInstruction);
         }
 
         // 4. Final Output to User
@@ -198,9 +172,8 @@ export async function handleMessage(
         }
 
         // 5. Send Photos strictly AFTER text message if we found units
-        if (route === "search_apartments" && unitsFound.length > 0) {
+        if (routerInstruction.instructions_for_search_agent && unitsFound.length > 0) {
             console.log(`[Bot] Sending photos for ${unitsFound.length} units...`);
-            // Only send photos for the top 3 presented
             const displayedUnits = unitsFound.slice(0, 3);
             for (const unit of displayedUnits) {
                 if (unit.id) {
@@ -213,6 +186,6 @@ export async function handleMessage(
 
     } catch (globalErr: any) {
         console.error("CRITICAL MESSAGE HANDLER ERROR:", globalErr);
-        await sendMessage(token, chatId, "Произошла ошибка системы. Попробуйте еще раз. Текст: " + (globalErr?.message || String(globalErr)));
+        await sendMessage(token, chatId, "Произошла системная ошибка. Мы уже чиним!").catch(() => { });
     }
 }

@@ -6,80 +6,73 @@ export type RoleMessage = {
 };
 
 // ==========================================
-// ROUTER AGENT (Главный Оркестратор)
+// ROUTER AGENT (ГЛАВНЫЙ ОРКЕСТРАТОР)
 // ==========================================
-// Задача: Анализирует интент клиента и маршрутизирует запрос.
-// Не общается с клиентом! Выдает только JSON.
+// Задача: Анализирует интент клиента и раздает команды остальным агентам.
+// Может вызвать сразу нескольких агентов одновременно!
 
-// Схема, которую мы заставляем Gemini вернуть:
 export const RouterSchema = {
     type: "object",
     properties: {
-        is_vip: {
-            type: "boolean",
-            description: "Если клиент упоминает бюджет > $300k, покупку 'за наличку', Гражданство (Citizenship), срочную покупку, премиум виллу или коммерческую недвижимость — ставь true! Иначе false."
-        },
-        route: {
+        instructions_for_communication_agent: {
             type: "string",
-            enum: ["communicate", "search_apartments", "capture_lead", "ignore"],
-            description: "Какое действие должен выполнить следующий агент."
+            description: "Прямое указание для Агента-Оратора: что именно он должен ответить клиенту. Проанализируй историю, правила компании и текущий запрос. Если отвечать не нужно (спам), оставь пустым / null."
         },
-        context_for_communication: {
-            type: "string",
-            description: "О чем спросил клиент (краткий смысл), чтобы Агент Общения знал, на что отвечать. Заполняется если route='communicate'."
-        },
-        search_params: {
-            type: "array",
-            description: "Список поисковых запросов для базы данных (заполняется если route='search_apartments'). Сгенерируй от 1 до 3 вариантов поиска: 1 приоритетный (строгий), и 1-2 запасных (с увеличенным на 10-20% бюджетом или без привязки к комнатам), чтобы если первый строгий поиск не даст результатов, бот сразу поискал по запасному варианту.",
-            items: {
-                type: "object",
-                properties: {
-                    id: { type: "string" },
-                    search_keywords: {
-                        type: "array",
-                        items: { type: "string" },
-                        description: "Сгенерируй 3-5 вариаций написания Города и Района (на русском, турецком, латинице и частыми опечатками). Например: ['Мерсин', 'Mersin', 'Мирсин', 'Мезитли', 'Mezitli']"
-                    },
-                    city: { type: "string", description: "Название города (латиницей)" },
-                    price: { type: "number", description: "Максимальный бюджет клиента" },
-                    rooms: { type: "string" }
-                }
+        instructions_for_search_agent: {
+            type: "object",
+            description: "Если клиент ищет недвижимость, заполни параметры для поиска в БД. Иначе null.",
+            properties: {
+                search_keywords: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "3-5 вариаций Названия Города и Района (русский, турецкий, латиница, опечатки). Пример: ['Мерсин', 'Mersin', 'Мезитли']"
+                },
+                price: { type: "number", description: "Максимальный бюджет" },
+                rooms: { type: "string", description: "Например: '1+1'" },
+                city: { type: "string" }
             }
         },
-        lead_info: {
+        instructions_for_manager_agent: {
             type: "object",
-            description: "Данные клиента, если он оставил телефон или просит связаться. Заполняется если route='capture_lead'.",
+            description: "Секретный вызов менеджера. Заполни, если клиент 'Горячий' (VIP, бюджет > $300k, ВНЖ, коммерция) ИЛИ если оставил телефон. Иначе null.",
             properties: {
-                phone: { type: "string" },
-                name: { type: "string" },
-                summary: { type: "string", description: "Что ищет клиент (для передачи живому менеджеру)" }
+                reason: { type: "string", description: "Почему зовем человека? (например: 'Оставил номер', 'VIP клиент ищет виллу')" },
+                client_name: { type: "string" },
+                client_phone: { type: "string" }
             }
         }
     },
-    required: ["route"]
+    required: ["instructions_for_communication_agent"]
 };
 
-// Системный промпт Оркестратора
 const ROUTER_SYSTEM_PROMPT = `
-ТЫ — ГЛАВНЫЙ МЕНЕДЖЕР АГЕНТСТВА НЕДВИЖИМОСТИ (ROUTER AGENT).
-Твоя задача — ТОЛЬКО маршрутизация. Ты НЕ пишешь тексты для клиента!
-Проанализируй последнее сообщение пользователя в контексте диалога и выбери 1 из 4 путей:
+ТЫ — ГЛАВНЫЙ ИИ-ОРКЕСТРАТОР АГЕНТСТВА НЕДВИЖИМОСТИ.
+Твоя задача — проанализировать историю чата с клиентом и выдать указания другим ИИ-агентам в формате JSON.
 
-1. 'communicate': Клиент задает общие вопросы (кто вы, где офис, ВНЖ, как купить) или просто здоровается.
-2. 'search_apartments': Клиент просит найти квартиру/виллу по критериям (город, цена, комнаты). Обязательно извлеки параметры поиска в search_params.
-3. 'capture_lead': Клиент оставил контакт (номер телефона) ИЛИ прямо просит связаться с живым человеком.
-4. 'ignore': Системное мусорное сообщение, на которое не нужно отвечать.
+У тебя в подчинении 3 агента:
+1. COMMUNICATION AGENT (Отвечает клиенту текстом)
+2. SEARCH AGENT (Ищет квартиры в базе)
+3. MANAGER AGENT (Тихо зовет живого менеджера в чат)
 
-Выдай ТОЛЬКО JSON строго по Схеме. Никаких лишних слов.
+Ты можешь задействовать их ОДНОВРЕМЕННО. 
+Например, если клиент пишет "Ищу виллу за 500к для ВНЖ, вот мой номер", ты должен:
+- Дать указание COMMUNICATION AGENT: "Поблагодари, скажи что сейчас ищем подходящие VIP виллы."
+- Дать указание SEARCH AGENT: "Искать виллы до 500000".
+- Дать указание MANAGER AGENT: "VIP лид! Срочно подключиться."
+
+УЧИТЫВАЙ ПРАВИЛА КОМПАНИИ И ИНФОРМАЦИЮ ПРИ ПРИНЯТИИ РЕШЕНИЙ!
+
+Выдай ТОЛЬКО JSON строго по Схеме.
 `;
 
-export async function runRouterAgent(messages: RoleMessage[]): Promise<any> {
-    const rawResult = await askLLM(messages, ROUTER_SYSTEM_PROMPT, false, RouterSchema);
+export async function runRouterAgent(messages: RoleMessage[], companyKnowledge: string): Promise<any> {
+    const fullSystem = ROUTER_SYSTEM_PROMPT + "\n\n[БАЗА ЗНАНИЙ И ПРАВИЛА КОМПАНИИ]:\n" + companyKnowledge;
+    const rawResult = await askLLM(messages, fullSystem, false, RouterSchema);
     try {
         return JSON.parse(rawResult);
     } catch (e) {
         console.error("Router JSON Parse Error:", e, rawResult);
-        return { route: "communicate", context_for_communication: "User message could not be routed. Ask for clarification." };
+        return { instructions_for_communication_agent: "Извините, я не понял запрос. Повторите пожалуйста." };
     }
 }
 
