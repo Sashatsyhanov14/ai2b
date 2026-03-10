@@ -7,6 +7,7 @@ import { runRouterAgent, runCommunicationAgent, RoleMessage } from "../ai/agents
 import { handleSearchDatabase } from "../actions/search";
 import { handleSaveLead } from "../actions/leads";
 import { handleGetPhotos } from "../actions/photos";
+import { handleGetAgencyInfo } from "../actions/agency";
 
 export async function handleMessage(
     text: string,
@@ -50,7 +51,9 @@ export async function handleMessage(
             ? companyInfoRows.map(r => `${r.key}: ${r.value}`).join("\n")
             : "";
 
-        const botKnowledge = `[ПРАВИЛА]:\n${rules}\n\n[О КОМПАНИИ]:\n${companyInfoStr}`;
+        const agencyFiles = await handleGetAgencyInfo();
+
+        const botKnowledge = `[ПРАВИЛА]:\n${rules}\n\n[О КОМПАНИИ]:\n${companyInfoStr}\n\n[МНЕНИЯ/ФАЙЛЫ КОМПАНИИ]:\n${agencyFiles}`;
 
         // Load history for LLM
         const history = await listMessages(sessionId, 10);
