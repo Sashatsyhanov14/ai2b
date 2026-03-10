@@ -29,7 +29,7 @@ export async function handleSaveLead(
             budget: args.budget,
             interested_units: args.interested_units,
             temperature: args.temperature || "cold",
-            score: args.temperature === 'hot' ? 100 : args.temperature === 'warm' ? 50 : 10
+            score: args.temperature === 'hot' ? 10 : args.temperature === 'warm' ? 5 : 1
         },
         status: "new",
         notes: args.info || "Bot Lead"

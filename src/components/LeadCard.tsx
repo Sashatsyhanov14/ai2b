@@ -145,18 +145,20 @@ export default function LeadCard({ lead, onDetailsClick, onStatusUpdate }: LeadC
 
             {/* Goal & Budget */}
             <div className="px-5 py-4 space-y-2 border-b border-neutral-800/50 bg-neutral-950/20">
-                <div className="flex items-center gap-2 text-sm">
-                    <Target className="h-4 w-4 text-neutral-500" />
-                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">ЦЕЛЬ:</span>
-                    <span className="text-neutral-200 font-medium">
-                        {lead.data?.type || "Не указано"}
+                <div className="flex items-start gap-2 text-sm">
+                    <Target className="h-4 w-4 text-neutral-500 shrink-0 mt-0.5" />
+                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest shrink-0 mt-0.5">ЦЕЛЬ:</span>
+                    <span className="text-neutral-200 font-medium max-w-full overflow-hidden text-ellipsis line-clamp-2">
+                        {(lead.data?.interested_units && lead.data.interested_units.length > 0)
+                            ? lead.data.interested_units.join(', ')
+                            : lead.data?.interest || "Не указано"}
                     </span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                     <DollarSign className="h-4 w-4 text-neutral-500" />
                     <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">БЮДЖЕТ:</span>
                     <span className="text-neutral-200 font-medium">
-                        {lead.data?.budget || "Не указан"}
+                        {lead.data?.budget ? `$${lead.data.budget.toLocaleString()}` : "Не указан"}
                     </span>
                 </div>
             </div>
