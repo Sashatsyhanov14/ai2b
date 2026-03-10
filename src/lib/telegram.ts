@@ -82,11 +82,12 @@ export const sendMediaGroup = (
     media,
   })
 
-export const sendTyping = (
+export const sendChatAction = (
   token: string,
   chatId: number | string,
+  action: 'typing' | 'upload_photo' | 'upload_document'
 ) =>
   telegramFetch(token, 'sendChatAction', {
     chat_id: chatId,
-    action: 'typing',
+    action,
   })

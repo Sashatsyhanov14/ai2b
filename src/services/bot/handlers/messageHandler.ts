@@ -1,4 +1,4 @@
-import { sendMessage } from "@/lib/telegram";
+import { sendMessage, sendChatAction } from "@/lib/telegram";
 import { getServerClient } from "@/lib/supabaseClient";
 import { findOrCreateSession, appendMessage, listMessages } from "@/services/sessions";
 import { runRouterAgent, runCommunicationAgent, RoleMessage } from "../ai/agents";
@@ -77,6 +77,7 @@ export async function handleMessage(
 
         // 3. MULTI-AGENT PIPELINE
         console.log(`[Bot] Executing Router Agent...`);
+        sendChatAction(token, chatId, 'typing').catch(() => { });
         const routerInstruction = await runRouterAgent(messages, botKnowledge);
         console.log(`[Bot] Router decision:`, JSON.stringify(routerInstruction));
 
@@ -164,6 +165,7 @@ export async function handleMessage(
             const customInstruction = routerInstruction.instructions_for_communication_agent;
             const fullInstruction = `[УКАЗАНИЕ ОТ ДИСПЕТЧЕРА]:\n${customInstruction}\n\n[ИСТОРИЯ И КОНТЕКСТ]:\nОпирайся на историю диалога, отвечай на языке клиента и учитывай правила компании!`;
 
+            sendChatAction(token, chatId, 'typing').catch(() => { });
             finalReplyText = await runCommunicationAgent(messages, botKnowledge, dbData + "\n\n" + fullInstruction);
         }
 
@@ -180,6 +182,7 @@ export async function handleMessage(
             const displayedUnits = unitsFound.slice(0, 3);
             for (const unit of displayedUnits) {
                 if (unit.id) {
+                    sendChatAction(token, chatId, 'upload_photo').catch(() => { });
                     await handleGetPhotos({ unit_id: String(unit.id) }, token, chatId).catch(e => console.error("Error sending photo for", unit.id, e));
                 }
             }
