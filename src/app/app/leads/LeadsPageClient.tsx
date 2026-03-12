@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useI18n } from "@/i18n";
+import { supabase as sb } from "@/lib/supabaseClient";
 import {
   Users,
   UserPlus,
@@ -54,10 +55,24 @@ export default function LeadsPageClient() {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState<any | null>(null);
+  const [funnel, setFunnel] = useState({ sessions: 0, drafts: 0, leads: 0 });
 
   async function load() {
     setLoading(true);
     try {
+
+      // Fetch Funnel Stats
+      const [sessRes, draftsRes, leadsRes] = await Promise.all([
+        sb.from('sessions').select('*', { count: 'exact', head: true }),
+        sb.from('leads').select('*', { count: 'exact', head: true }).eq('phone', 'Unknown'),
+        sb.from('leads').select('*', { count: 'exact', head: true }).neq('phone', 'Unknown'),
+      ]);
+      setFunnel({
+        sessions: sessRes.count || 0,
+        drafts: draftsRes.count || 0,
+        leads: leadsRes.count || 0
+      });
+
       const qs = new URLSearchParams();
       if (status) qs.set("status", status);
       if (source) qs.set("source", source);
@@ -72,7 +87,17 @@ export default function LeadsPageClient() {
         // 1. Snoozed leads whose time expired go to TOP
         // 2. Then sort by score (hot leads first)
         const now = new Date();
-        const sorted = (j.data || []).sort((a: any, b: any) => {
+
+        // Auto-Decay for Drafts
+        const validLeads = (j.data || []).filter((r: any) => {
+          if (r.phone === 'Unknown') {
+            const ageHours = (now.getTime() - new Date(r.created_at).getTime()) / (1000 * 60 * 60);
+            if (ageHours > 48) return false;
+          }
+          return true;
+        });
+
+        const sorted = validLeads.sort((a: any, b: any) => {
           const aSnoozed = a.snoozed_until ? new Date(a.snoozed_until) : null;
           const bSnoozed = b.snoozed_until ? new Date(b.snoozed_until) : null;
 
@@ -173,6 +198,57 @@ export default function LeadsPageClient() {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Funnel Analytics */}
+        <div className="bg-neutral-900/40 border border-neutral-800 rounded-2xl overflow-hidden mt-4">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-orange-500/5 to-emerald-500/5" />
+            <div className="relative p-6 px-8">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6 md:gap-12 relative">
+
+                {/* Step 1: Sessions */}
+                <div className="flex flex-col items-center text-center group flex-1">
+                  <div className="h-14 w-14 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 mb-3 transition-transform group-hover:scale-110">
+                    <MessageSquare className="h-7 w-7" />
+                  </div>
+                  <h4 className="text-3xl font-black text-white">{funnel.sessions}</h4>
+                  <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest mt-1">Всего чатов</p>
+                </div>
+
+                {/* Arrow */}
+                <div className="hidden md:flex text-neutral-700">
+                  <ChevronRight className="h-8 w-8" />
+                </div>
+
+                {/* Step 2: Drafts */}
+                <div className="flex flex-col items-center text-center group flex-1">
+                  <div className="h-14 w-14 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 mb-3 transition-transform group-hover:scale-110">
+                    <Zap className="h-7 w-7" />
+                  </div>
+                  <h4 className="text-3xl font-black text-white">{funnel.drafts}</h4>
+                  <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest mt-1">Теплые (Черновики)</p>
+                  <span className="text-[10px] text-orange-400/80 mt-1 bg-orange-500/10 px-2 py-0.5 rounded-full font-medium">Конверсия: {funnel.sessions > 0 ? Math.round((funnel.drafts / funnel.sessions) * 100) : 0}%</span>
+                </div>
+
+                {/* Arrow */}
+                <div className="hidden md:flex text-neutral-700">
+                  <ChevronRight className="h-8 w-8" />
+                </div>
+
+                {/* Step 3: Leads */}
+                <div className="flex flex-col items-center text-center group flex-1">
+                  <div className="h-14 w-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-3 transition-transform group-hover:scale-110">
+                    <Target className="h-7 w-7" />
+                  </div>
+                  <h4 className="text-3xl font-black text-white">{funnel.leads}</h4>
+                  <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest mt-1">Готовые Лиды</p>
+                  <span className="text-[10px] text-emerald-400/80 mt-1 bg-emerald-500/10 px-2 py-0.5 rounded-full font-medium">Конверсия: {funnel.drafts > 0 ? Math.round((funnel.leads / funnel.drafts) * 100) : 0}%</span>
+                </div>
+
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
