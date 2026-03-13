@@ -169,7 +169,7 @@ export async function handleMessage(
             let dbData = "База данных не запрашивалась.";
             if (routerInstruction.instructions_for_search_agent) {
                 dbData = unitsFound.length > 0
-                    ? JSON.stringify(unitsFound.slice(0, 3), null, 2)
+                    ? JSON.stringify(unitsFound.slice(0, 1), null, 2)
                     : "Квартиры по запросу (и всем авто-запасным вариантам: бюджет+, любой тип) НЕ НАЙДЕНЫ. Предложи изменить параметры кардинально.";
             }
 
@@ -188,7 +188,7 @@ export async function handleMessage(
             // secretly append UUIDs to the database history so the search agent won't show repeats
             let dbStoreText = finalReplyText;
             if (routerInstruction.instructions_for_search_agent && unitsFound.length > 0) {
-                const shownIdsString = unitsFound.slice(0, 3).map((u: any) => `[HIDDEN_SYSTEM_ID: ${u.id}]`).join("\n");
+                const shownIdsString = unitsFound.slice(0, 1).map((u: any) => `[HIDDEN_SYSTEM_ID: ${u.id}]`).join("\n");
                 dbStoreText += `\n\n${shownIdsString}`;
             }
             await appendMessage({ session_id: sessionId, bot_id: botId, role: "assistant", content: dbStoreText });
@@ -197,7 +197,7 @@ export async function handleMessage(
         // 5. Send Photos strictly AFTER text message if we found units
         if (routerInstruction.instructions_for_search_agent && unitsFound.length > 0) {
             console.log(`[Bot] Sending photos for ${unitsFound.length} units...`);
-            const displayedUnits = unitsFound.slice(0, 3);
+            const displayedUnits = unitsFound.slice(0, 1); // Show exactly 1 unit per response
             for (const unit of displayedUnits) {
                 if (unit.id) {
                     sendChatAction(token, chatId, 'upload_photo').catch(() => { });
