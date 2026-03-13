@@ -8,10 +8,11 @@ export type ToolAction =
 export type SearchArgs = {
   id?: string;
   search_keywords?: string[];
-  price?: number;
+  price?: number;     // Maximum budget (lte)
+  price_min?: number; // Minimum budget (gte) — used for VNJ requirements, investment minimums
   rooms?: string;
   project?: string;
-  query?: string; // Optional raw query if needed
+  query?: string;
 };
 
 export type SaveLeadArgs = {

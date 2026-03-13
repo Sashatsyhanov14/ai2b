@@ -139,12 +139,16 @@ export default function LeadsPageClient() {
       const res = await fetch(`/api/leads/${id}`, {
         method: "DELETE",
       });
-      if (res.ok) {
+      const json = await res.json();
+      if (json.ok) {
         if (selectedLead?.id === id) setSelectedLead(null);
         load();
+      } else {
+        alert(`❌ Ошибка удаления:\n${json.error || "Неизвестная ошибка"}`);
       }
     } catch (e) {
       console.error("Failed to delete lead", e);
+      alert("❌ Сетевая ошибка при удалении лида");
     }
   }
 

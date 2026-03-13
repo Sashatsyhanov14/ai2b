@@ -30,8 +30,12 @@ export async function handleSearchDatabase(args: SearchArgs & { id?: string; pri
         query = query.eq("rooms", args.rooms);
     }
     if (args.price) {
-        // Return properties up to the maximum budget/price
+        // Return properties up to the maximum budget
         query = query.lte("price", args.price);
+    }
+    if (args.price_min) {
+        // Return properties at or above the minimum budget (e.g. for VNJ $250k+ requirement)
+        query = query.gte("price", args.price_min);
     }
     if (args.project) {
         query = query.ilike("title", `%${args.project}%`); // fallback checking title since project isn't exported in select
