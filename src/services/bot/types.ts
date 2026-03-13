@@ -18,11 +18,16 @@ export type SearchArgs = {
 export type SaveLeadArgs = {
   phone: string;
   name?: string;
-  info?: string; // summary of interest
+  info?: string;           // summary of interest
   email?: string;
   budget?: number;
   interested_units?: string[];
   temperature?: string;
+  urgency?: string;        // ASAP / 1-3 months / etc.
+  purpose?: string;        // ПРОЖИВАНИЕ / ИНВЕСТИЦИИ / ВНЖ / СДАЧА В АРЕНДУ
+  unit_type?: string;      // АПАРТАМЕНТ / ВИЛЛА / ПЕНТХАУС
+  preferred_areas?: string[]; // preferred cities/districts
+  manager_hints?: string;  // AI tips for the sales manager
 };
 
 export type GetPhotosArgs = {

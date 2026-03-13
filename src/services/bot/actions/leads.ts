@@ -29,7 +29,13 @@ export async function handleSaveLead(
             budget: args.budget,
             interested_units: args.interested_units,
             temperature: args.temperature || "cold",
-            score: args.temperature === 'hot' ? 10 : args.temperature === 'warm' ? 5 : 1
+            score: args.temperature === 'hot' ? 10 : args.temperature === 'warm' ? 5 : 1,
+            // Enriched CRM fields from AI analysis
+            urgency: args.urgency || null,
+            purpose: args.purpose || null,
+            unit_type: args.unit_type || null,
+            preferred_areas: args.preferred_areas || null,
+            manager_hints: args.manager_hints || null,
         },
         status: "new",
         notes: args.info || "Bot Lead"

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Phone, MessageSquare, ChevronRight, Eye, Target, DollarSign, Heart, Lightbulb, MessageCircle, Clock, CheckCircle, X } from "lucide-react";
+import { Phone, MessageSquare, ChevronRight, Eye, Target, DollarSign, Heart, Lightbulb, MessageCircle, Clock, CheckCircle, X, Briefcase } from "lucide-react";
 
 interface LeadCardProps {
     lead: any;
@@ -109,10 +109,10 @@ export default function LeadCard({ lead, onDetailsClick, onStatusUpdate, onDelet
                             </div>
                             {/* Glowing status dot */}
                             <span className={`absolute -top-1 -right-1 h-3 w-3 rounded-full border-2 border-neutral-900 ${lead.data?.temperature === 'hot'
-                                    ? 'bg-red-500 shadow-[0_0_6px_2px_rgba(239,68,68,0.6)] animate-pulse'
-                                    : lead.data?.temperature === 'warm'
-                                        ? 'bg-amber-400 shadow-[0_0_6px_2px_rgba(251,191,36,0.5)]'
-                                        : 'bg-blue-500 shadow-[0_0_4px_1px_rgba(59,130,246,0.4)]'
+                                ? 'bg-red-500 shadow-[0_0_6px_2px_rgba(239,68,68,0.6)] animate-pulse'
+                                : lead.data?.temperature === 'warm'
+                                    ? 'bg-amber-400 shadow-[0_0_6px_2px_rgba(251,191,36,0.5)]'
+                                    : 'bg-blue-500 shadow-[0_0_4px_1px_rgba(59,130,246,0.4)]'
                                 }`} />
                         </div>
                         <div>
@@ -231,6 +231,19 @@ export default function LeadCard({ lead, onDetailsClick, onStatusUpdate, onDelet
                 >
                     <CheckCircle className="h-4 w-4" />
                     <span className="hidden sm:inline">Продано</span>
+                </button>
+
+                {/* In Work Button */}
+                <button
+                    onClick={() => onStatusUpdate(lead.id, "in_work")}
+                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold transition-all border ${lead.status === 'in_work'
+                            ? 'bg-amber-500/20 text-amber-300 border-amber-400/50'
+                            : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border-amber-500/30 hover:border-amber-500/50'
+                        }`}
+                    title="В работе"
+                >
+                    <Briefcase className="h-4 w-4" />
+                    <span className="hidden sm:inline">В работе</span>
                 </button>
 
                 {/* Delete Button */}
