@@ -368,34 +368,42 @@ export default function LeadsPageClient() {
                           </div>
                         </div>
                       )}
-                      <div className="space-y-3 pt-4 border-t border-neutral-800">
-                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-2">{t("leads.card.sessionData")}</span>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {selectedLead.data?.tg_username && (
-                            <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
-                              <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">Telegram</span>
-                              <span className="text-sm font-medium text-blue-400">@{selectedLead.data.tg_username}</span>
-                            </div>
-                          )}
-                          {selectedLead.data?.chat_id && (
-                            <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
-                              <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">ID Чата</span>
-                              <span className="text-xs font-mono text-neutral-400">{selectedLead.data.chat_id}</span>
-                            </div>
-                          )}
-                          {selectedLead.data?.score !== undefined && (
-                            <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
-                              <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">AI Оценка</span>
-                              <span className="text-sm font-medium text-emerald-400">{selectedLead.data.score} / 10</span>
-                            </div>
-                          )}
-                          {selectedLead.data?.interest && (
-                            <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50 col-span-full">
-                              <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">Заметки ИИ (Интерес)</span>
-                              <span className="text-sm text-neutral-300 leading-relaxed">{selectedLead.data.interest}</span>
-                            </div>
-                          )}
-                        </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-4 border-t border-neutral-800/50">
+                        {selectedLead.data?.tg_username && (
+                          <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
+                            <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">Telegram</span>
+                            <span className="text-sm font-medium text-blue-400">@{selectedLead.data.tg_username}</span>
+                          </div>
+                        )}
+                        {selectedLead.data?.chat_id && (
+                          <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
+                            <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">ID Чата</span>
+                            <span className="text-xs font-mono text-neutral-400">{selectedLead.data.chat_id}</span>
+                          </div>
+                        )}
+                        {selectedLead.data?.score !== undefined && (
+                          <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
+                            <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">AI Оценка</span>
+                            <span className="text-sm font-medium text-emerald-400">{selectedLead.data.score} / 10</span>
+                          </div>
+                        )}
+                        {selectedLead.data?.lang && (
+                          <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
+                            <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">Язык</span>
+                            <span className="text-sm font-medium text-neutral-200">
+                              {selectedLead.data.lang === 'ru' ? 'Русский 🇷🇺' :
+                                selectedLead.data.lang === 'en' ? 'Английский 🇬🇧' :
+                                  selectedLead.data.lang === 'tr' ? 'Турецкий 🇹🇷' :
+                                    selectedLead.data.lang.toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                        {selectedLead.data?.interest && (
+                          <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50 col-span-full">
+                            <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">Заметки ИИ (Интерес)</span>
+                            <span className="text-sm text-neutral-300 leading-relaxed">{selectedLead.data.interest}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </section>
