@@ -184,7 +184,14 @@ export async function handleMessage(
         if (finalReplyText) {
             console.log("[Bot] Sending final text to Telegram...");
             await sendMessage(token, chatId, finalReplyText);
-            await appendMessage({ session_id: sessionId, bot_id: botId, role: "assistant", content: finalReplyText });
+
+            // secretly append UUIDs to the database history so the search agent won't show repeats
+            let dbStoreText = finalReplyText;
+            if (routerInstruction.instructions_for_search_agent && unitsFound.length > 0) {
+                const shownIdsString = unitsFound.slice(0, 3).map((u: any) => `[HIDDEN_SYSTEM_ID: ${u.id}]`).join("\n");
+                dbStoreText += `\n\n${shownIdsString}`;
+            }
+            await appendMessage({ session_id: sessionId, bot_id: botId, role: "assistant", content: dbStoreText });
         }
 
         // 5. Send Photos strictly AFTER text message if we found units
