@@ -134,6 +134,20 @@ export default function LeadsPageClient() {
     }
   }
 
+  async function deleteLead(id: string) {
+    try {
+      const res = await fetch(`/api/leads/${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        if (selectedLead?.id === id) setSelectedLead(null);
+        load();
+      }
+    } catch (e) {
+      console.error("Failed to delete lead", e);
+    }
+  }
+
   const stats = {
     total: rows.length,
     new: rows.filter(r => r.status === 'new').length,
@@ -279,6 +293,7 @@ export default function LeadsPageClient() {
               lead={lead}
               onDetailsClick={() => setSelectedLead(lead)}
               onStatusUpdate={updateStatus}
+              onDelete={deleteLead}
             />
           ))
         )}

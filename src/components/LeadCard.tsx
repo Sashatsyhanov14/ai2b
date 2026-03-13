@@ -7,6 +7,7 @@ interface LeadCardProps {
     lead: any;
     onDetailsClick: () => void;
     onStatusUpdate: (id: string, status: string) => void;
+    onDelete: (id: string) => void;
 }
 
 // Language to flag mapping
@@ -34,9 +35,10 @@ const TEMP_CONFIG: Record<string, { emoji: string; label: string; color: string 
     "холодный": { emoji: "❄️", label: "COLD", color: "text-blue-400" },
 };
 
-export default function LeadCard({ lead, onDetailsClick, onStatusUpdate }: LeadCardProps) {
+export default function LeadCard({ lead, onDetailsClick, onStatusUpdate, onDelete }: LeadCardProps) {
     const [focusUnit, setFocusUnit] = useState<any>(null);
     const [loading, setLoading] = useState(false);
+    const [confirmDelete, setConfirmDelete] = useState(false);
 
     // Fetch focus unit details
     useEffect(() => {
@@ -231,18 +233,27 @@ export default function LeadCard({ lead, onDetailsClick, onStatusUpdate }: LeadC
                 </button>
 
                 {/* Delete Button */}
-                <button
-                    onClick={() => {
-                        if (confirm('Удалить этот лид?')) {
-                            onStatusUpdate(lead.id, "spam");
-                        }
-                    }}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-500/30 hover:border-red-500/50 text-sm font-bold transition-all"
-                    title="Удалить"
-                >
-                    <X className="h-4 w-4" />
-                    <span className="hidden sm:inline">Удалить</span>
-                </button>
+                {confirmDelete ? (
+                    <button
+                        onClick={() => onDelete(lead.id)}
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white border border-red-500 text-sm font-bold transition-all animate-in zoom-in duration-200"
+                        title="Подтвердить удаление"
+                    >
+                        <span className="hidden sm:inline">Точно?</span>
+                    </button>
+                ) : (
+                    <button
+                        onClick={() => {
+                            setConfirmDelete(true);
+                            setTimeout(() => setConfirmDelete(false), 3000);
+                        }}
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-500/30 hover:border-red-500/50 text-sm font-bold transition-all"
+                        title="Удалить"
+                    >
+                        <X className="h-4 w-4" />
+                        <span className="hidden sm:inline">Удалить</span>
+                    </button>
+                )}
 
                 {/* Snooze 24h Button */}
                 <button

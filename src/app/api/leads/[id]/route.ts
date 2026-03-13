@@ -31,11 +31,8 @@ export async function PATCH(req: Request, { params }: Params) {
 
 export async function DELETE(_req: Request, { params }: Params) {
   const sb = getServerClient()
-  const now = new Date().toISOString()
-  const soft = await sb.from('leads').update({ deleted_at: now } as any).eq('id', params.id)
-  if (!soft.error) return NextResponse.json({ ok: true, soft: true })
   const hard = await sb.from('leads').delete().eq('id', params.id)
   if (hard.error) return NextResponse.json({ ok: false, error: hard.error.message }, { status: 400 })
-  return NextResponse.json({ ok: true, soft: false })
+  return NextResponse.json({ ok: true, deleted: true })
 }
 
