@@ -248,172 +248,169 @@ export default function LeadsPageClient() {
           </div>
         </div>
       </div>
-
-    </div>
-
-      {/* Filters - Text Search Only */ }
-  <div className="flex flex-col md:flex-row gap-4 p-5 rounded-2xl border border-neutral-800 bg-neutral-900/20 backdrop-blur-sm">
-    <div className="flex-1 relative group">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500 group-focus-within:text-blue-500 transition-colors" />
-      <input
-        className="w-full bg-neutral-950 border border-neutral-800 rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none focus:border-blue-600 transition-all"
-        placeholder="Поиск по имени, номеру или email..."
-        value={q}
-        onChange={(e) => setParam("q", e.target.value)}
-      />
-    </div>
-  </div>
-
-  {/* Lead Cards Grid */ }
-  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-6">
-    {loading ? (
-      Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="h-64 rounded-2xl border border-neutral-800 bg-neutral-900/20 animate-pulse" />
-      ))
-    ) : rows.length === 0 ? (
-      <div className="col-span-full py-20 text-center border-2 border-dashed border-neutral-800 rounded-3xl">
-        <Users className="h-12 w-12 text-neutral-700 mx-auto mb-4" />
-        <p className="text-neutral-500">{t("leads.empty")}</p>
+      {/* Filters - Text Search Only */}
+      <div className="flex flex-col md:flex-row gap-4 p-5 rounded-2xl border border-neutral-800 bg-neutral-900/20 backdrop-blur-sm">
+        <div className="flex-1 relative group">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500 group-focus-within:text-blue-500 transition-colors" />
+          <input
+            className="w-full bg-neutral-950 border border-neutral-800 rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none focus:border-blue-600 transition-all"
+            placeholder="Поиск по имени, номеру или email..."
+            value={q}
+            onChange={(e) => setParam("q", e.target.value)}
+          />
+        </div>
       </div>
-    ) : (
-      rows.map((lead) => (
-        <LeadCard
-          key={lead.id}
-          lead={lead}
-          onDetailsClick={() => setSelectedLead(lead)}
-          onStatusUpdate={updateStatus}
-        />
-      ))
-    )}
-  </div>
 
-  {/* Side Detail Panel (Quick & Rough Implementation for Visual Context) */ }
-  {
-    selectedLead && (
-      <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-        <div
-          className="w-full max-w-lg h-full bg-neutral-950 border-l border-neutral-800 shadow-2xl animate-in slide-in-from-right duration-300"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="h-full flex flex-col">
-            <div className="p-8 border-b border-neutral-800 flex items-center justify-between">
-              <h2 className="text-xl font-bold italic">{t("leads.card.title")}</h2>
-              <button onClick={() => setSelectedLead(null)} className="p-2 rounded-xl hover:bg-neutral-900 border border-transparent hover:border-neutral-800 transition-all text-neutral-500 hover:text-white font-bold">×</button>
-            </div>
+      {/* Lead Cards Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-6">
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-64 rounded-2xl border border-neutral-800 bg-neutral-900/20 animate-pulse" />
+          ))
+        ) : rows.length === 0 ? (
+          <div className="col-span-full py-20 text-center border-2 border-dashed border-neutral-800 rounded-3xl">
+            <Users className="h-12 w-12 text-neutral-700 mx-auto mb-4" />
+            <p className="text-neutral-500">{t("leads.empty")}</p>
+          </div>
+        ) : (
+          rows.map((lead) => (
+            <LeadCard
+              key={lead.id}
+              lead={lead}
+              onDetailsClick={() => setSelectedLead(lead)}
+              onStatusUpdate={updateStatus}
+            />
+          ))
+        )}
+      </div>
 
-            <div className="flex-1 overflow-y-auto p-8 space-y-10">
-              <section>
-                <div className="flex items-center gap-5 mb-6">
-                  <div className="h-20 w-20 rounded-3xl bg-neutral-900 border border-neutral-800 flex items-center justify-center text-3xl font-bold italic shadow-2xl">
-                    {selectedLead.name ? selectedLead.name[0] : "?"}
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-bold">{selectedLead.name || t("leads.card.anonymous")}</h3>
-                    <div className="flex items-center gap-2 mt-2">
-                      <StatusBadge status={selectedLead.status} />
-                      <span className="text-xs text-neutral-500">ID: {selectedLead.id.slice(0, 8)}</span>
-                    </div>
-                  </div>
+      {/* Side Detail Panel (Quick & Rough Implementation for Visual Context) */}
+      {
+        selectedLead && (
+          <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+            <div
+              className="w-full max-w-lg h-full bg-neutral-950 border-l border-neutral-800 shadow-2xl animate-in slide-in-from-right duration-300"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="h-full flex flex-col">
+                <div className="p-8 border-b border-neutral-800 flex items-center justify-between">
+                  <h2 className="text-xl font-bold italic">{t("leads.card.title")}</h2>
+                  <button onClick={() => setSelectedLead(null)} className="p-2 rounded-xl hover:bg-neutral-900 border border-transparent hover:border-neutral-800 transition-all text-neutral-500 hover:text-white font-bold">×</button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-px bg-neutral-800 rounded-2xl overflow-hidden border border-neutral-800">
-                  <div className="bg-neutral-900 p-4">
-                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">{t("leads.table.phone")}</span>
-                    <p className="text-sm font-mono text-neutral-200">{selectedLead.phone || "—"}</p>
-                  </div>
-                  <div className="bg-neutral-900 p-4">
-                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">Email</span>
-                    <p className="text-sm text-neutral-200">{selectedLead.data?.email || selectedLead.email || "—"}</p>
-                  </div>
-                  <div className="bg-neutral-900 p-4">
-                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">{t("leads.table.source")}</span>
-                    <p className="text-sm text-neutral-200">{selectedLead.source}</p>
-                  </div>
-                  <div className="bg-neutral-900 p-4">
-                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">{t("leads.table.createdAt")}</span>
-                    <p className="text-sm text-neutral-200">{new Date(selectedLead.created_at).toLocaleDateString()}</p>
-                  </div>
-                </div>
-              </section>
-
-              <section className="space-y-4">
-                <h4 className="text-sm font-bold text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-blue-500" /> {t("leads.card.aiAnalysis")}
-                </h4>
-                <div className="rounded-3xl border border-neutral-800 bg-neutral-900/40 p-6 space-y-4 border-l-4 border-l-blue-600">
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">{t("leads.card.temperature")}</span>
-                    <div className="flex items-center gap-2 font-bold">
-                      {selectedLead.data?.temperature === 'hot' ? (
-                        <span className="text-rose-500 flex items-center gap-2"><Flame className="h-4 w-4" /> Горячий 🔥</span>
-                      ) : selectedLead.data?.temperature === 'warm' ? (
-                        <span className="text-amber-500 flex items-center gap-2"><Activity className="h-4 w-4" /> Теплый ☀️</span>
-                      ) : (
-                        <span className="text-blue-500 flex items-center gap-2"><Activity className="h-4 w-4" /> Холодный ❄️</span>
-                      )}
-                    </div>
-                  </div>
-                  {selectedLead.data?.budget && (
-                    <div className="space-y-1 pt-2">
-                      <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Бюджет</span>
-                      <div className="flex items-center gap-2 text-emerald-500 font-bold">
-                        <Wallet className="h-4 w-4" /> ${selectedLead.data.budget.toLocaleString()}
+                <div className="flex-1 overflow-y-auto p-8 space-y-10">
+                  <section>
+                    <div className="flex items-center gap-5 mb-6">
+                      <div className="h-20 w-20 rounded-3xl bg-neutral-900 border border-neutral-800 flex items-center justify-center text-3xl font-bold italic shadow-2xl">
+                        {selectedLead.name ? selectedLead.name[0] : "?"}
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-bold">{selectedLead.name || t("leads.card.anonymous")}</h3>
+                        <div className="flex items-center gap-2 mt-2">
+                          <StatusBadge status={selectedLead.status} />
+                          <span className="text-xs text-neutral-500">ID: {selectedLead.id.slice(0, 8)}</span>
+                        </div>
                       </div>
                     </div>
-                  )}
-                  {selectedLead.data?.interested_units && selectedLead.data.interested_units.length > 0 && (
-                    <div className="space-y-2 pt-2">
-                      <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">{t("leads.card.interestedIn")}</span>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedLead.data.interested_units.map((unit: string, i: number) => (
-                          <span key={i} className="px-3 py-1.5 rounded-xl bg-neutral-950 border border-neutral-800 text-xs text-neutral-300">{unit}</span>
-                        ))}
+
+                    <div className="grid grid-cols-2 gap-px bg-neutral-800 rounded-2xl overflow-hidden border border-neutral-800">
+                      <div className="bg-neutral-900 p-4">
+                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">{t("leads.table.phone")}</span>
+                        <p className="text-sm font-mono text-neutral-200">{selectedLead.phone || "—"}</p>
+                      </div>
+                      <div className="bg-neutral-900 p-4">
+                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">Email</span>
+                        <p className="text-sm text-neutral-200">{selectedLead.data?.email || selectedLead.email || "—"}</p>
+                      </div>
+                      <div className="bg-neutral-900 p-4">
+                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">{t("leads.table.source")}</span>
+                        <p className="text-sm text-neutral-200">{selectedLead.source}</p>
+                      </div>
+                      <div className="bg-neutral-900 p-4">
+                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">{t("leads.table.createdAt")}</span>
+                        <p className="text-sm text-neutral-200">{new Date(selectedLead.created_at).toLocaleDateString()}</p>
                       </div>
                     </div>
-                  )}
-                  <div className="space-y-3 pt-4 border-t border-neutral-800">
-                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-2">{t("leads.card.sessionData")}</span>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {selectedLead.data?.tg_username && (
-                        <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
-                          <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">Telegram</span>
-                          <span className="text-sm font-medium text-blue-400">@{selectedLead.data.tg_username}</span>
+                  </section>
+
+                  <section className="space-y-4">
+                    <h4 className="text-sm font-bold text-neutral-500 uppercase tracking-widest flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-blue-500" /> {t("leads.card.aiAnalysis")}
+                    </h4>
+                    <div className="rounded-3xl border border-neutral-800 bg-neutral-900/40 p-6 space-y-4 border-l-4 border-l-blue-600">
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">{t("leads.card.temperature")}</span>
+                        <div className="flex items-center gap-2 font-bold">
+                          {selectedLead.data?.temperature === 'hot' ? (
+                            <span className="text-rose-500 flex items-center gap-2"><Flame className="h-4 w-4" /> Горячий 🔥</span>
+                          ) : selectedLead.data?.temperature === 'warm' ? (
+                            <span className="text-amber-500 flex items-center gap-2"><Activity className="h-4 w-4" /> Теплый ☀️</span>
+                          ) : (
+                            <span className="text-blue-500 flex items-center gap-2"><Activity className="h-4 w-4" /> Холодный ❄️</span>
+                          )}
+                        </div>
+                      </div>
+                      {selectedLead.data?.budget && (
+                        <div className="space-y-1 pt-2">
+                          <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Бюджет</span>
+                          <div className="flex items-center gap-2 text-emerald-500 font-bold">
+                            <Wallet className="h-4 w-4" /> ${selectedLead.data.budget.toLocaleString()}
+                          </div>
                         </div>
                       )}
-                      {selectedLead.data?.chat_id && (
-                        <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
-                          <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">ID Чата</span>
-                          <span className="text-xs font-mono text-neutral-400">{selectedLead.data.chat_id}</span>
+                      {selectedLead.data?.interested_units && selectedLead.data.interested_units.length > 0 && (
+                        <div className="space-y-2 pt-2">
+                          <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">{t("leads.card.interestedIn")}</span>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedLead.data.interested_units.map((unit: string, i: number) => (
+                              <span key={i} className="px-3 py-1.5 rounded-xl bg-neutral-950 border border-neutral-800 text-xs text-neutral-300">{unit}</span>
+                            ))}
+                          </div>
                         </div>
                       )}
-                      {selectedLead.data?.score !== undefined && (
-                        <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
-                          <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">AI Оценка</span>
-                          <span className="text-sm font-medium text-emerald-400">{selectedLead.data.score} / 10</span>
+                      <div className="space-y-3 pt-4 border-t border-neutral-800">
+                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-2">{t("leads.card.sessionData")}</span>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {selectedLead.data?.tg_username && (
+                            <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
+                              <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">Telegram</span>
+                              <span className="text-sm font-medium text-blue-400">@{selectedLead.data.tg_username}</span>
+                            </div>
+                          )}
+                          {selectedLead.data?.chat_id && (
+                            <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
+                              <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">ID Чата</span>
+                              <span className="text-xs font-mono text-neutral-400">{selectedLead.data.chat_id}</span>
+                            </div>
+                          )}
+                          {selectedLead.data?.score !== undefined && (
+                            <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
+                              <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">AI Оценка</span>
+                              <span className="text-sm font-medium text-emerald-400">{selectedLead.data.score} / 10</span>
+                            </div>
+                          )}
+                          {selectedLead.data?.interest && (
+                            <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50 col-span-full">
+                              <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">Заметки ИИ (Интерес)</span>
+                              <span className="text-sm text-neutral-300 leading-relaxed">{selectedLead.data.interest}</span>
+                            </div>
+                          )}
                         </div>
-                      )}
-                      {selectedLead.data?.interest && (
-                        <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50 col-span-full">
-                          <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">Заметки ИИ (Интерес)</span>
-                          <span className="text-sm text-neutral-300 leading-relaxed">{selectedLead.data.interest}</span>
-                        </div>
-                      )}
+                      </div>
                     </div>
+                  </section>
+
+                  <div className="pt-10 flex gap-4">
+                    <Button className="flex-1 bg-blue-600 hover:bg-blue-700 h-12 rounded-2xl shadow-lg shadow-blue-900/20">{t("leads.card.writeTg")}</Button>
+                    <Button variant="secondary" className="border-neutral-800 h-12 rounded-2xl" onClick={() => setSelectedLead(null)}>{t("common.cancel")}</Button>
                   </div>
                 </div>
-              </section>
-
-              <div className="pt-10 flex gap-4">
-                <Button className="flex-1 bg-blue-600 hover:bg-blue-700 h-12 rounded-2xl shadow-lg shadow-blue-900/20">{t("leads.card.writeTg")}</Button>
-                <Button variant="secondary" className="border-neutral-800 h-12 rounded-2xl" onClick={() => setSelectedLead(null)}>{t("common.cancel")}</Button>
               </div>
             </div>
+            <div className="flex-1 cursor-pointer" onClick={() => setSelectedLead(null)} />
           </div>
-        </div>
-        <div className="flex-1 cursor-pointer" onClick={() => setSelectedLead(null)} />
-      </div>
-    )
-  }
+        )
+      }
     </div >
   );
 }
