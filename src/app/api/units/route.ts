@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerClient } from "@/lib/supabaseClient";
+import { normalizeCity } from "@/lib/cityNormalizer";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
       project_id: body.project_id ?? null,
       type: body.type ?? "apartment",
       title: body.title ?? null,
-      city: body.city ?? null,
+      city: body.city ? normalizeCity(body.city) : null,
       address: body.address ?? null,
       rooms: body.rooms ?? null,
       floor: body.floor ?? null,

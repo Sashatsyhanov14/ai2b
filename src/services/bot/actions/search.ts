@@ -1,5 +1,6 @@
 import { getServerClient } from "@/lib/supabaseClient";
 import { SearchArgs } from "../types";
+import { normalizeSearchKeywords } from "@/lib/cityNormalizer";
 
 export async function handleSearchDatabase(args: SearchArgs & { id?: string; price?: number }): Promise<string> {
     const supabase = getServerClient();
@@ -14,14 +15,14 @@ export async function handleSearchDatabase(args: SearchArgs & { id?: string; pri
         query = query.eq("id", args.id);
     }
 
-    // AI Typos / Fuzzy Search implementation
-    if (args.search_keywords && args.search_keywords.length > 0) {
-        // Create an OR string like: 'city.ilike.%Mersin%,address.ilike.%Mersin%,title.ilike.%Mersin%,city.ilike.%Мерсин%...'
-        const orConditions = args.search_keywords.map(kw => {
+    // AI Typos / Fuzzy Search: normalize Russian/Turkish city names to English first
+    const normalizedKeywords = normalizeSearchKeywords(args.search_keywords);
+    if (normalizedKeywords.length > 0) {
+        // Create an OR string like: 'city.ilike.%Istanbul%,address.ilike.%Istanbul%,title.ilike.%Istanbul%'
+        const orConditions = normalizedKeywords.map(kw => {
             const safeKw = kw.trim().replace(/,/g, ''); // prevent SQL injection in OR syntax
             return `city.ilike.%${safeKw}%,address.ilike.%${safeKw}%,title.ilike.%${safeKw}%`;
         }).join(",");
-
         query = query.or(orConditions);
     }
 

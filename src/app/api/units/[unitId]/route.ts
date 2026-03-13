@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import { getServerClient } from '@/lib/supabaseClient'
 import type { Unit, UnitUpdatePayload } from '@/types/units'
+import { normalizeCity } from '@/lib/cityNormalizer'
 
 function mapIncomingToDb(payload: any): Partial<Unit> {
   const out: Partial<Unit> = {}
-  if (payload.city != null) out.city = String(payload.city)
+  if (payload.city != null) out.city = normalizeCity(String(payload.city))
   if (payload.address != null) out.address = String(payload.address)
   if (payload.rooms != null) {
     if (typeof payload.rooms === 'string') {
