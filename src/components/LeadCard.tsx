@@ -102,8 +102,18 @@ export default function LeadCard({ lead, onDetailsClick, onStatusUpdate, onDelet
             <div className="p-5 border-b border-neutral-800/50">
                 <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-xl bg-neutral-950 flex items-center justify-center text-lg font-bold border border-neutral-800/50">
-                            {lead.name ? lead.name[0].toUpperCase() : "?"}
+                        {/* Avatar with temperature dot */}
+                        <div className="relative">
+                            <div className="h-10 w-10 rounded-xl bg-neutral-950 flex items-center justify-center text-lg font-bold border border-neutral-800/50">
+                                {lead.name ? lead.name[0].toUpperCase() : "?"}
+                            </div>
+                            {/* Glowing status dot */}
+                            <span className={`absolute -top-1 -right-1 h-3 w-3 rounded-full border-2 border-neutral-900 ${lead.data?.temperature === 'hot'
+                                    ? 'bg-red-500 shadow-[0_0_6px_2px_rgba(239,68,68,0.6)] animate-pulse'
+                                    : lead.data?.temperature === 'warm'
+                                        ? 'bg-amber-400 shadow-[0_0_6px_2px_rgba(251,191,36,0.5)]'
+                                        : 'bg-blue-500 shadow-[0_0_4px_1px_rgba(59,130,246,0.4)]'
+                                }`} />
                         </div>
                         <div>
                             <h3 className="font-bold text-neutral-100 flex items-center gap-2">
@@ -113,15 +123,6 @@ export default function LeadCard({ lead, onDetailsClick, onStatusUpdate, onDelet
                                 🕒 {timeAgo}
                             </p>
                         </div>
-                    </div>
-                    {/* Score Badge */}
-                    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border ${currentStage.color}`}>
-                        <span className="text-sm">{currentStage.emoji}</span>
-                        <span className="text-xs font-bold">{lead.data?.temperature === 'hot' ? 'Горячий' : lead.data?.temperature === 'warm' ? 'Теплый' : 'Холодный'}</span>
-                    </div>
-                    {/* Stage Label */}
-                    <div className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${currentStage.color}`}>
-                        {currentStage.label}
                     </div>
                 </div>
             </div>
