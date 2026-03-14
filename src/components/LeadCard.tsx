@@ -30,10 +30,10 @@ const LANG_FLAGS: Record<string, string> = {
 };
 
 // Temperature mapping
-const TEMP_CONFIG: Record<string, { emoji: string; label: string; color: string }> = {
-    "горячий": { emoji: "🔥", label: "HOT", color: "text-red-500" },
-    "теплый": { emoji: "⚡", label: "WARM", color: "text-orange-500" },
-    "холодный": { emoji: "❄️", label: "COLD", color: "text-blue-400" },
+const TEMP_CONFIG: Record<string, { emoji: string; label: string; color: string; key: string }> = {
+    "горячий": { emoji: "🔥", label: "HOT", color: "text-red-500", key: "hot" },
+    "теплый": { emoji: "⚡", label: "WARM", color: "text-orange-500", key: "warm" },
+    "холодный": { emoji: "❄️", label: "COLD", color: "text-blue-400", key: "cold" },
 };
 
 export default function LeadCard({ lead, onDetailsClick, onStatusUpdate, onDelete }: LeadCardProps) {
@@ -113,7 +113,7 @@ export default function LeadCard({ lead, onDetailsClick, onStatusUpdate, onDelet
     const flag = LANG_FLAGS[lang] || "🌐";
 
     // Determine temperature
-    const urgency = lead.data?.urgency || "холодный";
+    const urgency = lead.data?.urgency?.toLowerCase() || "холодный";
     const tempConfig = TEMP_CONFIG[urgency] || TEMP_CONFIG["холодный"];
 
     // Score and stage from scoring system
@@ -122,10 +122,10 @@ export default function LeadCard({ lead, onDetailsClick, onStatusUpdate, onDelet
 
     // Stage config
     const stageConfig: Record<string, { label: string; color: string; emoji: string }> = {
-        sandbox: { label: "Песочница", color: "text-gray-500 bg-gray-500/10 border-gray-500/20", emoji: "🏖️" },
-        warmup: { label: "Прогрев", color: "text-orange-500 bg-orange-500/10 border-orange-500/20", emoji: "⚡" },
-        handoff: { label: "Готов", color: "text-red-500 bg-red-500/10 border-red-500/20", emoji: "🔥" },
-        reactivation: { label: "Реактивация", color: "text-blue-500 bg-blue-500/10 border-blue-500/20", emoji: "🔄" },
+        sandbox: { label: t("leads.stages.sandbox"), color: "text-gray-500 bg-gray-500/10 border-gray-500/20", emoji: "🏖️" },
+        warmup: { label: t("leads.stages.warmup"), color: "text-orange-500 bg-orange-500/10 border-orange-500/20", emoji: "⚡" },
+        handoff: { label: t("leads.stages.handoff"), color: "text-red-500 bg-red-500/10 border-red-500/20", emoji: "🔥" },
+        reactivation: { label: t("leads.stages.reactivation"), color: "text-blue-500 bg-blue-500/10 border-blue-500/20", emoji: "🔄" },
     };
 
     const currentStage = stageConfig[stage] || stageConfig.sandbox;
@@ -136,10 +136,10 @@ export default function LeadCard({ lead, onDetailsClick, onStatusUpdate, onDelet
     const diffMinutes = Math.floor((now.getTime() - lastActive.getTime()) / 60000);
     const timeAgo =
         diffMinutes < 60
-            ? `${diffMinutes} мин назад`
+            ? `${diffMinutes} ${t("common.time.min")} ${t("common.time.ago")}`
             : diffMinutes < 1440
-                ? `${Math.floor(diffMinutes / 60)} ч назад`
-                : `${Math.floor(diffMinutes / 1440)} дн назад`;
+                ? `${Math.floor(diffMinutes / 60)} ${t("common.time.hour")} ${t("common.time.ago")}`
+                : `${Math.floor(diffMinutes / 1440)} ${t("common.time.day")} ${t("common.time.ago")}`;
 
     // WhatsApp link
     const whatsappLink = lead.phone
@@ -175,10 +175,10 @@ export default function LeadCard({ lead, onDetailsClick, onStatusUpdate, onDelet
                         </div>
                         <div>
                             <h3 className="font-bold text-neutral-100 flex items-center gap-2">
-                                {flag} {lead.name || "Аноним"}
+                                {flag} {lead.name || t("leads.card.anonymous")}
                                 {/* Language badge */}
                                 {langFlag && (
-                                    <span className="text-sm" title={`Язык: ${clientLang?.toUpperCase()}`}>{langFlag}</span>
+                                    <span className="text-sm" title={`${t("leads.card.lang")}: ${clientLang?.toUpperCase()}`}>{langFlag}</span>
                                 )}
                                 {isInWork && (
                                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">{t('leads.card.inWorkActive')}</span>
@@ -268,13 +268,13 @@ export default function LeadCard({ lead, onDetailsClick, onStatusUpdate, onDelet
                             <div className="flex items-center gap-2">
                                 <span className="text-neutral-400">🏢</span>
                                 <span className="text-sm font-semibold text-neutral-100">
-                                    {focusUnit.name || "Unit"} <span className="text-xs text-neutral-500">(ID: {focusUnit.id.slice(0, 8)})</span>
+                                    {focusUnit.name || t("leads.card.unit")} <span className="text-xs text-neutral-500">(ID: {focusUnit.id.slice(0, 8)})</span>
                                 </span>
                             </div>
                             <div className="flex items-center gap-2 text-xs text-neutral-400">
                                 <span>📍</span>
                                 <span>
-                                    {focusUnit.city}, {focusUnit.address || "Адрес уточняется"} | {focusUnit.rooms}+1
+                                    {focusUnit.city}, {focusUnit.address || t("leads.card.addressToVerify")} | {focusUnit.rooms}+1
                                 </span>
                             </div>
                         </div>

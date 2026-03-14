@@ -144,11 +144,11 @@ export default function LeadsPageClient() {
         if (selectedLead?.id === id) setSelectedLead(null);
         load();
       } else {
-        alert(`❌ Ошибка удаления:\n${json.error || "Неизвестная ошибка"}`);
+        alert(`${t("common.error") || "Error"}: ${json.error || "Unknown"}`);
       }
     } catch (e) {
       console.error("Failed to delete lead", e);
-      alert("❌ Сетевая ошибка при удалении лида");
+      alert(t("common.error") || "Error");
     }
   }
 
@@ -228,7 +228,7 @@ export default function LeadsPageClient() {
                     <MessageSquare className="h-7 w-7" />
                   </div>
                   <h4 className="text-3xl font-black text-white">{funnel.sessions}</h4>
-                  <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest mt-1">Всего чатов</p>
+                  <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest mt-1">{t("leads.funnel.allChats")}</p>
                 </div>
 
                 {/* Arrow */}
@@ -242,8 +242,8 @@ export default function LeadsPageClient() {
                     <Zap className="h-7 w-7" />
                   </div>
                   <h4 className="text-3xl font-black text-white">{funnel.drafts}</h4>
-                  <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest mt-1">Теплые (Черновики)</p>
-                  <span className="text-[10px] text-orange-400/80 mt-1 bg-orange-500/10 px-2 py-0.5 rounded-full font-medium">Конверсия: {funnel.sessions > 0 ? Math.round((funnel.drafts / funnel.sessions) * 100) : 0}%</span>
+                  <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest mt-1">{t("leads.funnel.drafts")}</p>
+                  <span className="text-[10px] text-orange-400/80 mt-1 bg-orange-500/10 px-2 py-0.5 rounded-full font-medium">{t("leads.funnel.conversion")}: {funnel.sessions > 0 ? Math.round((funnel.drafts / funnel.sessions) * 100) : 0}%</span>
                 </div>
 
                 {/* Arrow */}
@@ -257,8 +257,8 @@ export default function LeadsPageClient() {
                     <Target className="h-7 w-7" />
                   </div>
                   <h4 className="text-3xl font-black text-white">{funnel.leads}</h4>
-                  <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest mt-1">Готовые Лиды</p>
-                  <span className="text-[10px] text-emerald-400/80 mt-1 bg-emerald-500/10 px-2 py-0.5 rounded-full font-medium">Конверсия: {funnel.drafts > 0 ? Math.round((funnel.leads / funnel.drafts) * 100) : 0}%</span>
+                  <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest mt-1">{t("leads.funnel.readyLeads")}</p>
+                  <span className="text-[10px] text-emerald-400/80 mt-1 bg-emerald-500/10 px-2 py-0.5 rounded-full font-medium">{t("leads.funnel.conversion")}: {funnel.drafts > 0 ? Math.round((funnel.leads / funnel.drafts) * 100) : 0}%</span>
                 </div>
 
               </div>
@@ -272,7 +272,7 @@ export default function LeadsPageClient() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500 group-focus-within:text-blue-500 transition-colors" />
           <input
             className="w-full bg-neutral-950 border border-neutral-800 rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none focus:border-blue-600 transition-all"
-            placeholder="Поиск по имени, номеру или email..."
+            placeholder={t("leads.filters.search")}
             value={q}
             onChange={(e) => setParam("q", e.target.value)}
           />
@@ -334,19 +334,19 @@ export default function LeadsPageClient() {
 
                     <div className="grid grid-cols-2 gap-px bg-neutral-800 rounded-2xl overflow-hidden border border-neutral-800">
                       <div className="bg-neutral-900 p-4">
-                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">{t("leads.table.phone")}</span>
+                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">{t("leads.card.phone")}</span>
                         <p className="text-sm font-mono text-neutral-200">{selectedLead.phone || "—"}</p>
                       </div>
                       <div className="bg-neutral-900 p-4">
-                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">Email</span>
+                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">{t("leads.card.email")}</span>
                         <p className="text-sm text-neutral-200">{selectedLead.data?.email || selectedLead.email || "—"}</p>
                       </div>
                       <div className="bg-neutral-900 p-4">
-                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">{t("leads.table.source")}</span>
+                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">{t("leads.card.source")}</span>
                         <p className="text-sm text-neutral-200">{selectedLead.source}</p>
                       </div>
                       <div className="bg-neutral-900 p-4">
-                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">{t("leads.table.createdAt")}</span>
+                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">{t("leads.card.createdAt")}</span>
                         <p className="text-sm text-neutral-200">{new Date(selectedLead.created_at).toLocaleDateString()}</p>
                       </div>
                     </div>
@@ -361,17 +361,17 @@ export default function LeadsPageClient() {
                         <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">{t("leads.card.temperature")}</span>
                         <div className="flex items-center gap-2 font-bold">
                           {selectedLead.data?.temperature === 'hot' ? (
-                            <span className="text-rose-500 flex items-center gap-2"><Flame className="h-4 w-4" /> Горячий 🔥</span>
+                            <span className="text-rose-500 flex items-center gap-2"><Flame className="h-4 w-4" /> {t("leads.card.hot")} 🔥</span>
                           ) : selectedLead.data?.temperature === 'warm' ? (
-                            <span className="text-amber-500 flex items-center gap-2"><Activity className="h-4 w-4" /> Теплый ☀️</span>
+                            <span className="text-amber-500 flex items-center gap-2"><Activity className="h-4 w-4" /> {t("leads.card.warm")} ☀️</span>
                           ) : (
-                            <span className="text-blue-500 flex items-center gap-2"><Activity className="h-4 w-4" /> Холодный ❄️</span>
+                            <span className="text-blue-500 flex items-center gap-2"><Activity className="h-4 w-4" /> {t("leads.card.cold")} ❄️</span>
                           )}
                         </div>
                       </div>
                       {selectedLead.data?.budget && (
                         <div className="space-y-1 pt-2">
-                          <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Бюджет</span>
+                          <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">{t("leads.card.budget")}</span>
                           <div className="flex items-center gap-2 text-emerald-500 font-bold">
                             <Wallet className="h-4 w-4" /> ${selectedLead.data.budget.toLocaleString()}
                           </div>
@@ -396,30 +396,30 @@ export default function LeadsPageClient() {
                         )}
                         {selectedLead.data?.chat_id && (
                           <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
-                            <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">ID Чата</span>
+                            <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">{t("leads.card.chatId")}</span>
                             <span className="text-xs font-mono text-neutral-400">{selectedLead.data.chat_id}</span>
                           </div>
                         )}
                         {selectedLead.data?.score !== undefined && (
                           <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
-                            <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">AI Оценка</span>
+                            <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">{t("leads.card.score")}</span>
                             <span className="text-sm font-medium text-emerald-400">{selectedLead.data.score} / 10</span>
                           </div>
                         )}
                         {selectedLead.data?.lang && (
                           <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
-                            <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">Язык</span>
+                            <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">{t("leads.card.lang")}</span>
                             <span className="text-sm font-medium text-neutral-200">
                               {selectedLead.data.lang === 'ru' ? 'Русский 🇷🇺' :
-                                selectedLead.data.lang === 'en' ? 'Английский 🇬🇧' :
-                                  selectedLead.data.lang === 'tr' ? 'Турецкий 🇹🇷' :
+                                selectedLead.data.lang === 'en' ? 'English 🇬🇧' :
+                                  selectedLead.data.lang === 'tr' ? 'Türkçe 🇹🇷' :
                                     selectedLead.data.lang.toUpperCase()}
                             </span>
                           </div>
                         )}
                         {selectedLead.data?.interest && (
                           <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50 col-span-full">
-                            <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">Заметки ИИ (Интерес)</span>
+                            <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">{t("leads.card.aiNotes")}</span>
                             <span className="text-sm text-neutral-300 leading-relaxed">{selectedLead.data.interest}</span>
                           </div>
                         )}
