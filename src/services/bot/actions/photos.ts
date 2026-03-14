@@ -49,7 +49,7 @@ export async function handleGetPhotos(args: any, token: string, chatId: string):
     const limited = photos.slice(0, 10);
 
     try {
-        const caption = unitData.title ? `📸 ${unitData.title}` : '📸 Фото объекта';
+        const caption = '📸';
         if (limited.length === 1) {
             await sendPhoto(token, chatId, limited[0], caption);
         } else {

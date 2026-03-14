@@ -78,7 +78,8 @@ export const TranslationAgentSchema = {
                 urgency: { type: "string" },
                 purpose: { type: "string" },
                 unit_type: { type: "string" },
-                ai_summary: { type: "string" }
+                ai_summary: { type: "string" },
+                interested_units: { type: "array", items: { type: "string" } }
             }
         },
         en: {
@@ -90,7 +91,8 @@ export const TranslationAgentSchema = {
                 urgency: { type: "string" },
                 purpose: { type: "string" },
                 unit_type: { type: "string" },
-                ai_summary: { type: "string" }
+                ai_summary: { type: "string" },
+                interested_units: { type: "array", items: { type: "string" } }
             }
         },
         tr: {
@@ -102,7 +104,8 @@ export const TranslationAgentSchema = {
                 urgency: { type: "string" },
                 purpose: { type: "string" },
                 unit_type: { type: "string" },
-                ai_summary: { type: "string" }
+                ai_summary: { type: "string" },
+                interested_units: { type: "array", items: { type: "string" } }
             }
         }
     }
@@ -115,10 +118,11 @@ const TRANSLATION_SYSTEM_PROMPT = `
 ПРАВИЛА:
 1. Сохраняй профессиональный, но дружелюбный тон.
 2. Используй правильную терминологию недвижимости (апартаменты, вилла, ВНЖ, инвестиции и т.д.).
-3. Если поле пустое в оригинале — постарайся вывести смысл из контекста других полей или оставь пустым если совсем нет инфы.
-4. client_summary должен быть информативным, в стиле "Клиент ищет квартиру в Стамбуле для переезда, бюджет $200к". 
-5. manager_hints должны быть четкими указаниями (например: "Предложить проекты в районе Кадыкёй").
-6. Для поля RU: не просто скопируй, а причеши и улучши текст, чтобы он выглядел профессионально в CRM.
+3. ОБЯЗАТЕЛЬНО переводи географические названия, города и районы (Например: 'Кадыкёй, Стамбул' -> 'Kadikoy, Istanbul' для EN, 'Kadıköy, İstanbul' для TR).
+4. Если поле пустое в оригинале — постарайся вывести смысл из контекста других полей или оставь пустым если совсем нет инфы.
+5. client_summary должен быть информативным, в стиле "Клиент ищет квартиру в Стамбуле для переезда, бюджет $200к". 
+6. manager_hints должны быть четкими указаниями (например: "Предложить проекты в районе Кадыкёй").
+7. Для поля RU: не просто скопируй, а причеши и улучши текст, чтобы он выглядел профессионально в CRM.
 
 Выдай результат СТРОГО в формате JSON по схеме.
 `;
@@ -130,7 +134,7 @@ export async function runTranslationAgent(leadData: any): Promise<any> {
         return JSON.parse(rawResult);
     } catch (e) {
         console.error("Translation Agent JSON Parse Error:", e, rawResult);
-        return { en: {}, tr: {} };
+        return { ru: {}, en: {}, tr: {} };
     }
 }
 

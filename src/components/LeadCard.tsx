@@ -217,9 +217,11 @@ export default function LeadCard({ lead, onDetailsClick, onStatusUpdate, onDelet
                     <Target className="h-4 w-4 text-neutral-500 shrink-0 mt-0.5" />
                     <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest shrink-0 mt-0.5">{t('leads.card.interest')}:</span>
                     <span className="text-neutral-200 font-medium max-w-full overflow-hidden text-ellipsis line-clamp-2">
-                        {(lead.data?.interested_units && lead.data.interested_units.length > 0)
-                            ? lead.data.interested_units.join(', ')
-                            : (translatedData?.interest || lead.data?.interest || t('leads.card.notSet'))}
+                        {translatedData?.interested_units && translatedData.interested_units.length > 0
+                            ? translatedData.interested_units.join(', ')
+                            : (lead.data?.interested_units && lead.data.interested_units.length > 0)
+                                ? lead.data.interested_units.join(', ')
+                                : (translatedData?.interest || lead.data?.interest || t('leads.card.notSet'))}
                     </span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">

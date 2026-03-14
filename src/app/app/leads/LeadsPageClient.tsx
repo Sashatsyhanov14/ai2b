@@ -401,11 +401,11 @@ export default function LeadsPageClient() {
                                 </div>
                               </div>
                             )}
-                            {selectedLead.data?.interested_units && selectedLead.data.interested_units.length > 0 && (
+                            {((i18n.interested_units && i18n.interested_units.length > 0) || (selectedLead.data?.interested_units && selectedLead.data.interested_units.length > 0)) && (
                               <div className="space-y-2 pt-2">
                                 <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">{t("leads.card.interestedIn")}</span>
                                 <div className="flex flex-wrap gap-2">
-                                  {selectedLead.data.interested_units.map((unit: string, i: number) => (
+                                  {(i18n.interested_units || selectedLead.data.interested_units).map((unit: string, i: number) => (
                                     <span key={i} className="px-3 py-1.5 rounded-xl bg-neutral-950 border border-neutral-800 text-xs text-neutral-300">{unit}</span>
                                   ))}
                                 </div>

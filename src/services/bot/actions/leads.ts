@@ -18,7 +18,8 @@ export async function handleSaveLead(
         urgency: args.urgency,
         purpose: args.purpose,
         unit_type: args.unit_type,
-        ai_summary: args.client_summary // or other summary field
+        ai_summary: args.client_summary, // or other summary field
+        interested_units: args.interested_units
     });
 
     // First look for existing active lead from this chat
