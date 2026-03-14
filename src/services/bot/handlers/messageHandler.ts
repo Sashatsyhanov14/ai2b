@@ -107,8 +107,8 @@ export async function handleMessage(
             if (interested_units && interested_units.length > 0) alertMsg += `\n🏢 Интересы: ${interested_units.join(', ')}`;
             alertMsg += `\n\n🤖 <i>ИИ продолжает диалог, но вы можете перехватить!</i>`;
 
-            // Send notifications to Managers
-            if (phone !== "Unknown" || temp === "hot") {
+            // Send notifications to Managers only for formed leads (warm or hot)
+            if (temp === "warm" || temp === "hot") {
                 const { data: managers } = await supabase
                     .from("telegram_managers")
                     .select("telegram_id, preferred_lang")
