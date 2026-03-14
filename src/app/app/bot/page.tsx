@@ -641,8 +641,13 @@ export default function UnifiedBotPage() {
             {/* Tab: Managers */}
             {activeTab === "managers" && (
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
-                    <section className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6">
-                        <h2 className="text-lg font-semibold text-neutral-200 mb-6">{t("bot.managers.title")}</h2>
+                    <section className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-8 shadow-sm">
+                        <div className="mb-6">
+                            <h2 className="text-xl font-bold text-neutral-50 mb-1">{t("bot.managers.title")}</h2>
+                            <p className="text-sm text-neutral-500 italic">
+                                {t("bot.managers.langHint") || "Выберите язык для уведомлений, которые будут приходить менеджеру."}
+                            </p>
+                        </div>
                         <form onSubmit={handleAddManager} className="flex flex-col gap-4 md:flex-row md:items-end">
                             <div className="flex-1 space-y-2">
                                 <label className="text-xs font-medium text-neutral-400 ml-1">{t("bot.managers.name")}</label>
@@ -674,8 +679,12 @@ export default function UnifiedBotPage() {
                                     <option value="tr">TR</option>
                                 </select>
                             </div>
-                            <Button type="submit" disabled={!managerTelegramId.trim() || managerSaving} className="h-[46px] px-8">
-                                {t("bot.managers.add")}
+                            <Button
+                                type="submit"
+                                disabled={!managerTelegramId.trim() || managerSaving}
+                                className="h-[46px] px-8 bg-gradient-to-tr from-blue-600 to-blue-400 hover:from-blue-500 hover:to-blue-300 text-white font-bold rounded-xl shadow-lg shadow-blue-900/20 border-0 transition-all active:scale-95"
+                            >
+                                {managerSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : t("bot.managers.add")}
                             </Button>
                         </form>
                         {managerError && <p className="mt-4 text-xs text-red-400">{managerError}</p>}
@@ -698,15 +707,20 @@ export default function UnifiedBotPage() {
                                         <td className="px-4 py-3 font-medium">{m.name || "Без имени"}</td>
                                         <td className="px-4 py-3 text-neutral-500 font-mono">{m.telegram_id}</td>
                                         <td className="px-4 py-3 text-center">
-                                            <select
-                                                className="bg-transparent border-none text-xs text-neutral-400 outline-none cursor-pointer hover:text-white transition-colors"
-                                                value={m.preferred_lang || "ru"}
-                                                onChange={(e) => handleUpdateManagerLang(m.id, e.target.value)}
-                                            >
-                                                <option value="ru">RU</option>
-                                                <option value="en">EN</option>
-                                                <option value="tr">TR</option>
-                                            </select>
+                                            <div className="inline-block relative">
+                                                <select
+                                                    className="appearance-none bg-neutral-900/50 border border-neutral-800 rounded-lg px-2 py-1 text-[10px] font-bold text-neutral-400 outline-none cursor-pointer hover:text-white hover:border-neutral-700 transition-all pr-6"
+                                                    value={m.preferred_lang || "ru"}
+                                                    onChange={(e) => handleUpdateManagerLang(m.id, e.target.value)}
+                                                >
+                                                    <option value="ru" className="bg-neutral-950">RU</option>
+                                                    <option value="en" className="bg-neutral-950">EN</option>
+                                                    <option value="tr" className="bg-neutral-950">TR</option>
+                                                </select>
+                                                <div className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">
+                                                    <Plus className="h-2 w-2 rotate-45" />
+                                                </div>
+                                            </div>
                                         </td>
                                         <td className="px-4 py-3 align-middle">
                                             <div className="flex items-center justify-center">

@@ -329,6 +329,7 @@ export default function LeadsPageClient() {
                       purpose: i18n.purpose || selectedLead.data?.purpose,
                       unit_type: i18n.unit_type || selectedLead.data?.unit_type,
                       manager_hints: i18n.manager_hints || selectedLead.data?.manager_hints,
+                      ai_summary: i18n.ai_summary || selectedLead.data?.ai_summary,
                     };
 
                     return (
@@ -476,11 +477,11 @@ export default function LeadsPageClient() {
                               </div>
                             )}
 
-                            {selectedLead.data?.ai_summary && (
+                            {fields.ai_summary && (
                               <div className="mt-4 pt-4 border-t border-neutral-800/50">
                                 <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-2">{t("leads.card.dialogue")}</span>
                                 <p className="text-xs text-neutral-500 italic leading-relaxed px-2">
-                                  "{selectedLead.data.ai_summary}"
+                                  "{fields.ai_summary}"
                                 </p>
                               </div>
                             )}

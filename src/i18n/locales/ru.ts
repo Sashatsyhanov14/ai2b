@@ -312,6 +312,7 @@ export const ru = {
       name: "Имя",
       tgId: "Telegram ID",
       lang: "Язык",
+      langHint: "Выберите язык для уведомлений менеджеру.",
       status: "Статус",
       actions: "Действия",
       add: "Добавить",

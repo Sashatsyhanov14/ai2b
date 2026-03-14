@@ -134,9 +134,9 @@ export async function handleMessage(
             const baseParams = routerInstruction.instructions_for_search_agent;
 
             const searchTasks = [
-                baseParams,
-                { ...baseParams, rooms: undefined, price: baseParams.price ? baseParams.price * 1.2 : undefined },
-                { ...baseParams, rooms: undefined, price: undefined }
+                baseParams, // 1. Strict search (up to Price + 15% as per agent rules)
+                { ...baseParams, rooms: undefined }, // 2. Relaxed rooms
+                { ...baseParams, rooms: undefined, price: baseParams.price ? baseParams.price * 1.5 : undefined } // 3. Very relaxed price
             ];
 
             for (let i = 0; i < searchTasks.length; i++) {
