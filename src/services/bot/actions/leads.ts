@@ -36,6 +36,8 @@ export async function handleSaveLead(
             unit_type: args.unit_type || null,
             preferred_areas: args.preferred_areas || null,
             manager_hints: args.manager_hints || null,
+            client_summary: args.client_summary || null,
+            language: args.language || null,
         },
         status: "new",
         notes: args.info || "Bot Lead"

@@ -28,6 +28,8 @@ export type SaveLeadArgs = {
   unit_type?: string;      // АПАРТАМЕНТ / ВИЛЛА / ПЕНТХАУС
   preferred_areas?: string[]; // preferred cities/districts
   manager_hints?: string;  // AI tips for the sales manager
+  client_summary?: string; // AI-written 2-3 sentence profile of the client
+  language?: string;       // detected client language: 'ru', 'tr', 'en', etc.
 };
 
 export type GetPhotosArgs = {
