@@ -305,6 +305,9 @@ export const en = {
       upload: "Photos/Documents",
       editNote: "Edit Note",
       saveChanges: "Save Changes",
+      noteTitlePlaceholder: "Note Title",
+      noteContentPlaceholder: "Content that the bot should know...",
+      errorSummary: "Failed to load summary.",
     },
     managers: {
       title: "Telegram Managers",
@@ -321,8 +324,7 @@ export const en = {
       description: "Set specific bot behavior rules.",
       addRule: "Add rule",
       placeholder: "Enter rule here...",
-      empty: "Rules list is empty.",
+      empty: "Rules list is empty. Click 'Add Rule' to start.",
     },
   },
 } as const;
-

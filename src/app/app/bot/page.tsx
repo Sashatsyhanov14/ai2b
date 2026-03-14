@@ -62,8 +62,8 @@ function getFileIcon(type: string | null) {
 }
 
 export default function UnifiedBotPage() {
-    const { t } = useI18n();
-    const [activeTab, setActiveTab] = useState<Tab>("dashboard");
+    const { t, locale } = useI18n();
+    const [activeTab, setActiveTab] = useState<Tab>("instructions");
 
     const CATEGORIES = [
         { value: "about", label: t("bot.categories.about") },
@@ -104,6 +104,12 @@ export default function UnifiedBotPage() {
         loadBotData();
     }, []);
 
+    useEffect(() => {
+        if (activeTab === "knowledge") {
+            loadTotalSummary();
+        }
+    }, [locale, activeTab]);
+
     async function loadKnowledge() {
         setLoadingFiles(true);
         try {
@@ -123,11 +129,16 @@ export default function UnifiedBotPage() {
     async function loadTotalSummary() {
         setLoadingSummary(true);
         try {
-            const res = await fetch("/api/company/summary");
+            const res = await fetch(`/api/company/summary?lang=${locale}`);
             const json = await res.json();
-            if (json.ok) setTotalSummary(json.summary);
+            if (json.ok) {
+                setTotalSummary(json.summary);
+            } else {
+                setTotalSummary(t("bot.knowledge.errorSummary") || "Не удалось загрузить сводку.");
+            }
         } catch (e) {
             console.error("Failed to load summary", e);
+            setTotalSummary("Error loading summary");
         } finally {
             setLoadingSummary(false);
         }
@@ -395,13 +406,6 @@ export default function UnifiedBotPage() {
             {/* Tabs */}
             <div className="mb-8 flex flex-wrap gap-1 rounded-xl bg-neutral-900/50 p-1 w-fit border border-neutral-800">
                 <button
-                    onClick={() => setActiveTab("dashboard")}
-                    className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${activeTab === "dashboard" ? "bg-zinc-800 text-white shadow-sm" : "text-neutral-400 hover:text-neutral-200"
-                        }`}
-                >
-                    <LayoutDashboard className="h-4 w-4" /> {t("bot.tabs.main")}
-                </button>
-                <button
                     onClick={() => setActiveTab("instructions")}
                     className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${activeTab === "instructions" ? "bg-zinc-800 text-white shadow-sm" : "text-neutral-400 hover:text-neutral-200"
                         }`}
@@ -420,66 +424,10 @@ export default function UnifiedBotPage() {
                     className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${activeTab === "managers" ? "bg-zinc-800 text-white shadow-sm" : "text-neutral-400 hover:text-neutral-200"
                         }`}
                 >
-                    <SettingsIcon className="h-4 w-4" /> {t("bot.tabs.managers")}
+                    <Users className="h-4 w-4" /> {t("bot.tabs.managers")}
                 </button>
             </div>
 
-            {/* Tab: Dashboard */}
-            {activeTab === "dashboard" && (
-                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
-                    <section className="grid gap-4 md:grid-cols-2">
-                        <div className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6">
-                            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-neutral-500 mb-4">
-                                <BarChart3 className="h-3 w-3" /> {t("dashboard.stats.dialogs")}
-                            </div>
-                            <div className="text-4xl font-bold text-neutral-50">
-                                {sessionsCount ?? "0"}
-                            </div>
-                        </div>
-                        <div className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6">
-                            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-neutral-500 mb-4">
-                                <Users className="h-3 w-3" /> {t("dashboard.stats.leads")}
-                            </div>
-                            <div className="text-4xl font-bold text-neutral-50">
-                                {leads.length}
-                            </div>
-                        </div>
-                    </section>
-
-                    <section className="space-y-4">
-                        <h2 className="text-lg font-semibold text-neutral-200">{t("dashboard.recentLeads")}</h2>
-                        <div className="overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900/20 backdrop-blur-sm">
-                            <div className="max-h-[60vh] overflow-y-auto">
-                                <table className="w-full text-sm text-neutral-300">
-                                    <thead className="sticky top-0 bg-neutral-900/80 backdrop-blur-md text-xs uppercase tracking-wide text-neutral-500">
-                                        <tr>
-                                            <th className="px-4 py-3 text-left font-semibold">{t("leads.table.name")}</th>
-                                            <th className="px-4 py-3 text-left font-semibold">{t("leads.table.phone")}</th>
-                                            <th className="px-4 py-3 text-left font-semibold">Email</th>
-                                            <th className="px-4 py-3 text-left font-semibold">{t("leads.table.createdAt")}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-neutral-800/50">
-                                        {leads.map((l) => (
-                                            <tr key={l.id} className="hover:bg-white/5 transition-colors">
-                                                <td className="px-4 py-3">{l.name ?? "—"}</td>
-                                                <td className="px-4 py-3 text-neutral-400 font-mono">{l.phone ?? "—"}</td>
-                                                <td className="px-4 py-3 text-neutral-400">{l.email ?? "—"}</td>
-                                                <td className="px-4 py-3 text-neutral-500 text-xs">
-                                                    {new Date(l.created_at).toLocaleDateString()}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        {leads.length === 0 && !loadingLeads && (
-                                            <tr><td colSpan={4} className="p-8 text-center text-neutral-500 italic">{t("leads.empty")}</td></tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </section>
-                </div>
-            )}
 
             {/* Tab: Knowledge Base */}
             {activeTab === "knowledge" && (
@@ -644,9 +592,6 @@ export default function UnifiedBotPage() {
                     <section className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-8 shadow-sm">
                         <div className="mb-6">
                             <h2 className="text-xl font-bold text-neutral-50 mb-1">{t("bot.managers.title")}</h2>
-                            <p className="text-sm text-neutral-500 italic">
-                                {t("bot.managers.langHint") || "Выберите язык для уведомлений, которые будут приходить менеджеру."}
-                            </p>
                         </div>
                         <form onSubmit={handleAddManager} className="flex flex-col gap-4 md:flex-row md:items-end">
                             <div className="flex-1 space-y-2">
@@ -776,7 +721,7 @@ export default function UnifiedBotPage() {
                             <div className="mb-4">
                                 <input
                                     className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none transition-all"
-                                    placeholder="Заголовок заметки"
+                                    placeholder={t("bot.knowledge.noteTitlePlaceholder")}
                                     value={form.name}
                                     onChange={e => setForm({ ...form, name: e.target.value })}
                                     autoFocus
@@ -789,7 +734,7 @@ export default function UnifiedBotPage() {
                                 className="w-full h-96 bg-neutral-900/30 border border-neutral-800 rounded-2xl p-4 text-sm font-mono text-neutral-300 leading-relaxed outline-none focus:border-blue-900 transition-colors resize-none"
                                 value={editingContent?.content || ""}
                                 onChange={e => setEditingContent(prev => prev ? { ...prev, content: e.target.value } : null)}
-                                placeholder="Текст, который должен знать бот..."
+                                placeholder={t("bot.knowledge.noteContentPlaceholder")}
                             />
                         </div>
 
@@ -880,7 +825,7 @@ export default function UnifiedBotPage() {
 
                                 {globalInstructions.length === 0 && (
                                     <div className="text-center py-12 border-2 border-dashed border-neutral-800 rounded-2xl">
-                                        <p className="text-neutral-500">Список правил пуст. Нажмите «Добавить правило», чтобы начать.</p>
+                                        <p className="text-neutral-500">{t("bot.instructions.empty")}</p>
                                     </div>
                                 )}
                             </div>

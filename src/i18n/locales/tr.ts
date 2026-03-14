@@ -306,6 +306,9 @@ export const tr = {
       upload: "Fotoğraflar/Belgeler",
       editNote: "Notu Düzenle",
       saveChanges: "Değişiklikleri Kaydet",
+      noteTitlePlaceholder: "Not Başlığı",
+      noteContentPlaceholder: "Botun bilmesi gereken içerik...",
+      errorSummary: "Özet yüklenemedi.",
     },
     managers: {
       title: "Telegram Yöneticileri",
@@ -320,9 +323,9 @@ export const tr = {
     instructions: {
       title: "Genel Talimatlar",
       description: "Belirli bot davranış kurallarını belirleyin.",
-      addRule: "Kural ekle",
+      addRule: "Kural Ekle",
       placeholder: "Kuralı buraya girin...",
-      empty: "Kural listesi boş.",
+      empty: "Kural listesi boş. Başlamak için 'Kural Ekle'ye tıklayın.",
     },
   },
 } as const;

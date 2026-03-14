@@ -4,8 +4,12 @@ import { askLLM } from '@/lib/openrouter';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: Request) {
     try {
+        const { searchParams } = new URL(req.url);
+        const lang = searchParams.get('lang') || 'ru';
+        const langLabel = lang === 'tr' ? 'TURKISH' : lang === 'en' ? 'ENGLISH' : 'RUSSIAN';
+
         const sb = getServerClient();
 
         // Fetch all active company knowledge
@@ -34,25 +38,26 @@ export async function GET() {
             return NextResponse.json({ ok: true, summary: "База знаний пуста." });
         }
 
-        // Combine all content
         const combinedText = entries
             .map(e => `### ${e.name}\n${e.content_text || ''}`)
             .join('\n\n')
             .substring(0, 15000); // Protection against token limits
 
-        const prompt = `Пожалуйста, составь единую, краткую и структурированную сводку о компании на основе следующих данных из базы знаний. 
-Это должна быть "выжимка" самого важного для сотрудников или руководства.
-Используй списки и четкие заголовки. 
+        const prompt = `Please provide a unified, concise, and structured summary of the company based on the following knowledge base data.
+The summary MUST be written in ${langLabel}.
 
-В ГЛОБАЛЬНЫХ УКАЗАНИЯХ НИЖЕ МОГУТ БЫТЬ ПРАВИЛА О ТОМ, КАК ИМЕННО СТРУКТУРИРОВАТЬ ИЛИ КАКОЙ ТОН ИСПОЛЬЗОВАТЬ. СОБЛЮДАЙ ИХ.
+This should be a "gist" of the most important information for employees or management.
+Use lists and clear headings. 
 
-ГЛОБАЛЬНЫЕ УКАЗАНИЯ:
+IN THE GLOBAL INSTRUCTIONS BELOW, THERE MAY BE RULES ON HOW TO STRUCTURE OR WHAT TONE TO USE. OBSERVE THEM.
+
+GLOBAL INSTRUCTIONS:
 ${globalInstructions}
 
-ДАННЫЕ БАЗЫ ЗНАНИЙ:
+KNOWLEDGE BASE DATA:
 ${combinedText}`;
 
-        const summary = await askLLM(prompt, "Ты ассистент, анализирующий базу знаний и составляющий сводки согласно глобальным правилам компании.", true);
+        const summary = await askLLM(prompt, `You are an assistant analyzing a knowledge base and composing summaries in ${langLabel} according to global company rules.`, true);
 
         return NextResponse.json({ ok: true, summary });
 
