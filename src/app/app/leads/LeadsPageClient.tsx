@@ -496,7 +496,17 @@ export default function LeadsPageClient() {
                   })()}
 
                   <div className="pt-10 flex gap-4">
-                    <Button className="flex-1 bg-blue-600 hover:bg-blue-700 h-12 rounded-2xl shadow-lg shadow-blue-900/20">{t("leads.card.writeTg")}</Button>
+                    <Button
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 h-12 rounded-2xl shadow-lg shadow-blue-900/20"
+                      disabled={!selectedLead.data?.tg_username}
+                      onClick={() => {
+                        if (selectedLead.data?.tg_username) {
+                          window.open(`https://t.me/${selectedLead.data.tg_username}`, "_blank");
+                        }
+                      }}
+                    >
+                      {t("leads.card.writeTg")}
+                    </Button>
                     <Button variant="secondary" className="border-neutral-800 h-12 rounded-2xl" onClick={() => setSelectedLead(null)}>{t("common.cancel")}</Button>
                   </div>
                 </div>
