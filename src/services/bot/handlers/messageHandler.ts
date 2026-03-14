@@ -107,21 +107,41 @@ export async function handleMessage(
             if (interested_units && interested_units.length > 0) alertMsg += `\n🏢 Интересы: ${interested_units.join(', ')}`;
             alertMsg += `\n\n🤖 <i>ИИ продолжает диалог, но вы можете перехватить!</i>`;
 
-            // Only spam Telegram if they left a phone OR if they are super hot.
+            // Send notifications to Managers
             if (phone !== "Unknown" || temp === "hot") {
-                const { data: managers } = await supabase.from("telegram_managers").select("telegram_id").eq("is_active", true);
+                const { data: managers } = await supabase
+                    .from("telegram_managers")
+                    .select("telegram_id, preferred_lang")
+                    .eq("is_active", true);
+
                 if (managers && managers.length > 0) {
+                    const dashboardUrl = "https://ai2b.app/app/leads";
+
                     for (const m of managers) {
-                        if (m.telegram_id) {
-                            try {
-                                await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-                                    method: "POST",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ chat_id: m.telegram_id, text: alertMsg, parse_mode: "HTML" })
-                                });
-                            } catch (e) {
-                                console.error("Manager Alert failed:", e);
-                            }
+                        if (!m.telegram_id) continue;
+
+                        const m_lang = m.preferred_lang || "ru";
+                        const notificationText =
+                            m_lang === "tr" ? `🚀 <b>Yeni bir lead'iniz var!</b>\n\nMüşteri: ${name}\nDetayları görüntülemek için panele gidin.` :
+                                m_lang === "en" ? `🚀 <b>You have a new lead!</b>\n\nClient: ${name}\nGo to the dashboard to view details.` :
+                                    `🚀 <b>У вас новый лид!</b>\n\nКлиент: ${name}\nПерейдите в дашборд для просмотра деталей.`;
+
+                        const btnLabel =
+                            m_lang === "tr" ? "Panele Git ↗️" :
+                                m_lang === "en" ? "To Dashboard ↗️" :
+                                    "В дашборд ↗️";
+
+                        try {
+                            await sendMessage(token, m.telegram_id, notificationText, {
+                                parse_mode: "HTML",
+                                reply_markup: {
+                                    inline_keyboard: [
+                                        [{ text: btnLabel, url: dashboardUrl }]
+                                    ]
+                                }
+                            });
+                        } catch (e) {
+                            console.error("Manager Alert failed for", m.telegram_id, e);
                         }
                     }
                 }
