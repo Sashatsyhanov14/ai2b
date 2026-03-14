@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerClient } from '@/lib/supabaseClient';
-import { askLLM } from '@/lib/openrouter';
+import { askLLM } from '@/lib/gemini';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,7 +62,7 @@ ${combinedText}`;
         return NextResponse.json({ ok: true, summary });
 
     } catch (e: any) {
-        console.error('Summary generation error:', e);
-        return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
+        console.error('[API/Summary] Unexpected Error:', e);
+        return NextResponse.json({ ok: false, error: e.message || 'Internal Server Error' }, { status: 500 });
     }
 }
