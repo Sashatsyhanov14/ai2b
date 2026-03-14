@@ -95,9 +95,10 @@ export async function handleMessage(
             const budget = mgr.budget || null;
             const interested_units = mgr.interested_units || [];
             const temp = mgr.lead_temperature || "cold";
+            const lang = routerInstruction.detected_language || userInfo.language_code || "ru";
 
             if (phone !== "Unknown" || temp === "warm" || temp === "hot") {
-                await handleSaveLead({ phone, name, info: reason, email, budget, interested_units, temperature: temp } as any, chatId, userInfo.username);
+                await handleSaveLead({ phone, name, info: reason, email, budget, interested_units, temperature: temp, language: lang } as any, chatId, userInfo.username);
             }
 
             let alertMsg = `🔥 <b>ВНИМАНИЕ МЕНЕДЖЕРАМ! (ИИ-БОТ)</b> 🔥\n\n👤 Пользователь: @${userInfo.username || chatId}\n👤 Имя: ${name}\n📞 Контакт: ${phone !== "Unknown" ? phone : "Пока не оставил"}\n💬 Инфо: ${reason}`;
@@ -174,10 +175,11 @@ export async function handleMessage(
             }
 
             const customInstruction = routerInstruction.instructions_for_communication_agent;
-            const fullInstruction = `[УКАЗАНИЕ ОТ ДИСПЕТЧЕРА]:\n${customInstruction}\n\n[ИСТОРИЯ И КОНТЕКСТ]:\nОпирайся на историю диалога, отвечай на языке клиента и учитывай правила компании!`;
+            const fullInstruction = `[УКАЗАНИЕ ОТ ДИСПЕТЧЕРА]:\n${customInstruction}\n\n[ИСТОРИЯ И КОНТЕКСТ]:\nОпирайся на историю диалога и учитывай правила компании!`;
+            const lang = routerInstruction.detected_language || userInfo.language_code || "ru";
 
             sendChatAction(token, chatId, 'typing').catch(() => { });
-            finalReplyText = await runCommunicationAgent(messages, botKnowledge, dbData + "\n\n" + fullInstruction);
+            finalReplyText = await runCommunicationAgent(messages, botKnowledge, dbData + "\n\n" + fullInstruction, lang);
         }
 
         // 4. Final Output to User

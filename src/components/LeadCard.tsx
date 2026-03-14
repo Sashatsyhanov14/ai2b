@@ -66,14 +66,14 @@ export default function LeadCard({ lead, onDetailsClick, onStatusUpdate, onDelet
 
     // Handle auto-translation of AI lead data when locale changes
     useEffect(() => {
-        if (locale === 'ru') {
-            setTranslatedData(null); // Reset to original (Russian)
-            return;
-        }
-
         // 1. Check if we already have pre-calculated translations in the DB
         if (lead.data?.i18n?.[locale]) {
             setTranslatedData(lead.data.i18n[locale]);
+            return;
+        }
+
+        if (locale === 'ru') {
+            setTranslatedData(null); // Reset to original (Russian)
             return;
         }
 

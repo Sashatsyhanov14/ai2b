@@ -466,6 +466,24 @@ export default function LeadsPageClient() {
                                 </div>
                               )}
                             </div>
+
+                            {fields.manager_hints && (
+                              <div className="mt-4 pt-4 border-t border-neutral-800/50">
+                                <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest block mb-2">{t("leads.card.managerHints")}</span>
+                                <div className="bg-blue-500/5 p-4 rounded-2xl border border-blue-500/10">
+                                  <p className="text-sm text-neutral-300 leading-relaxed">{fields.manager_hints}</p>
+                                </div>
+                              </div>
+                            )}
+
+                            {selectedLead.data?.ai_summary && (
+                              <div className="mt-4 pt-4 border-t border-neutral-800/50">
+                                <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-2">{t("leads.card.dialogue")}</span>
+                                <p className="text-xs text-neutral-500 italic leading-relaxed px-2">
+                                  "{selectedLead.data.ai_summary}"
+                                </p>
+                              </div>
+                            )}
                           </div>
                         </section>
                       </>
@@ -483,7 +501,7 @@ export default function LeadsPageClient() {
           </div>
         )
       }
-    </div >
+    </div>
   );
 }
 
