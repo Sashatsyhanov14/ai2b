@@ -57,6 +57,66 @@ export const RouterSchema = {
     required: ["instructions_for_communication_agent"]
 };
 
+// ==========================================
+// TRANSLATION AGENT (ЛОКАЛИЗАТОР)
+// ==========================================
+// Задача: Переводит данные лида на английский (en) и турецкий (tr) для дашборда.
+
+export const TranslationAgentSchema = {
+    type: "object",
+    properties: {
+        en: {
+            type: "object",
+            properties: {
+                client_summary: { type: "string" },
+                manager_hints: { type: "string" },
+                interest: { type: "string" },
+                urgency: { type: "string" },
+                purpose: { type: "string" },
+                unit_type: { type: "string" },
+                ai_summary: { type: "string" }
+            }
+        },
+        tr: {
+            type: "object",
+            properties: {
+                client_summary: { type: "string" },
+                manager_hints: { type: "string" },
+                interest: { type: "string" },
+                urgency: { type: "string" },
+                purpose: { type: "string" },
+                unit_type: { type: "string" },
+                ai_summary: { type: "string" }
+            }
+        }
+    }
+};
+
+const TRANSLATION_SYSTEM_PROMPT = `
+ТЫ — ПРОФЕССИОНАЛЬНЫЙ ПЕРЕВОДЧИК ДЛЯ REAL ESTATE CRM.
+Твоя задача — перевести предоставленные данные лида (из русской версии) на английский (EN) и турецкий (TR).
+
+ПРАВИЛА:
+1. Сохраняй профессиональный, но дружелюбный тон.
+2. Используй правильную терминологию недвижимости (апартаменты, вилла, ВНЖ и т.д.).
+3. Если поле пустое — оставь его пустым в переводе.
+4. client_summary должен быть информативным.
+5. manager_hints должны быть четкими указаниями.
+
+Выдай результат СТРОГО в формате JSON по схеме.
+`;
+
+export async function runTranslationAgent(leadData: any): Promise<any> {
+    const input = JSON.stringify(leadData);
+    const rawResult = await askLLM(input, TRANSLATION_SYSTEM_PROMPT, false, TranslationAgentSchema);
+    try {
+        return JSON.parse(rawResult);
+    } catch (e) {
+        console.error("Translation Agent JSON Parse Error:", e, rawResult);
+        return { en: {}, tr: {} };
+    }
+}
+
 const ROUTER_SYSTEM_PROMPT = `
 ТЫ — ГЛАВНЫЙ ИИ-ОРКЕСТРАТОР АГЕНТСТВА НЕДВИЖИМОСТИ.
 Твоя задача — проанализировать историю чата с клиентом и выдать указания другим ИИ-агентам в формате JSON.

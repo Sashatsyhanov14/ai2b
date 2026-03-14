@@ -71,6 +71,13 @@ export default function LeadCard({ lead, onDetailsClick, onStatusUpdate, onDelet
             return;
         }
 
+        // 1. Check if we already have pre-calculated translations in the DB
+        if (lead.data?.i18n?.[locale]) {
+            setTranslatedData(lead.data.i18n[locale]);
+            return;
+        }
+
+        // 2. Fallback to on-the-fly translation for legacy leads (backwards compatibility)
         const fieldsToTranslate = {
             client_summary: lead.data?.client_summary,
             manager_hints: lead.data?.manager_hints,

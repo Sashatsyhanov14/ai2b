@@ -318,114 +318,159 @@ export default function LeadsPageClient() {
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-8 space-y-10">
-                  <section>
-                    <div className="flex items-center gap-5 mb-6">
-                      <div className="h-20 w-20 rounded-3xl bg-neutral-900 border border-neutral-800 flex items-center justify-center text-3xl font-bold italic shadow-2xl">
-                        {selectedLead.name ? selectedLead.name[0] : "?"}
-                      </div>
-                      <div>
-                        <h3 className="text-2xl font-bold">{selectedLead.name || t("leads.card.anonymous")}</h3>
-                        <div className="flex items-center gap-2 mt-2">
-                          <StatusBadge status={selectedLead.status} />
-                          <span className="text-xs text-neutral-500">ID: {selectedLead.id.slice(0, 8)}</span>
-                        </div>
-                      </div>
-                    </div>
+                  {/* Current locale translation if available, otherwise fallback */}
+                  {(() => {
+                    const { locale } = useI18n();
+                    const i18n = selectedLead.data?.i18n?.[locale] || {};
+                    const fields = {
+                      client_summary: i18n.client_summary || selectedLead.data?.client_summary,
+                      interest: i18n.interest || selectedLead.data?.interest,
+                      urgency: i18n.urgency || selectedLead.data?.urgency,
+                      purpose: i18n.purpose || selectedLead.data?.purpose,
+                      unit_type: i18n.unit_type || selectedLead.data?.unit_type,
+                      manager_hints: i18n.manager_hints || selectedLead.data?.manager_hints,
+                    };
 
-                    <div className="grid grid-cols-2 gap-px bg-neutral-800 rounded-2xl overflow-hidden border border-neutral-800">
-                      <div className="bg-neutral-900 p-4">
-                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">{t("leads.card.phone")}</span>
-                        <p className="text-sm font-mono text-neutral-200">{selectedLead.phone || "—"}</p>
-                      </div>
-                      <div className="bg-neutral-900 p-4">
-                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">{t("leads.card.email")}</span>
-                        <p className="text-sm text-neutral-200">{selectedLead.data?.email || selectedLead.email || "—"}</p>
-                      </div>
-                      <div className="bg-neutral-900 p-4">
-                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">{t("leads.card.source")}</span>
-                        <p className="text-sm text-neutral-200">{selectedLead.source}</p>
-                      </div>
-                      <div className="bg-neutral-900 p-4">
-                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">{t("leads.card.createdAt")}</span>
-                        <p className="text-sm text-neutral-200">{new Date(selectedLead.created_at).toLocaleDateString()}</p>
-                      </div>
-                    </div>
-                  </section>
+                    return (
+                      <>
+                        <section>
+                          <div className="flex items-center gap-5 mb-6">
+                            <div className="h-20 w-20 rounded-3xl bg-neutral-900 border border-neutral-800 flex items-center justify-center text-3xl font-bold italic shadow-2xl">
+                              {selectedLead.name ? selectedLead.name[0] : "?"}
+                            </div>
+                            <div>
+                              <h3 className="text-2xl font-bold">{selectedLead.name || t("leads.card.anonymous")}</h3>
+                              <div className="flex items-center gap-2 mt-2">
+                                <StatusBadge status={selectedLead.status} />
+                                <span className="text-xs text-neutral-500">ID: {selectedLead.id.slice(0, 8)}</span>
+                              </div>
+                            </div>
+                          </div>
 
-                  <section className="space-y-4">
-                    <h4 className="text-sm font-bold text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-blue-500" /> {t("leads.card.aiAnalysis")}
-                    </h4>
-                    <div className="rounded-3xl border border-neutral-800 bg-neutral-900/40 p-6 space-y-4 border-l-4 border-l-blue-600">
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">{t("leads.card.temperature")}</span>
-                        <div className="flex items-center gap-2 font-bold">
-                          {selectedLead.data?.temperature === 'hot' ? (
-                            <span className="text-rose-500 flex items-center gap-2"><Flame className="h-4 w-4" /> {t("leads.card.hot")} 🔥</span>
-                          ) : selectedLead.data?.temperature === 'warm' ? (
-                            <span className="text-amber-500 flex items-center gap-2"><Activity className="h-4 w-4" /> {t("leads.card.warm")} ☀️</span>
-                          ) : (
-                            <span className="text-blue-500 flex items-center gap-2"><Activity className="h-4 w-4" /> {t("leads.card.cold")} ❄️</span>
+                          <div className="grid grid-cols-2 gap-px bg-neutral-800 rounded-2xl overflow-hidden border border-neutral-800">
+                            <div className="bg-neutral-900 p-4">
+                              <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">{t("leads.card.phone")}</span>
+                              <p className="text-sm font-mono text-neutral-200">{selectedLead.phone || "—"}</p>
+                            </div>
+                            <div className="bg-neutral-900 p-4">
+                              <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">{t("leads.card.email")}</span>
+                              <p className="text-sm text-neutral-200">{selectedLead.data?.email || selectedLead.email || "—"}</p>
+                            </div>
+                            <div className="bg-neutral-900 p-4">
+                              <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">{t("leads.card.source")}</span>
+                              <p className="text-sm text-neutral-200">{selectedLead.source}</p>
+                            </div>
+                            <div className="bg-neutral-900 p-4">
+                              <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block mb-1">{t("leads.card.createdAt")}</span>
+                              <p className="text-sm text-neutral-200">{new Date(selectedLead.created_at).toLocaleDateString()}</p>
+                            </div>
+                          </div>
+                        </section>
+
+                        <section className="space-y-4">
+                          <h4 className="text-sm font-bold text-neutral-500 uppercase tracking-widest flex items-center gap-2">
+                            <Sparkles className="h-4 w-4 text-blue-500" /> {t("leads.card.aiAnalysis")}
+                          </h4>
+
+                          {fields.client_summary && (
+                            <div className="rounded-3xl border border-neutral-800 bg-violet-500/5 p-6 mb-4 border-l-4 border-l-violet-500">
+                              <p className="text-sm text-neutral-300 leading-relaxed italic">
+                                "{fields.client_summary}"
+                              </p>
+                            </div>
                           )}
-                        </div>
-                      </div>
-                      {selectedLead.data?.budget && (
-                        <div className="space-y-1 pt-2">
-                          <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">{t("leads.card.budget")}</span>
-                          <div className="flex items-center gap-2 text-emerald-500 font-bold">
-                            <Wallet className="h-4 w-4" /> ${selectedLead.data.budget.toLocaleString()}
+
+                          <div className="rounded-3xl border border-neutral-800 bg-neutral-900/40 p-6 space-y-4 border-l-4 border-l-blue-600">
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">{t("leads.card.temperature")}</span>
+                              <div className="flex items-center gap-2 font-bold">
+                                {selectedLead.data?.temperature === 'hot' ? (
+                                  <span className="text-rose-500 flex items-center gap-2"><Flame className="h-4 w-4" /> {t("leads.card.hot")} 🔥</span>
+                                ) : selectedLead.data?.temperature === 'warm' ? (
+                                  <span className="text-amber-500 flex items-center gap-2"><Activity className="h-4 w-4" /> {t("leads.card.warm")} ☀️</span>
+                                ) : (
+                                  <span className="text-blue-500 flex items-center gap-2"><Activity className="h-4 w-4" /> {t("leads.card.cold")} ❄️</span>
+                                )}
+                              </div>
+                            </div>
+                            {selectedLead.data?.budget && (
+                              <div className="space-y-1 pt-2">
+                                <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">{t("leads.card.budget")}</span>
+                                <div className="flex items-center gap-2 text-emerald-500 font-bold">
+                                  <Wallet className="h-4 w-4" /> ${selectedLead.data.budget.toLocaleString()}
+                                </div>
+                              </div>
+                            )}
+                            {selectedLead.data?.interested_units && selectedLead.data.interested_units.length > 0 && (
+                              <div className="space-y-2 pt-2">
+                                <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">{t("leads.card.interestedIn")}</span>
+                                <div className="flex flex-wrap gap-2">
+                                  {selectedLead.data.interested_units.map((unit: string, i: number) => (
+                                    <span key={i} className="px-3 py-1.5 rounded-xl bg-neutral-950 border border-neutral-800 text-xs text-neutral-300">{unit}</span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-4 border-t border-neutral-800/50">
+                              {selectedLead.data?.tg_username && (
+                                <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
+                                  <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">Telegram</span>
+                                  <span className="text-sm font-medium text-blue-400">@{selectedLead.data.tg_username}</span>
+                                </div>
+                              )}
+                              {selectedLead.data?.chat_id && (
+                                <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
+                                  <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">{t("leads.card.chatId")}</span>
+                                  <span className="text-xs font-mono text-neutral-400">{selectedLead.data.chat_id}</span>
+                                </div>
+                              )}
+                              {selectedLead.data?.score !== undefined && (
+                                <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
+                                  <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">{t("leads.card.score")}</span>
+                                  <span className="text-sm font-medium text-emerald-400">{selectedLead.data.score} / 10</span>
+                                </div>
+                              )}
+                              {selectedLead.data?.lang && (
+                                <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
+                                  <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">{t("leads.card.lang")}</span>
+                                  <span className="text-sm font-medium text-neutral-200">
+                                    {selectedLead.data.lang === 'ru' ? 'Русский 🇷🇺' :
+                                      selectedLead.data.lang === 'en' ? 'English 🇬🇧' :
+                                        selectedLead.data.lang === 'tr' ? 'Türkçe 🇹🇷' :
+                                          selectedLead.data.lang.toUpperCase()}
+                                  </span>
+                                </div>
+                              )}
+                              {fields.urgency && (
+                                <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
+                                  <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">{t("leads.card.urgency")}</span>
+                                  <span className="text-xs text-neutral-300">{fields.urgency}</span>
+                                </div>
+                              )}
+                              {fields.purpose && (
+                                <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
+                                  <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">{t("leads.card.purpose")}</span>
+                                  <span className="text-xs text-neutral-300">{fields.purpose}</span>
+                                </div>
+                              )}
+                              {fields.unit_type && (
+                                <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
+                                  <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">{t("leads.card.unitType")}</span>
+                                  <span className="text-xs text-neutral-300">{fields.unit_type}</span>
+                                </div>
+                              )}
+                              {fields.interest && (
+                                <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50 col-span-full">
+                                  <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">{t("leads.card.aiNotes")}</span>
+                                  <span className="text-sm text-neutral-300 leading-relaxed">{fields.interest}</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      )}
-                      {selectedLead.data?.interested_units && selectedLead.data.interested_units.length > 0 && (
-                        <div className="space-y-2 pt-2">
-                          <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">{t("leads.card.interestedIn")}</span>
-                          <div className="flex flex-wrap gap-2">
-                            {selectedLead.data.interested_units.map((unit: string, i: number) => (
-                              <span key={i} className="px-3 py-1.5 rounded-xl bg-neutral-950 border border-neutral-800 text-xs text-neutral-300">{unit}</span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-4 border-t border-neutral-800/50">
-                        {selectedLead.data?.tg_username && (
-                          <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
-                            <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">Telegram</span>
-                            <span className="text-sm font-medium text-blue-400">@{selectedLead.data.tg_username}</span>
-                          </div>
-                        )}
-                        {selectedLead.data?.chat_id && (
-                          <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
-                            <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">{t("leads.card.chatId")}</span>
-                            <span className="text-xs font-mono text-neutral-400">{selectedLead.data.chat_id}</span>
-                          </div>
-                        )}
-                        {selectedLead.data?.score !== undefined && (
-                          <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
-                            <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">{t("leads.card.score")}</span>
-                            <span className="text-sm font-medium text-emerald-400">{selectedLead.data.score} / 10</span>
-                          </div>
-                        )}
-                        {selectedLead.data?.lang && (
-                          <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
-                            <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">{t("leads.card.lang")}</span>
-                            <span className="text-sm font-medium text-neutral-200">
-                              {selectedLead.data.lang === 'ru' ? 'Русский 🇷🇺' :
-                                selectedLead.data.lang === 'en' ? 'English 🇬🇧' :
-                                  selectedLead.data.lang === 'tr' ? 'Türkçe 🇹🇷' :
-                                    selectedLead.data.lang.toUpperCase()}
-                            </span>
-                          </div>
-                        )}
-                        {selectedLead.data?.interest && (
-                          <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50 col-span-full">
-                            <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">{t("leads.card.aiNotes")}</span>
-                            <span className="text-sm text-neutral-300 leading-relaxed">{selectedLead.data.interest}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </section>
+                        </section>
+                      </>
+                    );
+                  })()}
 
                   <div className="pt-10 flex gap-4">
                     <Button className="flex-1 bg-blue-600 hover:bg-blue-700 h-12 rounded-2xl shadow-lg shadow-blue-900/20">{t("leads.card.writeTg")}</Button>

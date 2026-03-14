@@ -37,7 +37,7 @@ function SidebarLink({
 }
 
 export default function Sidebar() {
-  const { t, locale, setLocale } = useI18n();
+  const { t } = useI18n();
   const [supportOpen, setSupportOpen] = useState(false);
 
   return (
@@ -60,21 +60,7 @@ export default function Sidebar() {
             icon={LifeBuoy}
             onClick={() => setSupportOpen(true)}
           />
-          {/* Language Switcher */}
-          <div className="px-3 py-2 flex items-center gap-1">
-            {(['ru', 'en', 'tr'] as const).map((l) => (
-              <button
-                key={l}
-                onClick={() => setLocale(l)}
-                className={`text-[11px] font-bold px-2 py-0.5 rounded transition-all ${locale === l
-                  ? 'bg-zinc-700 text-white'
-                  : 'text-zinc-500 hover:text-zinc-300'
-                  }`}
-              >
-                {l.toUpperCase()}
-              </button>
-            ))}
-          </div>
+
           <div className="text-xs text-zinc-500 light:text-zinc-400 px-3 py-2 select-none">
             v0.3 beta
           </div>
