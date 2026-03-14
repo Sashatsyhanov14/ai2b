@@ -9,6 +9,13 @@ import { handleSaveLead } from "../actions/leads";
 import { handleGetPhotos } from "../actions/photos";
 import { handleGetAgencyInfo } from "../actions/agency";
 
+function escapeHtml(text: string): string {
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+}
+
 export async function handleMessage(
     text: string,
     chatId: string,
@@ -98,7 +105,13 @@ export async function handleMessage(
             const lang = routerInstruction.detected_language || userInfo.language_code || "ru";
 
             if (phone !== "Unknown" || temp === "warm" || temp === "hot") {
-                await handleSaveLead({ phone, name, info: reason, email, budget, interested_units, temperature: temp, language: lang } as any, chatId, userInfo.username);
+                console.log(`[Bot] Saving Lead for ${chatId}...`);
+                try {
+                    await handleSaveLead({ phone, name, info: reason, email, budget, interested_units, temperature: temp, language: lang } as any, chatId, userInfo.username);
+                    console.log(`[Bot] Lead saved successfully.`);
+                } catch (saveErr) {
+                    console.error("[Bot] handleSaveLead failed:", saveErr);
+                }
             }
 
             let alertMsg = `🔥 <b>ВНИМАНИЕ МЕНЕДЖЕРАМ! (ИИ-БОТ)</b> 🔥\n\n👤 Пользователь: @${userInfo.username || chatId}\n👤 Имя: ${name}\n📞 Контакт: ${phone !== "Unknown" ? phone : "Пока не оставил"}\n💬 Инфо: ${reason}`;
@@ -121,10 +134,11 @@ export async function handleMessage(
                         if (!m.telegram_id) continue;
 
                         const m_lang = m.preferred_lang || "ru";
+                        const safeName = escapeHtml(name);
                         const notificationText =
-                            m_lang === "tr" ? `🚀 <b>Yeni bir lead'iniz var!</b>\n\nMüşteri: ${name}\nDetayları görüntülemek için panele gidin.` :
-                                m_lang === "en" ? `🚀 <b>You have a new lead!</b>\n\nClient: ${name}\nGo to the dashboard to view details.` :
-                                    `🚀 <b>У вас новый лид!</b>\n\nКлиент: ${name}\nПерейдите в дашборд для просмотра деталей.`;
+                            m_lang === "tr" ? `🚀 <b>Yeni bir lead'iniz var!</b>\n\nMüşteri: ${safeName}\nDetayları görüntülemek için panele gidin.` :
+                                m_lang === "en" ? `🚀 <b>You have a new lead!</b>\n\nClient: ${safeName}\nGo to the dashboard to view details.` :
+                                    `🚀 <b>У вас новый лид!</b>\n\nКлиент: ${safeName}\nПерейдите в дашборд для просмотра деталей.`;
 
                         const btnLabel =
                             m_lang === "tr" ? "Panele Git ↗️" :
@@ -232,6 +246,7 @@ export async function handleMessage(
 
     } catch (globalErr: any) {
         console.error("CRITICAL MESSAGE HANDLER ERROR:", globalErr);
-        await sendMessage(token, chatId, "Произошла системная ошибка. Мы уже чиним!").catch(() => { });
+        const errorDetail = globalErr.message ? `: ${globalErr.message}` : "";
+        await sendMessage(token, chatId, `Произошла системная ошибка${errorDetail}. Мы уже чиним!`).catch(() => { });
     }
 }

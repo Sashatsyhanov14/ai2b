@@ -128,8 +128,11 @@ const TRANSLATION_SYSTEM_PROMPT = `
 `;
 
 export async function runTranslationAgent(leadData: any): Promise<any> {
+    console.log("[runTranslationAgent] Requesting AI translation...");
     const input = JSON.stringify(leadData);
+    console.log(`[runTranslationAgent] Input leadData for translation: ${input.substring(0, 200)}...`); // Added log
     const rawResult = await askLLM(input, TRANSLATION_SYSTEM_PROMPT, false, TranslationAgentSchema);
+    console.log("[runTranslationAgent] AI Response length:", rawResult?.length || 0);
     try {
         return JSON.parse(rawResult);
     } catch (e) {
@@ -179,11 +182,14 @@ const ROUTER_SYSTEM_PROMPT = `
 export async function runRouterAgent(messages: RoleMessage[], companyKnowledge: string): Promise<any> {
     const fullSystem = ROUTER_SYSTEM_PROMPT + "\n\n[БАЗА ЗНАНИЙ И ПРАВИЛА КОМПАНИИ]:\n" + companyKnowledge;
     const rawResult = await askLLM(messages, fullSystem, false, RouterSchema);
+    if (!rawResult) {
+        return { instructions_for_communication_agent: "Извините, я временно недоступен. Попробуйте позже." };
+    }
     try {
         return JSON.parse(rawResult);
     } catch (e) {
         console.error("Router JSON Parse Error:", e, rawResult);
-        return { instructions_for_communication_agent: "Извините, я не понял запрос. Повторите пожалуйста." };
+        return { instructions_for_communication_agent: "Извините, произошла ошибка обработки. Повторите запрос." };
     }
 }
 

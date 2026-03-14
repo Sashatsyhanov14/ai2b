@@ -51,7 +51,7 @@ export async function handleSaveLead(
             preferred_areas: args.preferred_areas || null,
             manager_hints: args.manager_hints || null,
             client_summary: args.client_summary || null,
-            language: args.language || null,
+            lang: args.language || null,
             i18n: translations || null,
         },
         status: "new",

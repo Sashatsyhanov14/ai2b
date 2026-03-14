@@ -428,20 +428,24 @@ export default function LeadsPageClient() {
                               {selectedLead.data?.score !== undefined && (
                                 <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
                                   <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">{t("leads.card.score")}</span>
-                                  <span className="text-sm font-medium text-emerald-400">{selectedLead.data.score} / 10</span>
+                                  <div className="flex items-center gap-2">
+                                    <TrendingUp className="h-4 w-4 text-emerald-500" />
+                                    <span className="text-sm font-medium text-emerald-400">{selectedLead.data.score} / 10</span>
+                                  </div>
                                 </div>
                               )}
-                              {selectedLead.data?.lang && (
-                                <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
-                                  <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">{t("leads.card.lang")}</span>
+                              <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
+                                <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">{t("leads.card.lang")}</span>
+                                <div className="flex items-center gap-2">
+                                  <Globe className="h-4 w-4 text-blue-500" />
                                   <span className="text-sm font-medium text-neutral-200">
-                                    {selectedLead.data.lang === 'ru' ? 'Русский 🇷🇺' :
-                                      selectedLead.data.lang === 'en' ? 'English 🇬🇧' :
-                                        selectedLead.data.lang === 'tr' ? 'Türkçe 🇹🇷' :
-                                          selectedLead.data.lang.toUpperCase()}
+                                    {selectedLead.data?.lang === 'ru' ? 'Русский 🇷🇺' :
+                                      selectedLead.data?.lang === 'en' ? 'English 🇬🇧' :
+                                        selectedLead.data?.lang === 'tr' ? 'Türkçe 🇹🇷' :
+                                          selectedLead.data?.lang ? selectedLead.data.lang.toUpperCase() : '—'}
                                   </span>
                                 </div>
-                              )}
+                              </div>
                               {fields.urgency && (
                                 <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800/50">
                                   <span className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">{t("leads.card.urgency")}</span>
