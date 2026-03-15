@@ -210,9 +210,15 @@ export async function handleMessage(
 
             let customInstruction = routerInstruction.instructions_for_communication_agent;
 
-            // Force prioritization of found units
+            // Force prioritization and structure of found units
             if (unitsFound.length > 0) {
-                customInstruction = `ОБЪЕКТЫ НАЙДЕНЫ! СНАЧАЛА ОПИШИ ИХ ПОДРОБНО. Только потом задавай уточняющие вопросы.\n\n${customInstruction}`;
+                customInstruction = `ВНИМАНИЕ: ОБЪЕКТ НАЙДЕН! 
+Твой ответ ДОЛЖЕН состоять из 3-х частей в одном сообщении:
+1. ОТВЕТ на вопрос/сообщение клиента.
+2. ПРЕЗЕНТАЦИЯ объекта по шаблону.
+3. ВОПРОС для уточнения бюджета/параметров или CTA.
+ПРИОРИТЕТ: Показать объект немедленно. 
+\n\n${customInstruction}`;
             }
 
             const fullInstruction = `[УКАЗАНИЕ ОТ ДИСПЕТЧЕРА]:\n${customInstruction}\n\n[ИСТОРИЯ И КОНТЕКСТ]:\nОпирайся на историю диалога и учитывай правила компании!`;
