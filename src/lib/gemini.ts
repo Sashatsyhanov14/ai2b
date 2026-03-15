@@ -16,7 +16,7 @@ export async function askLLM(
     if (!apiKey) throw new Error("POLZA_API_KEY is not set.");
 
     // You can change this to any model supported by Polza AI (e.g., 'gpt-4o', 'gemini-1.5-pro', 'claude-3-5-sonnet')
-    const modelName = "gpt-4o";
+    const modelName = "gpt-4o-mini";
 
     let messages: any[] = [];
 
