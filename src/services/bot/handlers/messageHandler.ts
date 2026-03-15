@@ -58,9 +58,22 @@ export async function handleMessage(
             ? companyInfoRows.map(r => `${r.key}: ${r.value}`).join("\n")
             : "";
 
-        const agencyFiles = await handleGetAgencyInfo();
+        // Scrub legacy instructions from DB that might still mention renting
+        const cleanRules = rules.replace(/аренд[а-я]*/gi, '').replace(/rent[a-z]*/gi, '').replace(/kiral[ıi]k/gi, '');
+        const cleanCompanyInfo = companyInfoStr.replace(/аренд[а-я]*/gi, '').replace(/rent[a-z]*/gi, '').replace(/kiral[ıi]k/gi, '');
 
-        const botKnowledge = `[ПРАВИЛА]:\n${rules}\n\n[О КОМПАНИИ]:\n${companyInfoStr}\n\n[МНЕНИЯ/ФАЙЛЫ КОМПАНИИ]:\n${agencyFiles}`;
+        const botKnowledge = `[КРИТИЧЕСКИЕ ИНСТРУКЦИИ]:
+- МЫ СЕЙЧАС НЕ ЗАНИМАЕМСЯ АРЕНДОЙ. ТОЛЬКО ПРОДАЖА.
+- НИКОГДА НЕ ПРЕДЛАГАЙ АРЕНДУ, ДАЖЕ ЕСЛИ ЭТО ЕСТЬ В ПРАВИЛАХ НИЖЕ.
+
+[ПРАВИЛА КОМПАНИИ]:
+${cleanRules}
+
+[О КОМПАНИИ]:
+${cleanCompanyInfo}
+
+[МНЕНИЯ/ФАЙЛЫ КОМПАНИИ]:
+${agencyFiles}`;
 
         // Load history for LLM
         const history = await listMessages(sessionId, 10);

@@ -163,7 +163,8 @@ const ROUTER_SYSTEM_PROMPT = `
 `;
 
 export async function runRouterAgent(messages: RoleMessage[], companyKnowledge: string): Promise<any> {
-    const fullSystem = ROUTER_SYSTEM_PROMPT + "\n\n[БАЗА ЗНАНИЙ И ПРАВИЛА КОМПАНИИ]:\n" + companyKnowledge;
+    const rentBan = "\n\n[КРИТИЧЕСКОЕ ПРАВИЛО]: МЫ ТОЛЬКО ПРОДАЕМ. ИГНОРИРУЙ ЛЮБЫЕ УПОМИНАНИЯ АРЕНДЫ (RENT/LEASE).";
+    const fullSystem = ROUTER_SYSTEM_PROMPT + rentBan + "\n\n[БАЗА ЗНАНИЙ И ПРАВИЛА КОМПАНИИ]:\n" + companyKnowledge;
     const rawResult = await askLLM(messages, fullSystem, false, RouterSchema);
     if (!rawResult) {
         return { instructions_for_communication_agent: "Извините, я временно недоступен. Попробуйте позже." };
@@ -220,8 +221,10 @@ export async function runCommunicationAgent(
     const langLabel = language === 'ru' ? 'RUSSIAN' : language === 'tr' ? 'TURKISH' : language === 'en' ? 'ENGLISH' : language.toUpperCase();
 
     // Формируем системный промпт из статического + знаний из БД + динамических данных (квартиры)
+    const rentBan = "\n\n[КРИТИЧЕСКОЕ ПРАВИЛО]: МЫ ТОЛЬКО ПРОДАЕМ. НИКОГДА НЕ ПРЕДЛАГАЙ АРЕНДУ (RENT/LEASE).";
     const fullSystemPrompt = `
 ${COMMUNICATION_SYSTEM_PROMPT}
+${rentBan}
 [CLIENT LANGUAGE]:
 ${langLabel} (Отвечай СТРОГО на этом языке!)
 
