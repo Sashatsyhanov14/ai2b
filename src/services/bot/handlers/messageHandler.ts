@@ -58,6 +58,8 @@ export async function handleMessage(
             ? companyInfoRows.map(r => `${r.key}: ${r.value}`).join("\n")
             : "";
 
+        const agencyFiles = await handleGetAgencyInfo();
+
         // Scrub legacy instructions from DB that might still mention renting
         const cleanRules = rules.replace(/аренд[а-я]*/gi, '').replace(/rent[a-z]*/gi, '').replace(/kiral[ıi]k/gi, '');
         const cleanCompanyInfo = companyInfoStr.replace(/аренд[а-я]*/gi, '').replace(/rent[a-z]*/gi, '').replace(/kiral[ıi]k/gi, '');
