@@ -208,7 +208,13 @@ export async function handleMessage(
                     : "Квартиры по запросу (и всем авто-запасным вариантам: бюджет+, любой тип) НЕ НАЙДЕНЫ. Предложи изменить параметры кардинально.";
             }
 
-            const customInstruction = routerInstruction.instructions_for_communication_agent;
+            let customInstruction = routerInstruction.instructions_for_communication_agent;
+
+            // Force prioritization of found units
+            if (unitsFound.length > 0) {
+                customInstruction = `ОБЪЕКТЫ НАЙДЕНЫ! СНАЧАЛА ОПИШИ ИХ ПОДРОБНО. Только потом задавай уточняющие вопросы.\n\n${customInstruction}`;
+            }
+
             const fullInstruction = `[УКАЗАНИЕ ОТ ДИСПЕТЧЕРА]:\n${customInstruction}\n\n[ИСТОРИЯ И КОНТЕКСТ]:\nОпирайся на историю диалога и учитывай правила компании!`;
             const lang = routerInstruction.detected_language || userInfo.language_code || "ru";
 
