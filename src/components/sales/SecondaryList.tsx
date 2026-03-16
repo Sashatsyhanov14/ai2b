@@ -20,7 +20,7 @@ function statusBadge(s: Unit['status']) {
   return <span className={`rounded border px-2 py-0.5 text-xs ${map[s || ''] || ''}`}>{label[s || ''] || s}</span>;
 }
 
-function downloadCsv(rows: Unit[]) {
+function downloadCsv(rows: Unit[], lang: string = 'ru') {
   const header = [
     'id',
     'city',
@@ -39,8 +39,8 @@ function downloadCsv(rows: Unit[]) {
     rows.map((u) =>
       [
         u.id,
-        u.city,
-        u.address,
+        u.i18n?.[lang]?.city || u.city,
+        u.i18n?.[lang]?.address || u.address,
         String(u.rooms ?? ''),
         u.floor,
         (u as any).floors_total,
@@ -63,10 +63,13 @@ function downloadCsv(rows: Unit[]) {
   URL.revokeObjectURL(url);
 }
 
+import { useI18n } from '@/i18n';
+
 export default function SecondaryList() {
   const router = useRouter()
   const pathname = usePathname()
   const sp = useSearchParams()
+  const { locale: lang } = useI18n()
 
   const [loading, setLoading] = useState(true)
   const [rows, setRows] = useState<Unit[]>([])
@@ -239,8 +242,8 @@ export default function SecondaryList() {
               <tr><td className="px-3 py-4 text-white/60" colSpan={9}>Загрузка…</td></tr>
             ) : rows.map((u) => (
               <tr key={u.id} className="border-t border-white/10">
-                <td className="px-3 py-2">{u.city}</td>
-                <td className="px-3 py-2">{u.address}</td>
+                <td className="px-3 py-2">{u.i18n?.[lang]?.city || u.city}</td>
+                <td className="px-3 py-2">{u.i18n?.[lang]?.address || u.address}</td>
                 <td className="px-3 py-2">{u.rooms === 0 ? 'Студия' : u.rooms}</td>
                 <td className="px-3 py-2">
                   {u.floor}/{(u as any).floors_total}

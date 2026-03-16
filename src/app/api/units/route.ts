@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerClient } from "@/lib/supabaseClient";
 import { normalizeCity } from "@/lib/cityNormalizer";
+import { runUnitTranslationAgent } from "@/services/bot/ai/agents";
 
 export const dynamic = "force-dynamic";
 
@@ -34,24 +35,40 @@ export async function POST(req: Request) {
     const supabase = getServerClient();
     const body = await req.json();
 
+    // 1. Process translation using AI
+    console.log("[API Units] Running Unit Translation Agent...");
+    const translationResult = await runUnitTranslationAgent({
+      title: body.title,
+      city: body.city,
+      address: body.address,
+      description: body.description,
+    });
+
+    // Explicitly fallback if agent fails but returns original data
+    const baseEn = translationResult?.base_en || {};
+    const i18nData = translationResult?.i18n || { ru: {}, tr: {} };
+
+    // 2. Prepare payload with English base and i18n JSON
     const payload = {
       project_id: body.project_id ?? null,
       type: body.type ?? "apartment",
-      title: body.title ?? null,
-      city: body.city ? normalizeCity(body.city) : null,
-      address: body.address ?? null,
+      // AI Enforced English Base
+      title: baseEn.title ?? body.title ?? null,
+      city: baseEn.city ? normalizeCity(baseEn.city) : body.city ? normalizeCity(body.city) : null,
+      address: baseEn.address ?? body.address ?? null,
+      description: baseEn.description ?? body.description ?? null,
+
       rooms: body.rooms ?? null,
       floor: body.floor ?? null,
       floors_total: body.floors_total ?? body.total_floors ?? null,
       area_m2: body.area_m2 ?? body.area ?? null,
       price: body.price_total ?? body.price ?? null,
-      description: body.description ?? null,
-      // is_rent removed
-      // meta: body.meta ?? {}, // meta removed from schema? No, checked schema, it doesn't have meta.
-      // Schema has: title, description, features[], project_id, is_active.
-      // Payload should match schema.
+
       features: body.features ?? [],
       ai_instructions: body.ai_instructions ?? null,
+
+      // Store localized versions for dashboard
+      i18n: i18nData,
     };
 
     const { data, error } = await supabase

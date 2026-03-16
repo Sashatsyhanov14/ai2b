@@ -141,6 +141,83 @@ export async function runTranslationAgent(leadData: any): Promise<any> {
     }
 }
 
+// ==========================================
+// UNIT TRANSLATION AGENT (ЛОКАЛИЗАТОР ОБЪЕКТОВ)
+// ==========================================
+// Задача: Переводит данные квартиры на английский для базы данных, и генерирует переводы для дашборда.
+
+export const UnitTranslationAgentSchema = {
+    type: "object",
+    properties: {
+        base_en: {
+            type: "object",
+            description: "ОБЯЗАТЕЛЬНО: Идеальный перевод всех текстовых полей на английский для сохранения в главные колонки БД.",
+            properties: {
+                title: { type: "string" },
+                city: { type: "string" },
+                address: { type: "string" },
+                description: { type: "string" }
+            }
+        },
+        i18n: {
+            type: "object",
+            description: "Переводы для отображения в дашборде на разных языках.",
+            properties: {
+                ru: {
+                    type: "object",
+                    properties: {
+                        title: { type: "string" },
+                        city: { type: "string" },
+                        address: { type: "string" },
+                        description: { type: "string" }
+                    }
+                },
+                tr: {
+                    type: "object",
+                    properties: {
+                        title: { type: "string" },
+                        city: { type: "string" },
+                        address: { type: "string" },
+                        description: { type: "string" }
+                    }
+                }
+            }
+        }
+    }
+};
+
+const UNIT_TRANSLATION_SYSTEM_PROMPT = `
+ТЫ — ПРОФЕССИОНАЛЬНЫЙ ЛИНГВИСТ-БРОКЕР ДЛЯ БАЗЫ ДАННЫХ НЕДВИЖИМОСТИ.
+Твоя задача — принять сырые данные об объекте недвижимости (на любом языке) и стандартизировать их.
+
+ПРАВИЛО 1: BASE_EN ДОЛЖЕН БЫТЬ НА ИДЕАЛЬНОМ АНГЛИЙСКОМ.
+Данные из блока \`base_en\` пойдут в основные колонки базы данных, по которым работает поиск. 
+- Географические названия должны быть в транслите/английском (Kadikoy, Alanya, Istanbul).
+- Описание должно быть привлекательным и профессиональным.
+
+ПРАВИЛО 2: I18N ДЛЯ ДАШБОРДА
+- Переведи всё на качественный Русский (RU) и Турецкий (TR).
+
+Выдай результат СТРОГО в формате JSON по схеме.
+`;
+
+export async function runUnitTranslationAgent(unitData: any): Promise<any> {
+    console.log("[runUnitTranslationAgent] Requesting AI translation for unit...");
+    const input = JSON.stringify(unitData);
+    const rawResult = await askLLM(input, UNIT_TRANSLATION_SYSTEM_PROMPT, false, UnitTranslationAgentSchema);
+    try {
+        return JSON.parse(rawResult);
+    } catch (e) {
+        console.error("Unit Translation Agent JSON Parse Error:", e, rawResult);
+        // Fallback: don't break the save process, just return empty translations and use original as English
+        return {
+            base_en: { title: unitData.title, city: unitData.city, address: unitData.address, description: unitData.description },
+            i18n: { ru: {}, tr: {} }
+        };
+    }
+}
+
+
 const ROUTER_SYSTEM_PROMPT = `
 ТЫ — ГЛАВНЫЙ ИИ-ОРКЕСТРАТОР АГЕНТСТВА НЕДВИЖИМОСТИ.
 Твоя задача — проанализировать историю чата и выдать указания другим агентам.

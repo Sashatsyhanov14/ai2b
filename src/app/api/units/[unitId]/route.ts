@@ -2,11 +2,26 @@ import { NextResponse } from 'next/server'
 import { getServerClient } from '@/lib/supabaseClient'
 import type { Unit, UnitUpdatePayload } from '@/types/units'
 import { normalizeCity } from '@/lib/cityNormalizer'
+import { runUnitTranslationAgent } from '@/services/bot/ai/agents'
 
-function mapIncomingToDb(payload: any): Partial<Unit> {
+function mapIncomingToDb(payload: any, baseEn: any, i18nData: any): Partial<Unit> {
   const out: Partial<Unit> = {}
-  if (payload.city != null) out.city = normalizeCity(String(payload.city))
-  if (payload.address != null) out.address = String(payload.address)
+
+  // Apply AI translated fields if present
+  if (baseEn.city != null) out.city = normalizeCity(String(baseEn.city))
+  else if (payload.city != null) out.city = normalizeCity(String(payload.city))
+
+  if (baseEn.address != null) out.address = String(baseEn.address)
+  else if (payload.address != null) out.address = String(payload.address)
+
+  if (baseEn.title != null) out.title = String(baseEn.title)
+  else if (payload.title != null) out.title = String(payload.title)
+
+  if (baseEn.description != null) out.description = String(baseEn.description)
+  else if (payload.description != null) out.description = String(payload.description)
+
+  if (i18nData != null) out.i18n = i18nData
+
   if (payload.rooms != null) {
     if (typeof payload.rooms === 'string') {
       const s = payload.rooms.toLowerCase()
@@ -24,11 +39,9 @@ function mapIncomingToDb(payload: any): Partial<Unit> {
   if (payload.price != null) out.price = Number(payload.price)
   if (payload.status != null) out.status = String(payload.status)
   if (payload.project_id != null) out.project_id = payload.project_id ? String(payload.project_id) : null
-  if (payload.title != null) out.title = String(payload.title)
-  if (payload.description != null) out.description = String(payload.description)
   if (payload.ai_instructions != null) (out as any).ai_instructions = String(payload.ai_instructions)
-  // is_rent removed
   if (payload.features != null) out.features = payload.features
+
   return out
 }
 
@@ -71,8 +84,26 @@ export async function PATCH(req: Request, { params }: Params) {
   } catch {
     return NextResponse.json({ ok: false, error: 'Invalid JSON' }, { status: 400 })
   }
+
   const sb = getServerClient()
-  const patch = mapIncomingToDb(payload)
+
+  // Process translation using AI if textual fields are being updated
+  let baseEn = {};
+  let i18nData = null;
+
+  if (payload.title || payload.city || payload.address || payload.description) {
+    console.log(`[API Units ${params.unitId}] Running Unit Translation Agent for update...`);
+    const translationResult = await runUnitTranslationAgent({
+      title: payload.title,
+      city: payload.city,
+      address: payload.address,
+      description: payload.description,
+    });
+    baseEn = translationResult?.base_en || {};
+    i18nData = translationResult?.i18n || { ru: {}, tr: {} };
+  }
+
+  const patch = mapIncomingToDb(payload, baseEn, i18nData)
 
   const { data, error } = await sb.from('units').update(patch).eq('id', params.unitId).select('*').single()
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 400 })

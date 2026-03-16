@@ -24,10 +24,14 @@ export type Unit = {
   photos_count?: number
   main_photo_url?: string | null
   project_name?: string | null
+
+  // I18n translations
+  i18n?: Record<string, any>
 }
 
 // Payload accepted by API when creating a unit (maps UI form -> DB columns)
 export type UnitCreatePayload = {
+  title?: string
   city: string
   address: string
   // UI may pass 'studio'|'4+' etc.; API will map to number
@@ -37,12 +41,14 @@ export type UnitCreatePayload = {
   area_m2?: number
   area?: number  // Backwards compatibility
   price?: number
+  price_total?: number // Backwards compatibility for PATCH requests
   status?: UnitStatus
   project_id?: string | null
   description?: string
   type?: string
   features?: string[]
   photos?: string[]
+  i18n?: Record<string, any>
 }
 
 // Partial updates; same mapping rules as create

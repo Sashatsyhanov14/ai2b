@@ -204,6 +204,11 @@ ${agencyFiles}`;
                             unitsFound = newUnits;
                             console.log(`[Bot] Found ${unitsFound.length} new properties on attempt ${i + 1}. Breaking search loop.`);
                             break;
+                        } else if (parsed.units.length > 0) {
+                            // Focus on the best match even if it was shown before, to avoid saying "Not found" when it exists
+                            unitsFound = parsed.units;
+                            console.log(`[Bot] Only previously shown properties found (${unitsFound.length}) on attempt ${i + 1}. Re-using to avoid false negative.`);
+                            break;
                         }
                     }
                 } catch (e) {
@@ -220,7 +225,7 @@ ${agencyFiles}`;
             if (routerInstruction.instructions_for_search_agent) {
                 dbData = unitsFound.length > 0
                     ? JSON.stringify(unitsFound.slice(0, 1), null, 2)
-                    : "Квартиры по запросу (и всем авто-запасным вариантам: бюджет+, любой тип) НЕ НАЙДЕНЫ. Предложи изменить параметры кардинально.";
+                    : "[ВНИМАНИЕ: КВАРТИРЫ ПО ЗАПРОСУ НЕ НАЙДЕНЫ. КРИТИЧЕСКОЕ ПРАВИЛО: КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО выдумывать квартиры или брать другие варианты из истории чата! Просто скажи, что по таким параметрам сейчас ничего нет, и предложи изменить запрос.]";
             }
 
             let customInstruction = routerInstruction.instructions_for_communication_agent;
