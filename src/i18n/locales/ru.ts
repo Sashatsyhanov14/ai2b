@@ -21,7 +21,7 @@ export const ru = {
     title: "ai2business дашборд",
   },
   nav: {
-    rent: "Аренда",
+    rentals: "Аренда",
     sales: "Продажа",
     leads: "Лиды",
     bots: "Боты",

@@ -5,10 +5,14 @@ import { normalizeSearchKeywords } from "@/lib/cityNormalizer";
 export async function handleSearchDatabase(args: SearchArgs & { id?: string; price?: number }): Promise<string> {
     const supabase = getServerClient();
 
+    const tableName = args.intent === "rent" ? "rental_units" : "units";
+
     // Query active units
     let query = supabase
-        .from("units")
-        .select("id, city, address, type, rooms, floor, floors_total, area_m2, price, status, title, features, is_active")
+        .from(tableName)
+        .select(args.intent === "rent"
+            ? "id, city, address, bedrooms, price_per_month as price_month, price_per_day as price_day, max_guests, title, is_active"
+            : "id, city, address, type, rooms, floor, floors_total, area_m2, price, status, title, features, is_active")
         .eq("is_active", true);
 
     if (args.id) {
@@ -27,16 +31,21 @@ export async function handleSearchDatabase(args: SearchArgs & { id?: string; pri
     }
 
     if (args.rooms) {
-        // e.g. "1+1"
-        query = query.eq("rooms", args.rooms);
+        // e.g. "1+1" or "2" bedrooms. For rent, it's just a number. For now if sale, match exactly.
+        if (args.intent === "rent") {
+            const num = parseInt(args.rooms);
+            if (!isNaN(num)) query = query.eq("bedrooms", num);
+        } else {
+            query = query.eq("rooms", args.rooms);
+        }
     }
     if (args.price) {
         // Return properties up to the maximum budget
-        query = query.lte("price", args.price);
+        query = query.lte(args.intent === "rent" ? "price_per_month" : "price", args.price);
     }
     if (args.price_min) {
         // Return properties at or above the minimum budget (e.g. for VNJ $250k+ requirement)
-        query = query.gte("price", args.price_min);
+        query = query.gte(args.intent === "rent" ? "price_per_month" : "price", args.price_min);
     }
     if (args.project) {
         query = query.ilike("title", `%${args.project}%`); // fallback checking title since project isn't exported in select

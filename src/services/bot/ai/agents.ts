@@ -29,10 +29,14 @@ export const RouterSchema = {
                 search_keywords: {
                     type: "array",
                     items: { type: "string" },
-                    description: "3-6 вариаций названия Города/Района — ОБЯЗАТЕЛЬНО включи русское И латинское написание. Пример: ['Стамбул', 'Istanbul', 'Мерсин', 'Mersin']. Никогда не передавай только один вариант!"
+                    description: "3-6 вариаций названия Города/Района — ОБЯЗАТЕЛЬНО включи русское И латинское написание."
                 },
-                price: { type: "number", description: "Максимальный бюджет клиента в $. Используй ТОЛЬКО если клиент называет ВЕРХНЮЮ границу: 'до 300к', 'не более 200к'. НЕ заполняй если клиент называет МИНИМУМ." },
-                price_min: { type: "number", description: "Минимальный бюджет в $. Используй если клиент называет нижнюю границу: 'от 250к', 'минимум 500к', 'для получения ВНЖ' (порог ВНЖ в Турции = $400000). Если бюджет '250к-500к', заполни оба поля." },
+                intent: {
+                    type: "string",
+                    description: "Намерение: 'sale' (покупка/продажа) или 'rent' (аренда). По умолчанию 'sale' если не сказано иное."
+                },
+                price: { type: "number", description: "Максимальный бюджет" },
+                price_min: { type: "number", description: "Минимальный бюджет" },
                 rooms: { type: "string", description: "Например: '1+1'" },
                 city: { type: "string" }
             }
@@ -229,18 +233,18 @@ const ROUTER_SYSTEM_PROMPT = `
 
 ПРАВИЛА КОММУНИКАЦИИ (COMMUNICATION AGENT):
 1. ПРИОРИТЕТ КОНТАКТА: Если клиент ГОРЯЧИЙ (ему понравился объект), ты ОБЯЗАН дать указание спросить номер телефона или WhatsApp для связи с брокером или организации показа. Не продолжай бесконечную консультацию.
-2. ВАРИАТИВНОСТЬ: Не спрашивай бюджет в каждом сообщении. Если бюджет понятен или объект уже показан, спрашивай про сроки, локацию или "подходит ли этот вариант?".
+2. ВАРИАТИВНОСТЬ: Не спрашивай бюджет в каждом сообщении. Если бюджет понятен или объект уже показан, спрашивай про локацию или "подходит ли этот вариант?". Для АРЕНДЫ всегда спрашивай даты заезда, срок аренды и количество человек.
 3. СТРУКТУРА: [Ответ] + [Презентация] + [Вопрос/CTA].
 
 ПРАВИЛА ПОИСКА (SEARCH AGENT):
-1. Вызывай только если нужны НОВЫЕ варианты. Если клиенту нравится текущий — поиск не нужен.
+1. Важно отличить Аренду (rent) от Продажи (sale) и передать правильный intent. Если клиент говорит "снять", "аренда", "отпуск" - это rent. Если "купить", "инвестиции", "ВНЖ" - это sale.
+2. Вызывай только если нужны НОВЫЕ варианты. Если клиенту нравится текущий — поиск не нужен.
 
 Выдай ТОЛЬКО JSON строго по Схеме.
 `;
 
 export async function runRouterAgent(messages: RoleMessage[], companyKnowledge: string): Promise<any> {
-    const rentBan = "\n\n[КРИТИЧЕСКОЕ ПРАВИЛО]: МЫ ТОЛЬКО ПРОДАЕМ. ИГНОРИРУЙ ЛЮБЫЕ УПОМИНАНИЯ АРЕНДЫ (RENT/LEASE).";
-    const fullSystem = ROUTER_SYSTEM_PROMPT + rentBan + "\n\n[БАЗА ЗНАНИЙ И ПРАВИЛА КОМПАНИИ]:\n" + companyKnowledge;
+    const fullSystem = ROUTER_SYSTEM_PROMPT + "\n\n[БАЗА ЗНАНИЙ И ПРАВИЛА КОМПАНИИ]:\n" + companyKnowledge;
     const rawResult = await askLLM(messages, fullSystem, false, RouterSchema);
     if (!rawResult) {
         return { instructions_for_communication_agent: "Извините, я временно недоступен. Попробуйте позже." };
@@ -264,25 +268,28 @@ const COMMUNICATION_SYSTEM_PROMPT = `
 
 ПРАВИЛО ОДНОГО СООБЩЕНИЯ ( Answer + Info + CTA ):
 1. ОТВЕТ: Краткая реакция на слова клиента.
-2. ПРЕЗЕНТАЦИЯ (если есть в [DATA]): Описание объекта по шаблону.
+2. ПРЕЗЕНТАЦИЯ (если есть в [DATA]): Описание аренды или продажи, исходя из переданных данных. 
 3. ЗАКРЫТИЕ (CTA): 
-   - Если клиент проявил интерес ("мне нравится", "супер"), ПРЕКРАТИ консультацию и ПРЯМО предложи оставить номер телефона или WhatsApp для связи с брокером или записи на показ.
-   - Иначе задай ОДИН уточняющий вопрос (про сроки, локацию или "как вам этот вариант?"). Избегай повторов вопроса про бюджет.
+   - Если клиент проявил интерес ("мне нравится", "супер"), ПРЕКРАТИ консультацию и ПРЯМО предложи оставить номер телефона или WhatsApp.
+   - Иначе задай ОДИН уточняющий вопрос (про сроки отдыха/проживания для аренды, либо про локацию для продажи). Избегай повторов вопроса про бюджет.
 
-ШАБЛОН ПРЕЗЕНТАЦИИ:
+ШАБЛОН ДЛЯ ПРОДАЖИ:
 🏠 [title] | 📍 [city], [address]
 💰 Цена: [price] EUR
 🏢 Этаж: [floor]/[floors_total]
 📐 Площадь: [area_m2] м²
 🛏 Комнат: [rooms]
 
-[1-2 предложения описания]
-Фотографии прикрепил ниже 👇
+ШАБЛОН ДЛЯ АРЕНДЫ:
+🏖 [title] | 📍 [city], [address]
+💵 Цена: [price_month] EUR/мес или [price_day] EUR/дн
+🛏 Спален: [bedrooms]
+👤 Макс. гостей: [max_guests]
 
 СТРОГИЕ ОГРАНИЧЕНИЯ:
-1. НИКАКОЙ АРЕНДЫ.
+1. Выдаем ТОЛЬКО ту инфу, которая есть в [DATA]. Если чего-то нет (например цены за день) - не пиши.
 2. БЕЗ ЗВЕЗДОЧЕК (**).
-3. Приоритет — взять контакт у заинтересованного клиента.
+3. Приоритет — взять контакт.
 
 ДАННЫЕ (предоставлены системой):
 `;
@@ -296,10 +303,9 @@ export async function runCommunicationAgent(
     const langLabel = language === 'ru' ? 'RUSSIAN' : language === 'tr' ? 'TURKISH' : language === 'en' ? 'ENGLISH' : language.toUpperCase();
 
     // Формируем системный промпт из статического + знаний из БД + динамических данных (квартиры)
-    const rentBan = "\n\n[КРИТИЧЕСКОЕ ПРАВИЛО]: МЫ ТОЛЬКО ПРОДАЕМ. НИКОГДА НЕ ПРЕДЛАГАЙ АРЕНДУ (RENT/LEASE).";
     const fullSystemPrompt = `
 ${COMMUNICATION_SYSTEM_PROMPT}
-${rentBan}
+
 [CLIENT LANGUAGE]:
 ${langLabel} (Отвечай СТРОГО на этом языке!)
 
@@ -313,4 +319,80 @@ ${dynamicData}
     // Agent outputs plain text, no JSON schema
     const result = await askLLM(history, fullSystemPrompt, true);
     return result;
+}
+
+// ==========================================
+// RENTAL TRANSLATION AGENT (ЛОКАЛИЗАТОР АРЕНДЫ)
+// ==========================================
+// Задача: Переводит данные арендной квартиры на английский для БД, и генерирует переводы для дашборда.
+
+export const RentalTranslationAgentSchema = {
+    type: "object",
+    properties: {
+        base_en: {
+            type: "object",
+            description: "ОБЯЗАТЕЛЬНО: Идеальный перевод всех текстовых полей на английский для сохранения в главные колонки БД.",
+            properties: {
+                title: { type: "string" },
+                city: { type: "string" },
+                address: { type: "string" },
+                description: { type: "string" }
+            }
+        },
+        i18n: {
+            type: "object",
+            description: "Переводы для отображения в дашборде на разных языках.",
+            properties: {
+                ru: {
+                    type: "object",
+                    properties: {
+                        title: { type: "string" },
+                        city: { type: "string" },
+                        address: { type: "string" },
+                        description: { type: "string" }
+                    }
+                },
+                tr: {
+                    type: "object",
+                    properties: {
+                        title: { type: "string" },
+                        city: { type: "string" },
+                        address: { type: "string" },
+                        description: { type: "string" }
+                    }
+                }
+            }
+        }
+    }
+};
+
+const RENTAL_TRANSLATION_SYSTEM_PROMPT = `
+ТЫ — ПРОФЕССИОНАЛЬНЫЙ ЛИНГВИСТ-БРОКЕР ДЛЯ БАЗЫ ДАННЫХ АРЕНДЫ НЕДВИЖИМОСТИ.
+Твоя задача — принять сырые данные об арендном объекте (на любом языке) и стандартизировать их.
+
+ПРАВИЛО 1: BASE_EN ДОЛЖЕН БЫТЬ НА ИДЕАЛЬНОМ АНГЛИЙСКОМ.
+Данные из блока \`base_en\` пойдут в основные колонки базы данных, по которым работает поиск. 
+- Географические названия должны быть в транслите/английском (Kadikoy, Alanya, Istanbul).
+- Описание должно быть привлекательным и описывать удобства для проживания/отдыха.
+
+ПРАВИЛО 2: I18N ДЛЯ ДАШБОРДА
+- Переведи всё на качественный Русский (RU) и Турецкий (TR).
+
+Выдай результат СТРОГО в формате JSON по схеме.
+`;
+
+export async function runRentalTranslationAgent(rentalData: any): Promise<any> {
+    console.log("[runRentalTranslationAgent] Requesting AI translation for rental...");
+    const input = JSON.stringify(rentalData);
+    const rawResult = await askLLM(input, RENTAL_TRANSLATION_SYSTEM_PROMPT, false, RentalTranslationAgentSchema);
+    try {
+        return JSON.parse(rawResult);
+    } catch (e) {
+        console.error("Rental Translation Agent JSON Parse Error:", e, rawResult);
+        // Fallback
+        return {
+            base_en: { title: rentalData.title, city: rentalData.city, address: rentalData.address, description: rentalData.description },
+            i18n: { ru: {}, tr: {} }
+        };
+    }
 }

@@ -7,6 +7,7 @@ export type ToolAction =
 
 export type SearchArgs = {
   id?: string;
+  intent?: "sale" | "rent";
   search_keywords?: string[];
   price?: number;     // Maximum budget (lte)
   price_min?: number; // Minimum budget (gte) — used for VNJ requirements, investment minimums

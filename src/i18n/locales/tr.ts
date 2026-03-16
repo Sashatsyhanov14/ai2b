@@ -21,7 +21,7 @@ export const tr = {
     title: 'ai2business kontrol paneli',
   },
   nav: {
-    rent: 'Kiralama',
+    rentals: "Kiralık",
     sales: 'Satış',
     leads: 'Lead’ler',
     bots: 'Botlar',

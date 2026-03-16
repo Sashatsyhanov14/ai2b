@@ -48,6 +48,7 @@ export default function Sidebar() {
       <div className="flex-1 flex flex-col justify-between border-t border-zinc-800 light:border-zinc-200">
         <nav className="px-2 pt-2 pb-4 space-y-1">
           <SidebarLink href="/app/sales" label={t("nav.sales")} icon={DollarSign} />
+          <SidebarLink href="/app/rentals" label={t("nav.rentals") || "Аренда"} icon={Home} />
           {/* Developer Projects link removed */}
           <SidebarLink href="/app/leads" label={t("nav.leads")} icon={Users} />
           <SidebarLink href="/app/bot" label={t("nav.bots")} icon={Bot} />

@@ -187,6 +187,9 @@ export default function LeadCard({ lead, onDetailsClick, onStatusUpdate, onDelet
                                 {langFlag && (
                                     <span className="text-sm" title={`${t("leads.card.lang")}: ${clientLang?.toUpperCase()}`}>{langFlag}</span>
                                 )}
+                                {(translatedData?.purpose?.toLowerCase().includes("rent") || lead.data?.purpose?.toLowerCase().includes("аренд") || translatedData?.purpose?.toLowerCase().includes("аренд") || lead.data?.purpose?.toLowerCase().includes("rent")) && (
+                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">Аренда</span>
+                                )}
                                 {isInWork && (
                                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">{t('leads.card.inWorkActive')}</span>
                                 )}

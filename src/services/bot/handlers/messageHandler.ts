@@ -60,19 +60,11 @@ export async function handleMessage(
 
         const agencyFiles = await handleGetAgencyInfo();
 
-        // Scrub legacy instructions from DB that might still mention renting
-        const cleanRules = rules.replace(/аренд[а-я]*/gi, '').replace(/rent[a-z]*/gi, '').replace(/kiral[ıi]k/gi, '');
-        const cleanCompanyInfo = companyInfoStr.replace(/аренд[а-я]*/gi, '').replace(/rent[a-z]*/gi, '').replace(/kiral[ıi]k/gi, '');
-
-        const botKnowledge = `[КРИТИЧЕСКИЕ ИНСТРУКЦИИ]:
-- МЫ СЕЙЧАС НЕ ЗАНИМАЕМСЯ АРЕНДОЙ. ТОЛЬКО ПРОДАЖА.
-- НИКОГДА НЕ ПРЕДЛАГАЙ АРЕНДУ, ДАЖЕ ЕСЛИ ЭТО ЕСТЬ В ПРАВИЛАХ НИЖЕ.
-
-[ПРАВИЛА КОМПАНИИ]:
-${cleanRules}
+        const botKnowledge = `[ПРАВИЛА КОМПАНИИ]:
+${rules}
 
 [О КОМПАНИИ]:
-${cleanCompanyInfo}
+${companyInfoStr}
 
 [МНЕНИЯ/ФАЙЛЫ КОМПАНИИ]:
 ${agencyFiles}`;
