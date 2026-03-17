@@ -21,6 +21,7 @@ export type Unit = {
   features?: string[] | null
 
   // Computed fields
+  photos?: string[] | null
   photos_count?: number
   main_photo_url?: string | null
   project_name?: string | null

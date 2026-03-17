@@ -129,6 +129,7 @@ export default function SalesApartmentsPage() {
           <table className="min-w-full text-sm text-neutral-200">
             <thead className="bg-neutral-900/70 text-xs uppercase tracking-wide text-neutral-500">
               <tr>
+                <th className="px-3 py-3 text-left w-12">Фото</th>
                 <th className="px-3 py-3 text-left">{t("sales.fields.city")}</th>
                 <th className="px-3 py-3 text-left">{t("sales.fields.address")}</th>
                 <th className="px-3 py-3 text-left">{t("sales.fields.rooms")}</th>
@@ -143,7 +144,7 @@ export default function SalesApartmentsPage() {
               {loading && (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={9}
                     className="px-4 py-6 text-center text-sm text-neutral-400"
                   >
                     {t("sales.loadingCount")}
@@ -153,7 +154,7 @@ export default function SalesApartmentsPage() {
               {error && !loading && (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={9}
                     className="px-4 py-6 text-center text-sm text-red-300"
                   >
                     {t("common.error")}: {error}
@@ -163,7 +164,7 @@ export default function SalesApartmentsPage() {
               {!loading && !error && filtered.length === 0 && (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={9}
                     className="px-4 py-10 text-center text-sm text-neutral-400"
                   >
                     {t("sales.empty")}
@@ -177,6 +178,17 @@ export default function SalesApartmentsPage() {
                     key={u.id}
                     className="border-t border-neutral-800 hover:bg-neutral-900/70"
                   >
+                    <td className="px-3 py-2 align-middle">
+                      {Array.isArray(u.photos) && u.photos[0] ? (
+                        <img
+                          src={u.photos[0]}
+                          alt=""
+                          className="h-10 w-14 rounded-lg object-cover border border-neutral-800 shadow"
+                        />
+                      ) : (
+                        <div className="h-10 w-14 rounded-lg bg-neutral-800 border border-neutral-700 flex items-center justify-center text-neutral-600 text-[9px]">нет</div>
+                      )}
+                    </td>
                     <td className="px-3 py-3 align-top text-sm">{u.city}</td>
                     <td className="px-3 py-3 align-top text-sm">
                       <div className="max-w-xs truncate" title={u.address}>

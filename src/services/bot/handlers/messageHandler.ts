@@ -138,6 +138,42 @@ ${agencyFiles}`;
                 } catch (saveErr) {
                     console.error("[Bot] handleSaveLead failed:", saveErr);
                 }
+
+                // Create a PENDING booking to hold the slot while manager decides
+                // Pending = dates are blocked for bot search, but not yet confirmed
+                const isRentalIntent = purpose === "АРЕНДА"
+                    || !!routerInstruction.instructions_for_rental_search_agent
+                    || !!routerInstruction.instructions_for_rental_manager_agent;
+
+                if ((temp === "warm" || temp === "hot") && start_date && end_date && unitsFound.length > 0 && isRentalIntent) {
+                    const rentalUnit = unitsFound[0];
+                    // Only create if no pending booking already exists for this unit+dates
+                    const { data: existing } = await supabase
+                        .from("rental_bookings")
+                        .select("id")
+                        .eq("unit_id", rentalUnit.id)
+                        .eq("start_date", start_date)
+                        .eq("end_date", end_date)
+                        .neq("status", "cancelled")
+                        .maybeSingle();
+
+                    if (!existing) {
+                        try {
+                            await supabase.from("rental_bookings").insert({
+                                unit_id: rentalUnit.id,
+                                start_date,
+                                end_date,
+                                guest_name: name !== "Unknown" ? name : null,
+                                guest_phone: phone !== "Unknown" ? phone : null,
+                                status: "pending",
+                                notes: `Авто-запрос из бота. @${userInfo.username || chatId}. Ожидает подтверждения менеджера.`,
+                            });
+                            console.log(`[Bot] Pending booking created for unit ${rentalUnit.id} (${start_date} → ${end_date})`);
+                        } catch (bookErr) {
+                            console.error("[Bot] Pending booking failed:", bookErr);
+                        }
+                    }
+                }
             }
 
             let alertMsg = `🔥 <b>ВНИМАНИЕ МЕНЕДЖЕРАМ! (ИИ-БОТ)</b> 🔥\n\n👤 Пользователь: @${userInfo.username || chatId}\n👤 Имя: ${name}\n📞 Контакт: ${phone !== "Unknown" ? phone : "Пока не оставил"}\n💬 Инфо: ${reason}`;
@@ -240,6 +276,23 @@ ${agencyFiles}`;
             }
 
             let customInstruction = routerInstruction.instructions_for_communication_agent;
+
+            // Rental price calculation: inject total cost for the requested dates
+            const rentalParams = routerInstruction.instructions_for_rental_search_agent
+                || (routerInstruction.instructions_for_search_agent?.intent === "rent" ? routerInstruction.instructions_for_search_agent : null);
+
+            if (rentalParams && unitsFound.length > 0) {
+                const unit = unitsFound[0];
+                const startD = rentalParams.start_date || routerInstruction.instructions_for_manager_agent?.start_date;
+                const endD = rentalParams.end_date || routerInstruction.instructions_for_manager_agent?.end_date;
+                if (startD && endD && unit.price_per_day) {
+                    const days = Math.round((new Date(endD).getTime() - new Date(startD).getTime()) / 86400000);
+                    if (days > 0) {
+                        const totalCost = days * unit.price_per_day;
+                        customInstruction = `РАСЧЁТ СТОИМОСТИ: клиент запросил аренду с ${startD} по ${endD} (${days} ${days === 1 ? 'ночь' : days < 5 ? 'ночи' : 'ночей'}). Цена за сутки: ${unit.price_per_day} €. ИТОГО за ${days} ночей: ${totalCost} €. ОБЯЗАТЕЛЬНО назови итоговую сумму ${totalCost} € клиенту в ответе.\n\n${customInstruction}`;
+                    }
+                }
+            }
 
             // Force prioritization and structure of found units
             if (unitsFound.length > 0) {

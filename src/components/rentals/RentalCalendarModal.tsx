@@ -9,11 +9,14 @@ type Booking = {
     start_date: string;
     end_date: string;
     user_chat_id: string | null;
-    status: "reserved" | "blocked" | "confirmed" | "cancelled";
+    status: "reserved" | "blocked" | "confirmed" | "cancelled" | "pending";
     notes?: string | null;
+    guest_name?: string | null;
+    guest_phone?: string | null;
 };
 
 const STATUS_LABELS: Record<string, string> = {
+    pending: "Ожидает подтверждения",
     reserved: "Бронь",
     blocked: "Заблокировано",
     confirmed: "Подтверждено",
@@ -21,6 +24,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
+    pending: "text-orange-400 bg-orange-900/30 border-orange-800",
     reserved: "text-emerald-400 bg-emerald-900/30 border-emerald-800",
     blocked: "text-yellow-400 bg-yellow-900/30 border-yellow-800",
     confirmed: "text-blue-400 bg-blue-900/30 border-blue-800",
@@ -187,6 +191,7 @@ export default function RentalCalendarModal({ unitId, onClose }: { unitId: strin
                                     value={form.status}
                                     onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as Booking["status"] }))}
                                 >
+                                    <option value="pending">Ожидает подтверждения</option>
                                     <option value="reserved">Бронь</option>
                                     <option value="confirmed">Подтверждено</option>
                                     <option value="blocked">Заблокировано</option>
@@ -260,7 +265,10 @@ export default function RentalCalendarModal({ unitId, onClose }: { unitId: strin
                                             {STATUS_LABELS[b.status] || b.status}
                                         </span>
                                     </div>
-                                    {b.user_chat_id && (
+                                    {b.guest_name && (
+                                        <p className="text-xs text-neutral-500 mt-0.5 truncate">👤 {b.guest_name}{b.guest_phone ? ` · ${b.guest_phone}` : ""}</p>
+                                    )}
+                                    {!b.guest_name && b.user_chat_id && (
                                         <p className="text-xs text-neutral-500 mt-0.5 truncate">👤 {b.user_chat_id}</p>
                                     )}
                                     {b.notes && (
