@@ -13,7 +13,7 @@ export async function handleSearchDatabase(args: SearchArgs & { id?: string; pri
         .select(args.intent === "rent"
             ? "id, city, address, bedrooms, price_per_month as price_month, price_per_day as price_day, max_guests, title, is_active"
             : "id, city, address, type, rooms, floor, floors_total, area_m2, price, status, title, features, is_active")
-        .eq("is_active", true);
+        .neq("is_active", false); // null treated as active
 
     if (args.id) {
         query = query.eq("id", args.id);
