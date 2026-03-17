@@ -100,9 +100,15 @@ ${agencyFiles}`;
 
         // Normalize rental agents to main agents to reuse logic
         if (routerInstruction.instructions_for_rental_search_agent) {
+            const r = routerInstruction.instructions_for_rental_search_agent;
             routerInstruction.instructions_for_search_agent = {
-                ...routerInstruction.instructions_for_rental_search_agent,
-                intent: "rent"
+                search_keywords: r.search_keywords,
+                rooms: r.bedrooms != null ? String(r.bedrooms) : undefined, // bedrooms → rooms mapping
+                price: r.price_per_month || undefined,
+                guests: r.guests || undefined,
+                start_date: r.start_date || undefined,
+                end_date: r.end_date || undefined,
+                intent: "rent",
             };
         }
 
