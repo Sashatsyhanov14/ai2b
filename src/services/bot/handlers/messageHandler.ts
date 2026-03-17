@@ -98,6 +98,21 @@ ${agencyFiles}`;
         let unitsFound: any[] = [];
         let finalReplyText = "";
 
+        // Normalize rental agents to main agents to reuse logic
+        if (routerInstruction.instructions_for_rental_search_agent) {
+            routerInstruction.instructions_for_search_agent = {
+                ...routerInstruction.instructions_for_rental_search_agent,
+                intent: "rent"
+            };
+        }
+
+        if (routerInstruction.instructions_for_rental_manager_agent) {
+            routerInstruction.instructions_for_manager_agent = {
+                ...routerInstruction.instructions_for_rental_manager_agent,
+                purpose: routerInstruction.instructions_for_rental_manager_agent.purpose || "АРЕНДА"
+            };
+        }
+
         // A. MANAGER AGENT (Alerts & Leads)
         if (routerInstruction.instructions_for_manager_agent) {
             console.log("[Bot] 🚨 MANAGER AGENT TRIGGERED 🚨");
@@ -110,11 +125,15 @@ ${agencyFiles}`;
             const interested_units = mgr.interested_units || [];
             const temp = mgr.lead_temperature || "cold";
             const lang = routerInstruction.detected_language || userInfo.language_code || "ru";
+            const purpose = mgr.purpose || null;
+            const start_date = mgr.start_date || undefined;
+            const end_date = mgr.end_date || undefined;
+            const guests = mgr.guests || undefined;
 
             if (phone !== "Unknown" || temp === "warm" || temp === "hot") {
                 console.log(`[Bot] Saving Lead for ${chatId}...`);
                 try {
-                    await handleSaveLead({ phone, name, info: reason, email, budget, interested_units, temperature: temp, language: lang } as any, chatId, userInfo.username);
+                    await handleSaveLead({ phone, name, info: reason, email, budget, interested_units, temperature: temp, language: lang, purpose, start_date, end_date, guests } as any, chatId, userInfo.username);
                     console.log(`[Bot] Lead saved successfully.`);
                 } catch (saveErr) {
                     console.error("[Bot] handleSaveLead failed:", saveErr);

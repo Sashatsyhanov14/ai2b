@@ -19,6 +19,21 @@ export async function handleSearchDatabase(args: SearchArgs & { id?: string; pri
         query = query.eq("id", args.id);
     }
 
+    // Date filtering (exclude booked units)
+    if (args.intent === "rent" && args.start_date && args.end_date) {
+        const { data: bookings } = await supabase
+            .from("rental_bookings")
+            .select("unit_id")
+            .neq("status", "cancelled")
+            .lte("start_date", args.end_date)
+            .gte("end_date", args.start_date);
+
+        if (bookings && bookings.length > 0) {
+            const bookedUnitIds = bookings.map(b => b.unit_id);
+            query = query.not("id", "in", `(${bookedUnitIds.join(',')})`);
+        }
+    }
+
     // AI Typos / Fuzzy Search: normalize Russian/Turkish city names to English first
     const normalizedKeywords = normalizeSearchKeywords(args.search_keywords);
     if (normalizedKeywords.length > 0) {
@@ -38,6 +53,9 @@ export async function handleSearchDatabase(args: SearchArgs & { id?: string; pri
         } else {
             query = query.eq("rooms", args.rooms);
         }
+    }
+    if (args.guests && args.intent === "rent") {
+        query = query.gte("max_guests", args.guests);
     }
     if (args.price) {
         // Return properties up to the maximum budget

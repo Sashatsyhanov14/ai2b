@@ -14,6 +14,9 @@ export type SearchArgs = {
   rooms?: string;
   project?: string;
   query?: string;
+  start_date?: string; // For rentals
+  end_date?: string;   // For rentals
+  guests?: number;     // For rentals
 };
 
 export type SaveLeadArgs = {
@@ -31,6 +34,9 @@ export type SaveLeadArgs = {
   manager_hints?: string;  // AI tips for the sales manager
   client_summary?: string; // AI-written 2-3 sentence profile of the client
   language?: string;       // detected client language: 'ru', 'tr', 'en', etc.
+  start_date?: string;     // For rentals
+  end_date?: string;       // For rentals
+  guests?: number;         // For rentals
 };
 
 export type GetPhotosArgs = {

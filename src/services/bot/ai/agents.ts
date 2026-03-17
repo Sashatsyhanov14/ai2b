@@ -60,6 +60,37 @@ export const RouterSchema = {
                 client_summary: { type: "string", description: "Сводка о клиенте: 2-3 предложения, кто этот человек, что хочет, насколько готов к покупке. Например: 'Клиент из России, ищет 2-комнатный апартамент в Стамбуле от $250тыс. Цель — получение ВНЖ. Горячий лид, звонить срочно.'. Пиши на русском, даже если клиент пишет на другом языке." },
                 language: { type: "string", description: "Язык клиента: 'ru', 'tr', 'en', 'de', 'fr', 'uk' и т.д. Определи по тому, на каком языке он пишет. Это поле ВСЕГДА заполняй." }
             }
+        },
+        instructions_for_rental_search_agent: {
+            type: "object",
+            description: "Если клиент ищет АРЕНДУ недвижимости, заполни параметры для поиска. Обязательно вычлени даты, если клиент их назвал.",
+            properties: {
+                search_keywords: { type: "array", items: { type: "string" }, description: "Города или районы" },
+                price_per_day: { type: "number" },
+                price_per_month: { type: "number" },
+                bedrooms: { type: "number" },
+                start_date: { type: "string", description: "Формат YYYY-MM-DD" },
+                end_date: { type: "string", description: "Формат YYYY-MM-DD" },
+                guests: { type: "number" }
+            }
+        },
+        instructions_for_rental_manager_agent: {
+            type: "object",
+            description: "Прямой вызов менеджера по АРЕНДЕ. Если клиент оставил номер телефона, WhatsApp или хочет забронировать конкретные даты.",
+            properties: {
+                reason: { type: "string" },
+                client_name: { type: "string" },
+                client_phone: { type: "string" },
+                interested_units: { type: "array", items: { type: "string" } },
+                start_date: { type: "string" },
+                end_date: { type: "string" },
+                guests: { type: "number" },
+                budget: { type: "number" },
+                purpose: { type: "string" },
+                manager_hints: { type: "string" },
+                client_summary: { type: "string" },
+                language: { type: "string" }
+            }
         }
     },
     required: ["instructions_for_communication_agent"]
@@ -236,9 +267,10 @@ const ROUTER_SYSTEM_PROMPT = `
 2. ВАРИАТИВНОСТЬ: Не спрашивай бюджет в каждом сообщении. Если бюджет понятен или объект уже показан, спрашивай про локацию или "подходит ли этот вариант?". Для АРЕНДЫ всегда спрашивай даты заезда, срок аренды и количество человек.
 3. СТРУКТУРА: [Ответ] + [Презентация] + [Вопрос/CTA].
 
-ПРАВИЛА ПОИСКА (SEARCH AGENT):
-1. Важно отличить Аренду (rent) от Продажи (sale) и передать правильный intent. Если клиент говорит "снять", "аренда", "отпуск" - это rent. Если "купить", "инвестиции", "ВНЖ" - это sale.
-2. Вызывай только если нужны НОВЫЕ варианты. Если клиенту нравится текущий — поиск не нужен.
+ПРАВИЛА ПОИСКА (SEARCH AGENT И RENTAL SEARCH AGENT):
+1. Важно отличить Аренду (rent) от Продажи (sale). Для Аренды заполняй блок instructions_for_rental_search_agent. Для Продажи - instructions_for_search_agent.
+2. При поиске аренды ВНИМАТЕЛЬНО ищи даты заезда/выезда в тексте и переведи их в формат YYYY-MM-DD.
+3. Вызывай поиск только если нужны НОВЫЕ варианты. Если клиенту нравится текущий — поиск не нужен.
 
 Выдай ТОЛЬКО JSON строго по Схеме.
 `;
