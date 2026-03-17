@@ -244,6 +244,30 @@ export const en = {
     loading: "Loading…",
     empty: "No leads found. Change filtering options.",
   },
+  rentals: {
+    tags: {
+      near_sea: "Near the sea",
+      sea_view: "Sea view",
+      pool: "Pool",
+      indoor_pool: "Indoor pool",
+      parking: "Parking",
+      security: "Security 24/7",
+      fitness: "Fitness",
+      sauna: "Sauna",
+      jacuzzi: "Jacuzzi",
+      furnished: "Furnished",
+      wi_fi: "Wi-Fi",
+      air_conditioning: "Air conditioning",
+      tv: "Smart TV",
+      washing_machine: "Washing machine",
+      dishwasher: "Dishwasher",
+      pet_friendly: "Pet friendly",
+      child_friendly: "Child friendly",
+      balcony: "Balcony / Terrace",
+      bbq: "BBQ Area",
+      work_space: "Work space"
+    }
+  },
   bots: {
     title: "Bots",
     addBot: "Add bot",

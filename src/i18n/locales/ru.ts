@@ -245,6 +245,30 @@ export const ru = {
     loading: "Загрузка…",
     empty: "Лидов не найдено. Измените параметры фильтрации.",
   },
+  rentals: {
+    tags: {
+      near_sea: "Рядом с морем",
+      sea_view: "Вид на море",
+      pool: "Бассейн",
+      indoor_pool: "Крытый бассейн",
+      parking: "Парковка",
+      security: "Охрана 24/7",
+      fitness: "Фитнес",
+      sauna: "Сауна",
+      jacuzzi: "Джакузи",
+      furnished: "Меблированная",
+      wi_fi: "Wi-Fi",
+      air_conditioning: "Кондиционер",
+      tv: "Телевизор",
+      washing_machine: "Стиральная машина",
+      dishwasher: "Посудомойка",
+      pet_friendly: "Можно с животными",
+      child_friendly: "Подходит для детей",
+      balcony: "Балкон / Терраса",
+      bbq: "Зона барбекю",
+      work_space: "Рабочее место"
+    }
+  },
   bots: {
     title: "Боты",
     addBot: "Добавить бота",

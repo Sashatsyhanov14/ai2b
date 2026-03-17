@@ -244,6 +244,30 @@ export const tr = {
     loading: "Yükleniyor…",
     empty: "Lead bulunamadı. Filtreleme seçeneklerini değiştirin.",
   },
+  rentals: {
+    tags: {
+      near_sea: "Denize yakın",
+      sea_view: "Deniz manzaralı",
+      pool: "Havuz",
+      indoor_pool: "Kapalı havuz",
+      parking: "Otopark",
+      security: "7/24 Güvenlik",
+      fitness: "Fitness",
+      sauna: "Sauna",
+      jacuzzi: "Jakuzi",
+      furnished: "Mobilyalı",
+      wi_fi: "Wi-Fi",
+      air_conditioning: "Klima",
+      tv: "Smart TV",
+      washing_machine: "Çamaşır makinesi",
+      dishwasher: "Bulaşık makinesi",
+      pet_friendly: "Evcil hayvan kabul edilir",
+      child_friendly: "Çocuklar için uygun",
+      balcony: "Balkon / Teras",
+      bbq: "Mangal alanı",
+      work_space: "Çalışma alanı"
+    }
+  },
   bots: {
     title: 'Botlar',
     addBot: 'Bot ekle',

@@ -10,17 +10,29 @@ const RENTAL_TAGS = [
     "near_sea",
     "sea_view",
     "pool",
+    "indoor_pool",
     "parking",
     "security",
     "fitness",
     "sauna",
+    "jacuzzi",
     "furnished",
     "wi_fi",
     "air_conditioning",
-    "pet_friendly"
+    "tv",
+    "washing_machine",
+    "dishwasher",
+    "pet_friendly",
+    "child_friendly",
+    "balcony",
+    "bbq",
+    "work_space"
 ];
 
+import { useI18n } from "@/i18n";
+
 export default function NewRentalPage() {
+    const { t } = useI18n();
     const router = useRouter();
 
     const [form, setForm] = useState({
@@ -284,7 +296,7 @@ export default function NewRentalPage() {
                                             : "bg-neutral-900/50 border-neutral-800 text-neutral-400 hover:border-neutral-700 hover:text-neutral-200"
                                             }`}
                                     >
-                                        {isSelected ? "✓ " : ""}{tag.replace(/_/g, ' ')}
+                                        {isSelected ? "✓ " : ""}{t(`rentals.tags.${tag}` as any)}
                                     </button>
                                 );
                             })}

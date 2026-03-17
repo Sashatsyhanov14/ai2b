@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Trash2, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import RentalCalendarModal from "@/components/rentals/RentalCalendarModal";
 
 type RentalUnit = {
     id: string;
@@ -198,6 +199,13 @@ export default function RentalsPage() {
                     </table>
                 </div>
             </div>
+
+            {calendarUnitId && (
+                <RentalCalendarModal
+                    unitId={calendarUnitId}
+                    onClose={() => setCalendarUnitId(null)}
+                />
+            )}
         </div>
     );
 }
