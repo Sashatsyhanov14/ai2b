@@ -47,6 +47,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         if (payload.bedrooms !== undefined) patch.bedrooms = payload.bedrooms ? Number(payload.bedrooms) : null;
         if (payload.bathrooms !== undefined) patch.bathrooms = payload.bathrooms ? Number(payload.bathrooms) : null;
         if (payload.max_guests !== undefined) patch.max_guests = payload.max_guests ? Number(payload.max_guests) : null;
+        if (payload.features !== undefined) patch.features = payload.features;
+        if (payload.ai_instructions !== undefined) patch.ai_instructions = payload.ai_instructions;
         if (payload.photos !== undefined) patch.photos = payload.photos;
         if (payload.is_active !== undefined) patch.is_active = payload.is_active;
 

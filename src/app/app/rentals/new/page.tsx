@@ -6,6 +6,20 @@ import { ChevronLeft, DollarSign } from "lucide-react";
 import UploadImage from "@/components/UploadImage";
 import { Button } from "@/components/ui/Button";
 
+const RENTAL_TAGS = [
+    "near_sea",
+    "sea_view",
+    "pool",
+    "parking",
+    "security",
+    "fitness",
+    "sauna",
+    "furnished",
+    "wi_fi",
+    "air_conditioning",
+    "pet_friendly"
+];
+
 export default function NewRentalPage() {
     const router = useRouter();
 
@@ -19,14 +33,22 @@ export default function NewRentalPage() {
         bedrooms: "1",
         bathrooms: "1",
         max_guests: "2",
+        ai_instructions: "",
     });
 
+    const [selectedTags, setSelectedTags] = useState<string[]>([]);
     const [photos, setPhotos] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
     function update(key: string, value: string) {
         setForm((prev) => ({ ...prev, [key]: value }));
+    }
+
+    function toggleTag(tag: string) {
+        setSelectedTags((prev) =>
+            prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+        );
     }
 
     async function handleRemovePhoto(url: string) {
@@ -58,6 +80,8 @@ export default function NewRentalPage() {
                 bedrooms: form.bedrooms ? Number(form.bedrooms) : null,
                 bathrooms: form.bathrooms ? Number(form.bathrooms) : null,
                 max_guests: form.max_guests ? Number(form.max_guests) : null,
+                features: selectedTags,
+                ai_instructions: form.ai_instructions.trim() || null,
                 photos: photos.length ? photos : undefined,
             };
 
@@ -242,6 +266,31 @@ export default function NewRentalPage() {
                         </div>
                     </section>
 
+                    {/* TAGS */}
+                    <section>
+                        <h2 className="mb-3 text-xs font-semibold text-neutral-400 uppercase tracking-wider ml-1">
+                            Удобства / Теги
+                        </h2>
+                        <div className="flex flex-wrap gap-2">
+                            {RENTAL_TAGS.map(tag => {
+                                const isSelected = selectedTags.includes(tag);
+                                return (
+                                    <button
+                                        key={tag}
+                                        type="button"
+                                        onClick={() => toggleTag(tag)}
+                                        className={`px-4 py-2 rounded-full text-xs font-medium transition-all transform active:scale-95 border ${isSelected
+                                            ? "bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)] border-blue-500"
+                                            : "bg-neutral-900/50 border-neutral-800 text-neutral-400 hover:border-neutral-700 hover:text-neutral-200"
+                                            }`}
+                                    >
+                                        {isSelected ? "✓ " : ""}{tag.replace(/_/g, ' ')}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </section>
+
                     {/* 3. OPTIONAL DESCRIPTION */}
                     <section className="space-y-4">
                         <details className="group" open>
@@ -256,6 +305,24 @@ export default function NewRentalPage() {
                                     value={form.description}
                                     onChange={(e) => update("description", e.target.value)}
                                 />
+                            </div>
+                        </details>
+
+                        <details className="group">
+                            <summary className="list-none cursor-pointer flex items-center gap-2 text-xs font-semibold text-rose-500/80 uppercase tracking-wider ml-1 hover:text-rose-400 transition-colors">
+                                <span className="group-open:rotate-90 transition-transform text-rose-600">▸</span>
+                                Секретная информация (для менеджеров / ИИ)
+                            </summary>
+                            <div className="mt-3">
+                                <textarea
+                                    className="w-full h-24 rounded-xl border border-rose-900/20 bg-rose-900/5 p-4 text-neutral-200 outline-none focus:border-rose-800/40 transition-all text-sm resize-none placeholder:text-neutral-700"
+                                    placeholder="Инструкции для ИИ (например: 'Аренда минимум на неделю', 'Скидка при оплате за год')"
+                                    value={form.ai_instructions}
+                                    onChange={(e) => update("ai_instructions", e.target.value)}
+                                />
+                                <p className="mt-2 text-[10px] text-neutral-500 ml-1 italic">
+                                    Эта информация не показывается напрямую в карточке, но будет использована ИИ для ответов на вопросы клиентов.
+                                </p>
                             </div>
                         </details>
                     </section>

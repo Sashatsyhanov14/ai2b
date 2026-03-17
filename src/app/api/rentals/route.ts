@@ -51,6 +51,8 @@ export async function POST(req: Request) {
             bedrooms: body.bedrooms ? Number(body.bedrooms) : null,
             bathrooms: body.bathrooms ? Number(body.bathrooms) : null,
             max_guests: body.max_guests ? Number(body.max_guests) : null,
+            features: Array.isArray(body.features) ? body.features : [],
+            ai_instructions: body.ai_instructions ?? null,
             photos: Array.isArray(body.photos) ? body.photos : [],
             is_active: true,
             i18n: i18nData,
