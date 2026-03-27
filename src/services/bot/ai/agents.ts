@@ -169,7 +169,7 @@ export async function runTranslationAgent(leadData: any): Promise<any> {
     console.log("[runTranslationAgent] Requesting AI translation...");
     const input = JSON.stringify(leadData);
     console.log(`[runTranslationAgent] Input leadData for translation: ${input.substring(0, 200)}...`); // Added log
-    const rawResult = await askLLM(input, TRANSLATION_SYSTEM_PROMPT, false, TranslationAgentSchema);
+    const rawResult = await askLLM(input, TRANSLATION_SYSTEM_PROMPT, false, TranslationAgentSchema, true);
     console.log("[runTranslationAgent] AI Response length:", rawResult?.length || 0);
     try {
         return JSON.parse(rawResult);
@@ -242,7 +242,7 @@ const UNIT_TRANSLATION_SYSTEM_PROMPT = `
 export async function runUnitTranslationAgent(unitData: any): Promise<any> {
     console.log("[runUnitTranslationAgent] Requesting AI translation for unit...");
     const input = JSON.stringify(unitData);
-    const rawResult = await askLLM(input, UNIT_TRANSLATION_SYSTEM_PROMPT, false, UnitTranslationAgentSchema);
+    const rawResult = await askLLM(input, UNIT_TRANSLATION_SYSTEM_PROMPT, false, UnitTranslationAgentSchema, true);
     try {
         return JSON.parse(rawResult);
     } catch (e) {
@@ -285,7 +285,7 @@ const ANALYZER_SYSTEM_PROMPT = `
 
 export async function runAnalyzerAgent(messages: RoleMessage[], companyKnowledge: string): Promise<any> {
     const fullSystem = ANALYZER_SYSTEM_PROMPT + "\n\n[БАЗА ЗНАНИЙ И ПРАВИЛА КОМПАНИИ]:\n" + companyKnowledge;
-    const rawResult = await askLLM(messages, fullSystem, false, AnalyzerSchema);
+    const rawResult = await askLLM(messages, fullSystem, false, AnalyzerSchema, false);
     if (!rawResult) {
         return { instructions_for_writer: "Извините, я временно недоступен. Попробуйте позже." };
     }
@@ -367,7 +367,7 @@ ${instructionsAndCompanyInfo}
 [DATA]:
 ${dynamicData}`;
 
-    return await askLLM(history, fullSystemPrompt, true);
+    return await askLLM(history, fullSystemPrompt, true, undefined, true);
 }
 
 export async function runSaleWriterAgent(history: RoleMessage[], instr: string, data: string, lang: string) {
@@ -445,7 +445,7 @@ const RENTAL_TRANSLATION_SYSTEM_PROMPT = `
 export async function runRentalTranslationAgent(rentalData: any): Promise<any> {
     console.log("[runRentalTranslationAgent] Requesting AI translation for rental...");
     const input = JSON.stringify(rentalData);
-    const rawResult = await askLLM(input, RENTAL_TRANSLATION_SYSTEM_PROMPT, false, RentalTranslationAgentSchema);
+    const rawResult = await askLLM(input, RENTAL_TRANSLATION_SYSTEM_PROMPT, false, RentalTranslationAgentSchema, true);
     try {
         return JSON.parse(rawResult);
     } catch (e) {

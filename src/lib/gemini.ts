@@ -10,13 +10,14 @@ export async function askLLM(
     promptOrMessages: string | Message[] | any[],
     system?: string,
     noJson: boolean = false,
-    jsonSchema?: any
+    jsonSchema?: any,
+    fastModel: boolean = false
 ): Promise<string> {
     const apiKey = process.env.POLZA_API_KEY;
     if (!apiKey) throw new Error("POLZA_API_KEY is not set.");
 
-    // You can change this to any model supported by Polza AI (e.g., 'gpt-4o', 'gemini-1.5-pro', 'claude-3-5-sonnet')
-    const modelName = "gpt-4o-mini";
+    // gpt-4o-mini and gemini-1.5-flash will keep costs well under 0.05 per client
+    const modelName = fastModel ? "gemini-1.5-flash" : "gpt-4o-mini";
 
     let messages: any[] = [];
 
