@@ -19,14 +19,19 @@ export async function handleSearchDatabase(args: SearchArgs & { id?: string; pri
         query = query.eq("id", args.id);
     }
 
+    if (args.intent === "land") {
+        query = query.ilike("type", "%land%"); // Or eq("type", "land") depending on db strings. Using ilike for safety (e.g. "Land", "land", "Участок"). We'll use eq("type", "land") per standard if we strictly enforce it, but ilike "%land%" helps catch variations. Actually, let's use eq("type", "land"). Wait, in DB it's often saved via translations. If it's standardized, let's just do eq("type", "land"). I will do ilike("%land%") just in case or just expect it to be handled by keyword search if not strict. Let's strictly enforce eq("type", "land").
+        query = query.eq("type", "land");
+    }
+
     // Date filtering (exclude booked units)
     if (args.intent === "rent" && args.start_date && args.end_date) {
         const { data: bookings } = await supabase
             .from("rental_bookings")
             .select("unit_id")
             .neq("status", "cancelled")
-            .lte("start_date", args.end_date)
-            .gte("end_date", args.start_date);
+            .lt("start_date", args.end_date)
+            .gt("end_date", args.start_date);
 
         if (bookings && bookings.length > 0) {
             const bookedUnitIds = bookings.map(b => b.unit_id);
@@ -50,7 +55,7 @@ export async function handleSearchDatabase(args: SearchArgs & { id?: string; pri
         if (args.intent === "rent") {
             const num = parseInt(args.rooms);
             if (!isNaN(num)) query = query.eq("bedrooms", num);
-        } else {
+        } else if (args.intent !== "land") {
             query = query.eq("rooms", args.rooms);
         }
     }
@@ -65,11 +70,21 @@ export async function handleSearchDatabase(args: SearchArgs & { id?: string; pri
         // Return properties at or above the minimum budget (e.g. for VNJ $250k+ requirement)
         query = query.gte(args.intent === "rent" ? "price_per_month" : "price", args.price_min);
     }
+    if (args.area_min && args.intent === "land") {
+        query = query.gte("area_m2", args.area_min);
+    }
+    if (args.area_max && args.intent === "land") {
+        query = query.lte("area_m2", args.area_max);
+    }
     if (args.project) {
         query = query.ilike("title", `%${args.project}%`); // fallback checking title since project isn't exported in select
     }
 
+    console.log(`[Search] intent=${args.intent} table=${tableName} keywords=${JSON.stringify(args.search_keywords)} dates=${args.start_date}→${args.end_date} rooms=${args.rooms} guests=${args.guests}`);
+
     const { data, error } = await query.order('created_at', { ascending: false }).limit(20);
+
+    console.log(`[Search] Result: ${error ? 'ERROR: ' + error.message : `${data?.length ?? 0} units found`}`);
 
     if (error) {
         console.error("Search DB Error:", error);

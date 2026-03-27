@@ -1,7 +1,7 @@
 import { sendMessage, sendChatAction } from "@/lib/telegram";
 import { getServerClient } from "@/lib/supabaseClient";
 import { findOrCreateSession, appendMessage, listMessages } from "@/services/sessions";
-import { runRouterAgent, runCommunicationAgent, RoleMessage } from "../ai/agents";
+import { runAnalyzerAgent, runSaleWriterAgent, runRentWriterAgent, runLandWriterAgent, RoleMessage } from "../ai/agents";
 
 // Tools
 import { handleSearchDatabase } from "../actions/search";
@@ -90,39 +90,45 @@ ${agencyFiles}`;
         }
 
         // 3. MULTI-AGENT PIPELINE
-        console.log(`[Bot] Executing Router Agent...`);
+        console.log(`[Bot] Executing Analyzer Agent...`);
         sendChatAction(token, chatId, 'typing').catch(() => { });
-        const routerInstruction = await runRouterAgent(messages, botKnowledge);
-        console.log(`[Bot] Router decision:`, JSON.stringify(routerInstruction));
+        const analyzerInstruction = await runAnalyzerAgent(messages, botKnowledge);
+        console.log(`[Bot] Analyzer decision:`, JSON.stringify(analyzerInstruction));
 
         let unitsFound: any[] = [];
         let finalReplyText = "";
-
-        // Normalize rental agents to main agents to reuse logic
-        if (routerInstruction.instructions_for_rental_search_agent) {
-            const r = routerInstruction.instructions_for_rental_search_agent;
-            routerInstruction.instructions_for_search_agent = {
-                search_keywords: r.search_keywords,
-                rooms: r.bedrooms != null ? String(r.bedrooms) : undefined, // bedrooms → rooms mapping
-                price: r.price_per_month || undefined,
-                guests: r.guests || undefined,
-                start_date: r.start_date || undefined,
-                end_date: r.end_date || undefined,
-                intent: "rent",
-            };
+        
+        // 3.1 Extract Active Search Params
+        let searchParams: any = null;
+        let activeIntent: "sale" | "rent" | "land" = "sale"; // default fallback
+        
+        if (analyzerInstruction.instructions_for_sale_search) {
+            searchParams = analyzerInstruction.instructions_for_sale_search;
+            searchParams.intent = "sale";
+            activeIntent = "sale";
+        } else if (analyzerInstruction.instructions_for_rent_search) {
+            searchParams = analyzerInstruction.instructions_for_rent_search;
+            searchParams.intent = "rent";
+            activeIntent = "rent";
+            searchParams.rooms = searchParams.bedrooms != null ? String(searchParams.bedrooms) : undefined;
+            searchParams.price = searchParams.price_per_month || undefined;
+        } else if (analyzerInstruction.instructions_for_land_search) {
+            searchParams = analyzerInstruction.instructions_for_land_search;
+            searchParams.intent = "land";
+            activeIntent = "land";
         }
 
-        if (routerInstruction.instructions_for_rental_manager_agent) {
-            routerInstruction.instructions_for_manager_agent = {
-                ...routerInstruction.instructions_for_rental_manager_agent,
-                purpose: routerInstruction.instructions_for_rental_manager_agent.purpose || "АРЕНДА"
+        if (analyzerInstruction.instructions_for_rental_manager_agent) {
+            analyzerInstruction.instructions_for_manager_agent = {
+                ...analyzerInstruction.instructions_for_rental_manager_agent,
+                purpose: analyzerInstruction.instructions_for_rental_manager_agent.purpose || "АРЕНДА"
             };
         }
 
         // A. MANAGER AGENT (Alerts & Leads)
-        if (routerInstruction.instructions_for_manager_agent) {
+        if (analyzerInstruction.instructions_for_manager_agent) {
             console.log("[Bot] 🚨 MANAGER AGENT TRIGGERED 🚨");
-            const mgr = routerInstruction.instructions_for_manager_agent;
+            const mgr = analyzerInstruction.instructions_for_manager_agent;
             const phone = mgr.client_phone || userInfo.phone || "Unknown";
             const name = mgr.client_name || userInfo.fullName || userInfo.username || "Client";
             const reason = mgr.reason || "Аналитика диалога";
@@ -130,7 +136,7 @@ ${agencyFiles}`;
             const budget = mgr.budget || null;
             const interested_units = mgr.interested_units || [];
             const temp = mgr.lead_temperature || "cold";
-            const lang = routerInstruction.detected_language || userInfo.language_code || "ru";
+            const lang = analyzerInstruction.detected_language || userInfo.language_code || "ru";
             const purpose = mgr.purpose || null;
             const start_date = mgr.start_date || undefined;
             const end_date = mgr.end_date || undefined;
@@ -148,8 +154,8 @@ ${agencyFiles}`;
                 // Create a PENDING booking to hold the slot while manager decides
                 // Pending = dates are blocked for bot search, but not yet confirmed
                 const isRentalIntent = purpose === "АРЕНДА"
-                    || !!routerInstruction.instructions_for_rental_search_agent
-                    || !!routerInstruction.instructions_for_rental_manager_agent;
+                    || activeIntent === "rent"
+                    || !!analyzerInstruction.instructions_for_rental_manager_agent;
 
                 if ((temp === "warm" || temp === "hot") && start_date && end_date && unitsFound.length > 0 && isRentalIntent) {
                     const rentalUnit = unitsFound[0];
@@ -230,10 +236,10 @@ ${agencyFiles}`;
             }
         }
 
-        // B. SEARCH AGENT
-        if (routerInstruction.instructions_for_search_agent) {
-            console.log("[Bot] 🔍 SEARCH AGENT TRIGGERED ");
-            const baseParams = routerInstruction.instructions_for_search_agent;
+        // B. SEARCH EXECUTOR
+        if (searchParams) {
+            console.log("[Bot] 🔍 SEARCH EXECUTOR TRIGGERED for", activeIntent);
+            const baseParams = searchParams;
 
             const searchTasks = [
                 baseParams, // 1. Strict search (up to Price + 15% as per agent rules)
@@ -270,27 +276,24 @@ ${agencyFiles}`;
             }
         }
 
-        // C. COMMUNICATION AGENT
-        if (routerInstruction.instructions_for_communication_agent) {
-            console.log("[Bot] 🗣 COMMUNICATION AGENT TRIGGERED");
+        // C. WRITER AGENT (Communication)
+        if (analyzerInstruction.instructions_for_writer) {
+            console.log("[Bot] 🗣 WRITER AGENT TRIGGERED for intent:", activeIntent);
 
             let dbData = "База данных не запрашивалась.";
-            if (routerInstruction.instructions_for_search_agent) {
+            if (searchParams) {
                 dbData = unitsFound.length > 0
                     ? JSON.stringify(unitsFound.slice(0, 1), null, 2)
-                    : "[ВНИМАНИЕ: КВАРТИРЫ ПО ЗАПРОСУ НЕ НАЙДЕНЫ. КРИТИЧЕСКОЕ ПРАВИЛО: КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО выдумывать квартиры или брать другие варианты из истории чата! Просто скажи, что по таким параметрам сейчас ничего нет, и предложи изменить запрос.]";
+                    : "[ВНИМАНИЕ: ОБЪЕКТЫ ПО ЗАПРОСУ НЕ НАЙДЕНЫ. КРИТИЧЕСКОЕ ПРАВИЛО: КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО выдумывать объекты или брать другие варианты из истории чата! Просто скажи, что по таким параметрам сейчас ничего нет, и предложи изменить запрос. Никаких общих шаблонных описаний.]";
             }
 
-            let customInstruction = routerInstruction.instructions_for_communication_agent;
+            let customInstruction = analyzerInstruction.instructions_for_writer;
 
             // Rental price calculation: inject total cost for the requested dates
-            const rentalParams = routerInstruction.instructions_for_rental_search_agent
-                || (routerInstruction.instructions_for_search_agent?.intent === "rent" ? routerInstruction.instructions_for_search_agent : null);
-
-            if (rentalParams && unitsFound.length > 0) {
+            if (activeIntent === "rent" && searchParams && unitsFound.length > 0) {
                 const unit = unitsFound[0];
-                const startD = rentalParams.start_date || routerInstruction.instructions_for_manager_agent?.start_date;
-                const endD = rentalParams.end_date || routerInstruction.instructions_for_manager_agent?.end_date;
+                const startD = searchParams.start_date || analyzerInstruction.instructions_for_manager_agent?.start_date;
+                const endD = searchParams.end_date || analyzerInstruction.instructions_for_manager_agent?.end_date;
                 if (startD && endD && unit.price_per_day) {
                     const days = Math.round((new Date(endD).getTime() - new Date(startD).getTime()) / 86400000);
                     if (days > 0) {
@@ -310,11 +313,19 @@ ${agencyFiles}`;
 \n\n${customInstruction}`;
             }
 
-            const fullInstruction = `[УКАЗАНИЕ ОТ ДИСПЕТЧЕРА]:\n${customInstruction}\n\n[ИСТОРИЯ И КОНТЕКСТ]:\nОпирайся на историю диалога и учитывай правила компании!`;
-            const lang = routerInstruction.detected_language || userInfo.language_code || "ru";
+            const fullInstruction = `[УКАЗАНИЕ ОТ АНАЛИЗАТОРА]:\n${customInstruction}\n\n[ИСТОРИЯ И КОНТЕКСТ]:\nОпирайся на историю диалога и учитывай правила компании!`;
+            const lang = analyzerInstruction.detected_language || userInfo.language_code || "ru";
 
             sendChatAction(token, chatId, 'typing').catch(() => { });
-            finalReplyText = await runCommunicationAgent(messages, botKnowledge, dbData + "\n\n" + fullInstruction, lang);
+            
+            // Branch to specific specialized writer
+            if (activeIntent === "rent") {
+                finalReplyText = await runRentWriterAgent(messages, botKnowledge, dbData + "\n\n" + fullInstruction, lang);
+            } else if (activeIntent === "land") {
+                finalReplyText = await runLandWriterAgent(messages, botKnowledge, dbData + "\n\n" + fullInstruction, lang);
+            } else {
+                finalReplyText = await runSaleWriterAgent(messages, botKnowledge, dbData + "\n\n" + fullInstruction, lang);
+            }
         }
 
         // 4. Final Output to User
@@ -324,7 +335,7 @@ ${agencyFiles}`;
 
             // secretly append UUIDs to the database history so the search agent won't show repeats
             let dbStoreText = finalReplyText;
-            if (routerInstruction.instructions_for_search_agent && unitsFound.length > 0) {
+            if (searchParams && unitsFound.length > 0) {
                 const shownIdsString = unitsFound.slice(0, 1).map((u: any) => `[HIDDEN_SYSTEM_ID: ${u.id}]`).join("\n");
                 dbStoreText += `\n\n${shownIdsString}`;
             }
@@ -332,7 +343,7 @@ ${agencyFiles}`;
         }
 
         // 5. Send Photos strictly AFTER text message if we found units
-        if (routerInstruction.instructions_for_search_agent && unitsFound.length > 0) {
+        if (searchParams && unitsFound.length > 0) {
             console.log(`[Bot] Sending photos for ${unitsFound.length} units...`);
             const displayedUnits = unitsFound.slice(0, 1); // Show exactly 1 unit per response
             for (const unit of displayedUnits) {

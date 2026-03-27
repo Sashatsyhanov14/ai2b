@@ -6,66 +6,39 @@ export type RoleMessage = {
 };
 
 // ==========================================
-// ROUTER AGENT (ГЛАВНЫЙ ОРКЕСТРАТОР)
+// ANALYZER AGENT (Анализатор Намерений)
 // ==========================================
-// Задача: Анализирует интент клиента и раздает команды остальным агентам.
-// Может вызвать сразу нескольких агентов одновременно!
+// Задача: Читает чат, понимает интент, распределяет данные по специализированным пайплайнам.
 
-export const RouterSchema = {
+export const AnalyzerSchema = {
     type: "object",
     properties: {
-        instructions_for_communication_agent: {
+        instructions_for_writer: {
             type: "string",
-            description: "Прямое указание для Агента-Оратора. Пиши на языке клиента (ru, tr, en). Укажи, что именно он должен ответить."
+            description: "Прямое указание для Writer-Агента (что именно ответить клиенту). Пиши на языке клиента."
         },
         detected_language: {
             type: "string",
             description: "Язык клиента: 'ru', 'tr', 'en', 'de', 'fr'. Определи по контексту."
         },
-        instructions_for_search_agent: {
+        instructions_for_sale_search: {
             type: "object",
-            description: "Если клиент ищет недвижимость, заполни параметры для поиска в БД. Иначе null.",
+            description: "ЗАПОЛНИ, ЕСЛИ клиент хочет КУПИТЬ КВАРТИРУ или ВИЛЛУ.",
             properties: {
-                search_keywords: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "3-6 вариаций названия Города/Района — ОБЯЗАТЕЛЬНО включи русское И латинское написание."
-                },
-                intent: {
-                    type: "string",
-                    description: "Намерение: 'sale' (покупка/продажа) или 'rent' (аренда). По умолчанию 'sale' если не сказано иное."
-                },
+                search_keywords: { type: "array", items: { type: "string" }, description: "Города или районы" },
+                intent: { type: "string", description: "СТРОГО: 'sale'" },
                 price: { type: "number", description: "Максимальный бюджет" },
                 price_min: { type: "number", description: "Минимальный бюджет" },
                 rooms: { type: "string", description: "Например: '1+1'" },
                 city: { type: "string" }
             }
         },
-        instructions_for_manager_agent: {
+        instructions_for_rent_search: {
             type: "object",
-            description: "Секретный вызов менеджера. Вызывай, если клиент оставил КОНТАКТЫ (телефон/почту) ИЛИ если он 'Горячий/Тёплый' (целеустремленно ищет квартиру, есть бюджет). Собери ВСЮ известную инфу из диалога.",
+            description: "ЗАПОЛНИ, ЕСЛИ клиент ищет АРЕНДУ недвижимости.",
             properties: {
-                reason: { type: "string", description: "Почему зовём менеджера? ('Оставил номер', 'Горячий целевой' и т.д.)" },
-                client_name: { type: "string" },
-                client_phone: { type: "string" },
-                client_email: { type: "string" },
-                budget: { type: "number", description: "Бюджет в $" },
-                interested_units: { type: "array", items: { type: "string" }, description: "Названия лотов или районов, которые заинтересовали" },
-                lead_temperature: { type: "string", description: "cold / warm / hot" },
-                urgency: { type: "string", description: "Сроки покупки: 'ASAP', '1-3 месяца', '6+ месяцев', 'через год'. Узнай из контекста (например 'через год-два')." },
-                purpose: { type: "string", description: "Цель покупки: 'ПРОЖИВАНИЕ', 'ИНВЕСТИЦИИ', 'ВНЖ', 'СДАЧА В АРЕНДУ'. Выведи из диалога." },
-                unit_type: { type: "string", description: "Тип недвижимости: 'АПАРТАМЕНТ', 'ВИЛЛА', 'ПЕНТХАУС', 'КОММЕРСИЯ'. Если упоминали в диалоге." },
-                preferred_areas: { type: "array", items: { type: "string" }, description: "Предпочтительные районы/города (если упоминали)" },
-                manager_hints: { type: "string", description: "Подсказки менеджеру: о чём говорить при звонке, что важно для клиента, есть ли возражения. Кратко, но 2-4 предложения." },
-                client_summary: { type: "string", description: "Сводка о клиенте: 2-3 предложения, кто этот человек, что хочет, насколько готов к покупке. Например: 'Клиент из России, ищет 2-комнатный апартамент в Стамбуле от $250тыс. Цель — получение ВНЖ. Горячий лид, звонить срочно.'. Пиши на русском, даже если клиент пишет на другом языке." },
-                language: { type: "string", description: "Язык клиента: 'ru', 'tr', 'en', 'de', 'fr', 'uk' и т.д. Определи по тому, на каком языке он пишет. Это поле ВСЕГДА заполняй." }
-            }
-        },
-        instructions_for_rental_search_agent: {
-            type: "object",
-            description: "Если клиент ищет АРЕНДУ недвижимости, заполни параметры для поиска. Обязательно вычлени даты, если клиент их назвал.",
-            properties: {
-                search_keywords: { type: "array", items: { type: "string" }, description: "Города или районы" },
+                search_keywords: { type: "array", items: { type: "string" } },
+                intent: { type: "string", description: "СТРОГО: 'rent'" },
                 price_per_day: { type: "number" },
                 price_per_month: { type: "number" },
                 bedrooms: { type: "number" },
@@ -74,9 +47,39 @@ export const RouterSchema = {
                 guests: { type: "number" }
             }
         },
+        instructions_for_land_search: {
+            type: "object",
+            description: "ЗАПОЛНИ, ЕСЛИ клиент хочет КУПИТЬ УЧАСТОК ИЛИ ЗЕМЛЮ.",
+            properties: {
+                search_keywords: { type: "array", items: { type: "string" } },
+                intent: { type: "string", description: "СТРОГО: 'land'" },
+                price: { type: "number" },
+                area_min: { type: "number", description: "Минимальная площадь участка в м2" }
+            }
+        },
+        instructions_for_manager_agent: {
+            type: "object",
+            description: "Секретный вызов CRM. Вызывай, если клиент оставил КОНТАКТЫ (телефон/почту) ИЛИ если он 'Горячий/Тёплый'.",
+            properties: {
+                reason: { type: "string" },
+                client_name: { type: "string" },
+                client_phone: { type: "string" },
+                client_email: { type: "string" },
+                budget: { type: "number" },
+                interested_units: { type: "array", items: { type: "string" } },
+                lead_temperature: { type: "string", description: "cold / warm / hot" },
+                urgency: { type: "string" },
+                purpose: { type: "string" },
+                unit_type: { type: "string" },
+                preferred_areas: { type: "array", items: { type: "string" } },
+                manager_hints: { type: "string" },
+                client_summary: { type: "string" },
+                language: { type: "string" }
+            }
+        },
         instructions_for_rental_manager_agent: {
             type: "object",
-            description: "Прямой вызов менеджера по АРЕНДЕ. Если клиент оставил номер телефона, WhatsApp или хочет забронировать конкретные даты.",
+            description: "Прямой вызов менеджера по АРЕНДЕ.",
             properties: {
                 reason: { type: "string" },
                 client_name: { type: "string" },
@@ -93,7 +96,7 @@ export const RouterSchema = {
             }
         }
     },
-    required: ["instructions_for_communication_agent"]
+    required: ["instructions_for_writer"]
 };
 
 // ==========================================
@@ -253,111 +256,130 @@ export async function runUnitTranslationAgent(unitData: any): Promise<any> {
 }
 
 
-const ROUTER_SYSTEM_PROMPT = `
-ТЫ — ГЛАВНЫЙ ИИ-ОРКЕСТРАТОР АГЕНТСТВА НЕДВИЖИМОСТИ.
-Твоя задача — проанализировать историю чата и выдать указания другим агентам.
+const ANALYZER_SYSTEM_PROMPT = `
+ТЫ — ГЛАВНЫЙ ИИ-АНАЛИЗАТОР (ANALYZER AGENT) АГЕНТСТВА НЕДВИЖИМОСТИ.
+Твоя задача — проанализировать историю чата и выдать указания другим специализированным агентам (Writer Agent, Search Executor).
 
 СТАТУС КЛИЕНТА (КРИТИЧНО):
 - ГОРЯЧИЙ: Клиент говорит "Мне нравится", "Подходит", "Хочу посмотреть", "Как забронировать?", задает конкретные вопросы по объекту. 
 - ТЁПЛЫЙ: Назвал город, бюджет или требования, но еще не выбрал конкретный объект.
 - ХОЛОДНЫЙ: Просто "привет" или общие вопросы без конкретики.
 
+ПРАВИЛА ОПРЕДЕЛЕНИЯ ИНТЕНТА:
+1. АРЕНДА: Если клиент ищет жилье снять/арендовать -> заполняй instructions_for_rent_search.
+2. ПОКУПКА ЗЕМЛИ/УЧАСТКА: Если клиент ищет землю, участок (land, plot) -> заполняй instructions_for_land_search. Участки измеряются в сотках или м2 (area_min).
+3. ПОКУПКА ЖИЛЬЯ: Во всех остальных случаях покупки (квартиры, виллы) -> заполняй instructions_for_sale_search.
+
 ПРАВИЛА ПОИСКА АРЕНДЫ (СТРОГО):
 1. Для АРЕНДЫ — ОБЯЗАТЕЛЬНО нужны даты заезда и выезда ПЕРЕД показом квартир.
-2. ЕСЛИ клиент назвал город, но НЕ назвал даты → НЕ запускай поиск. Вместо этого дай указание communication агенту спросить ТОЛЬКО даты (не спрашивай сразу всё — только даты).
-3. ЕСЛИ клиент назвал город И даты → НЕМЕДЛЕННО заполняй instructions_for_rental_search_agent и запускай поиск. Не жди дополнительных уточнений.
-4. Если клиент сообщил кол-во гостей ("я с девушкой" = 2, "нас четверо" = 4) — передай в поле guests.
-5. Вызывай поиск только если нужны НОВЫЕ варианты. Если клиенту нравится текущий — поиск не нужен.
+2. ЕСЛИ клиент назвал город, но НЕ назвал даты → НЕ запускай поиск. Вместо этого дай указание writer агенту спросить ТОЛЬКО даты (не спрашивай сразу всё).
+3. ЕСЛИ клиент назвал город И даты → НЕМЕДЛЕННО заполняй instructions_for_rent_search.
+4. Если клиент сообщил кол-во гостей ("я с девушкой" = 2) — передай в поле guests.
 
-ПРАВИЛА ПОИСКА ПРОДАЖИ:
-1. Для ПРОДАЖИ — заполняй instructions_for_search_agent.
-2. Запускай поиск как только известен город или район.
-
-ПРАВИЛА КОММУНИКАЦИИ:
-1. ПРИОРИТЕТ КОНТАКТА: Если клиент ГОРЯЧИЙ — ОБЯЗАН спросить телефон или WhatsApp. Не продолжай бесконечную консультацию.
-2. После показа объекта — можно задать ОДИН вопрос (кол-во гостей, предпочтения).
-3. НЕ спрашивай бюджет повторно если он уже известен.
+ПРАВИЛА КОММУНИКАЦИИ (instructions_for_writer):
+1. ПРИОРИТЕТ КОНТАКТА: Если клиент ГОРЯЧИЙ — ОБЯЗАН сказать Writer Агенту запросить телефон или WhatsApp.
+2. Дай Writer Агенту четкую инструкцию, в каком тоне отвечать и о чем спросить в конце.
 
 Выдай ТОЛЬКО JSON строго по Схеме.
 `;
 
-export async function runRouterAgent(messages: RoleMessage[], companyKnowledge: string): Promise<any> {
-    const fullSystem = ROUTER_SYSTEM_PROMPT + "\n\n[БАЗА ЗНАНИЙ И ПРАВИЛА КОМПАНИИ]:\n" + companyKnowledge;
-    const rawResult = await askLLM(messages, fullSystem, false, RouterSchema);
+export async function runAnalyzerAgent(messages: RoleMessage[], companyKnowledge: string): Promise<any> {
+    const fullSystem = ANALYZER_SYSTEM_PROMPT + "\n\n[БАЗА ЗНАНИЙ И ПРАВИЛА КОМПАНИИ]:\n" + companyKnowledge;
+    const rawResult = await askLLM(messages, fullSystem, false, AnalyzerSchema);
     if (!rawResult) {
-        return { instructions_for_communication_agent: "Извините, я временно недоступен. Попробуйте позже." };
+        return { instructions_for_writer: "Извините, я временно недоступен. Попробуйте позже." };
     }
     try {
         return JSON.parse(rawResult);
     } catch (e) {
-        console.error("Router JSON Parse Error:", e, rawResult);
-        return { instructions_for_communication_agent: "Извините, произошла ошибка обработки. Повторите запрос." };
+        console.error("Analyzer JSON Parse Error:", e, rawResult);
+        return { instructions_for_writer: "Извините, произошла ошибка обработки. Повторите запрос." };
     }
 }
 
 
 // ==========================================
-// COMMUNICATION AGENT (Официальный представитель)
+// WRITER AGENTS (Специализированные Писатели)
 // ==========================================
-// Задача: Формировать красивые, живые, экспертные текстовые ответы для клиента.
+// Задача: Формировать текстовые ответы для клиента, учитывая специфику (Продажа, Аренда, Земля).
 
-const COMMUNICATION_SYSTEM_PROMPT = `
-ТЫ — ПРОФЕССИОНАЛЬНЫЙ БРОКЕР ПО АРЕНДЕ И ПРОДАЖЕ НЕДВИЖИМОСТИ.
-
+const COMMON_WRITER_RULES = `
 ПРАВИЛО ОДНОГО СООБЩЕНИЯ ( Answer + Info + CTA ):
 1. ОТВЕТ: Краткая реакция на слова клиента.
-2. ПРЕЗЕНТАЦИЯ (если есть в [DATA]): Описание аренды или продажи, исходя из переданных данных. 
+2. ПРЕЗЕНТАЦИЯ (если есть в [DATA]): Описание объекта.
 3. ЗАКРЫТИЕ (CTA): 
-   - Если клиент проявил интерес ("мне нравится", "супер"), ПРЕКРАТИ консультацию и ПРЯМО предложи оставить номер телефона или WhatsApp.
-   - Если [DATA] пустой (нет квартиры) и клиент хочет АРЕНДУ — задай ОДИН вопрос: "На какие даты вам нужна квартира, или это долгосрочная аренда?" НЕ спрашивай про спальни, гостей и бюджет до тех пор пока не будут известны даты.
-   - Иначе задай ОДИН уточняющий вопрос (про локацию для продажи). Не спрашивай бюджет если он уже известен.
+   - Если клиент проявил интерес, ПРЕКРАТИ консультацию и предложи оставить телефон/WhatsApp.
+   - Иначе задай ОДИН уточняющий вопрос.
 
-ШАБЛОН ДЛЯ ПРОДАЖИ:
+СТРОГИЕ ОГРАНИЧЕНИЯ:
+1. Выдаем ТОЛЬКО ту инфу, которая есть в [DATA].
+2. БЕЗ ЗВЕЗДОЧЕК (**).
+3. Приоритет — взять контакт.
+`;
+
+const SALE_WRITER_PROMPT = `
+ТЫ — EXPERT WRITER AGENT по ПРОДАЖЕ КВАРТИР И ВИЛЛ.
+${COMMON_WRITER_RULES}
+
+ШАБЛОН ДЛЯ ПРОДАЖИ (Используй его, если в [DATA] есть объекты):
 🏠 [title] | 📍 [city], [address]
 💰 Цена: [price] EUR
 🏢 Этаж: [floor]/[floors_total]
 📐 Площадь: [area_m2] м²
 🛏 Комнат: [rooms]
+`;
 
-ШАБЛОН ДЛЯ АРЕНДЫ:
+const RENT_WRITER_PROMPT = `
+ТЫ — EXPERT WRITER AGENT по АРЕНДЕ НЕДВИЖИМОСТИ.
+${COMMON_WRITER_RULES}
+
+ЕСЛИ [DATA] пустой — спроси ТОЛЬКО даты (когда заезд и выезд). Не спрашивай бюджет или спальни до выяснения дат.
+
+ШАБЛОН ДЛЯ АРЕНДЫ (Используй его, если в [DATA] есть объекты):
 🏖 [title] | 📍 [city], [address]
 💵 Цена: [price_month] EUR/мес или [price_day] EUR/дн
 🛏 Спален: [bedrooms]
 👤 Макс. гостей: [max_guests]
-
-СТРОГИЕ ОГРАНИЧЕНИЯ:
-1. Выдаем ТОЛЬКО ту инфу, которая есть в [DATA]. Если чего-то нет (например цены за день) - не пиши.
-2. БЕЗ ЗВЕЗДОЧЕК (**).
-3. Приоритет — взять контакт.
-
-ДАННЫЕ (предоставлены системой):
 `;
 
-export async function runCommunicationAgent(
-    history: RoleMessage[],
-    instructionsAndCompanyInfo: string,
-    dynamicData: string = "Данных из базы нет. Отвечай на вопрос клиента.",
-    language: string = "ru"
-): Promise<string> {
-    const langLabel = language === 'ru' ? 'RUSSIAN' : language === 'tr' ? 'TURKISH' : language === 'en' ? 'ENGLISH' : language.toUpperCase();
+const LAND_WRITER_PROMPT = `
+ТЫ — EXPERT WRITER AGENT по ПРОДАЖЕ ЗЕМЛИ И УЧАСТКОВ.
+${COMMON_WRITER_RULES}
 
-    // Формируем системный промпт из статического + знаний из БД + динамических данных (квартиры)
-    const fullSystemPrompt = `
-${COMMUNICATION_SYSTEM_PROMPT}
+ШАБЛОН ДЛЯ УЧАСТКОВ:
+🏞 [title] | 📍 [city], [address]
+💰 Цена: [price] EUR
+📐 Площадь: [area_m2] м²
+📝 Особенности: [features]
+(Никогда не упоминай спальни, этажи или санузлы для земли!)
+`;
+
+async function executeWriter(prompt: string, history: RoleMessage[], instructionsAndCompanyInfo: string, dynamicData: string, language: string) {
+    const langLabel = language === 'ru' ? 'RUSSIAN' : language === 'tr' ? 'TURKISH' : language === 'en' ? 'ENGLISH' : language.toUpperCase();
+    const fullSystemPrompt = `${prompt}
 
 [CLIENT LANGUAGE]:
 ${langLabel} (Отвечай СТРОГО на этом языке!)
 
-[ЗНАНИЯ О КОМПАНИИ И ИНСТРУКЦИИ]:
+[ЗНАНИЯ О КОМПАНИИ И ИНСТРУКЦИИ АНАЛИЗАТОРА]:
 ${instructionsAndCompanyInfo}
 
 [DATA]:
-${dynamicData}
-`;
+${dynamicData}`;
 
-    // Agent outputs plain text, no JSON schema
-    const result = await askLLM(history, fullSystemPrompt, true);
-    return result;
+    return await askLLM(history, fullSystemPrompt, true);
+}
+
+export async function runSaleWriterAgent(history: RoleMessage[], instr: string, data: string, lang: string) {
+    return executeWriter(SALE_WRITER_PROMPT, history, instr, data, lang);
+}
+
+export async function runRentWriterAgent(history: RoleMessage[], instr: string, data: string, lang: string) {
+    return executeWriter(RENT_WRITER_PROMPT, history, instr, data, lang);
+}
+
+export async function runLandWriterAgent(history: RoleMessage[], instr: string, data: string, lang: string) {
+    return executeWriter(LAND_WRITER_PROMPT, history, instr, data, lang);
 }
 
 // ==========================================

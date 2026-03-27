@@ -24,7 +24,8 @@ import {
   ChevronRight,
   TrendingUp,
   MapPin,
-  ExternalLink
+  ExternalLink,
+  CalendarDays
 } from "lucide-react";
 import LeadCard from "@/components/LeadCard";
 import { Button } from "@/components/ui/Button";
@@ -399,6 +400,24 @@ export default function LeadsPageClient() {
                                 <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">{t("leads.card.budget")}</span>
                                 <div className="flex items-center gap-2 text-emerald-500 font-bold">
                                   <Wallet className="h-4 w-4" /> ${selectedLead.data.budget.toLocaleString()}
+                                </div>
+                              </div>
+                            )}
+                            {(selectedLead.data?.start_date || selectedLead.data?.end_date) && (
+                              <div className="space-y-1 pt-2">
+                                <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Аренда</span>
+                                <div className="flex flex-wrap items-center gap-3">
+                                  <div className="flex items-center gap-1.5 text-blue-400 font-medium text-sm bg-blue-500/10 px-3 py-1.5 rounded-xl border border-blue-500/20">
+                                    <CalendarDays className="h-4 w-4" />
+                                    {selectedLead.data.start_date ? new Date(selectedLead.data.start_date).toLocaleDateString("ru-RU") : "—"}
+                                    &nbsp;→&nbsp;
+                                    {selectedLead.data.end_date ? new Date(selectedLead.data.end_date).toLocaleDateString("ru-RU") : "—"}
+                                  </div>
+                                  {selectedLead.data?.guests && (
+                                    <div className="flex items-center gap-1.5 text-orange-400 font-medium text-sm bg-orange-500/10 px-3 py-1.5 rounded-xl border border-orange-500/20">
+                                      <Users className="h-4 w-4" /> Гостей: {selectedLead.data.guests}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             )}

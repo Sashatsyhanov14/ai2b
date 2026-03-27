@@ -7,11 +7,13 @@ export type ToolAction =
 
 export type SearchArgs = {
   id?: string;
-  intent?: "sale" | "rent";
+  intent?: "sale" | "rent" | "land";
   search_keywords?: string[];
   price?: number;     // Maximum budget (lte)
-  price_min?: number; // Minimum budget (gte) — used for VNJ requirements, investment minimums
+  price_min?: number; // Minimum budget (gte)
   rooms?: string;
+  area_min?: number;  // For land/commercial area requirements
+  area_max?: number;
   project?: string;
   query?: string;
   start_date?: string; // For rentals

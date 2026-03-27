@@ -16,6 +16,7 @@ type RentalUnit = {
     price_per_month: number | null;
     max_guests: number | null;
     is_active: boolean;
+    features: string[] | null;
     created_at: string;
 };
 
@@ -149,6 +150,7 @@ export default function RentalsPage() {
                                 <th className="px-3 py-3 text-left">Гостей (макс)</th>
                                 <th className="px-3 py-3 text-left">Цена / день</th>
                                 <th className="px-3 py-3 text-left">Цена / месяц</th>
+                                <th className="px-3 py-3 text-left">Теги</th>
                                 <th className="px-3 py-3 text-center">Актив.</th>
                                 <th className="px-3 py-3 text-right">Действия</th>
                             </tr>
@@ -189,14 +191,27 @@ export default function RentalsPage() {
                                         <td className="px-3 py-3 align-top text-sm">{u.max_guests ?? "—"}</td>
                                         <td className="px-3 py-3 align-top text-sm">{formatPrice(u.price_per_day)}</td>
                                         <td className="px-3 py-3 align-top text-sm">{formatPrice(u.price_per_month)}</td>
+                                        <td className="px-3 py-3 align-top text-sm">
+                                            <div className="flex flex-wrap gap-1 max-w-[180px]">
+                                                {Array.isArray(u.features) && u.features.slice(0, 4).map((f) => (
+                                                    <span key={f} className="rounded-full bg-neutral-800 px-2 py-0.5 text-[10px] text-neutral-400 border border-neutral-700">
+                                                        {f.replace(/_/g, ' ')}
+                                                    </span>
+                                                ))}
+                                                {Array.isArray(u.features) && u.features.length > 4 && (
+                                                    <span className="text-[10px] text-neutral-600">+{u.features.length - 4}</span>
+                                                )}
+                                                {(!u.features || u.features.length === 0) && <span className="text-neutral-600 text-xs">—</span>}
+                                            </div>
+                                        </td>
                                         <td className="px-3 py-3 align-middle text-center">
                                             <button
                                                 type="button"
                                                 onClick={() => handleToggleActive(u.id, u.is_active)}
                                                 title={u.is_active ? "Активен — нажать чтобы скрыть" : "Скрыт — нажать чтобы активировать"}
                                                 className={`relative inline-flex h-5 w-9 items-center rounded-full border transition-colors ${u.is_active
-                                                        ? "bg-emerald-600 border-emerald-500"
-                                                        : "bg-neutral-700 border-neutral-600"
+                                                    ? "bg-emerald-600 border-emerald-500"
+                                                    : "bg-neutral-700 border-neutral-600"
                                                     }`}
                                             >
                                                 <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${u.is_active ? "translate-x-4" : "translate-x-0.5"
