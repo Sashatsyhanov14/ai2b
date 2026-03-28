@@ -22,7 +22,7 @@ export default function PropertyForm({ initialData }: { initialData?: any }) {
   const [isForRent, setIsForRent] = useState(initialData?.category === 'rent' || !!initialData?.price_per_day);
 
   const [form, setForm] = useState({
-    title: initialData?.title || "",
+    district: initialData?.district || "",
     city: initialData?.city || "Alanya",
     address: initialData?.address || "",
     rooms: initialData?.rooms || "1",
@@ -179,70 +179,130 @@ export default function PropertyForm({ initialData }: { initialData?: any }) {
           </div>
         </section>
 
-        {/* Основная инфо */}
-        <section className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-[10px] text-neutral-500 uppercase font-bold">Город</label>
-              <input value={form.city} onChange={e => update('city', e.target.value)} className="w-full bg-neutral-900 border border-neutral-800 rounded-xl px-4 py-3 text-white outline-none focus:border-emerald-500" placeholder="Alanya" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] text-neutral-500 uppercase font-bold">Адрес</label>
-              <input value={form.address} onChange={e => update('address', e.target.value)} className="w-full bg-neutral-900 border border-neutral-800 rounded-xl px-4 py-3 text-white outline-none focus:border-emerald-500" placeholder="Mahmutlar, 25. Sk" />
-            </div>
-          </div>
-
-          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 p-6 rounded-[40px] border transition-all ${isForSale && isForRent ? 'bg-emerald-500/10 border-emerald-500/40' : 'bg-neutral-900 border-neutral-800'}`}>
-            {isForSale && (
-              <div className="p-5 rounded-3xl bg-neutral-950/50 border border-emerald-500/20 shadow-xl relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-2 opacity-10"><DollarSign className="h-10 w-10 text-emerald-500" /></div>
-                <div className={`space-y-1 transition-all ${form.price ? 'opacity-100 scale-100' : 'opacity-70 scale-[0.98]'}`}>
-                  <label className="text-[10px] text-emerald-500/70 uppercase font-black tracking-widest">Общая цена (€)</label>
-                  <input type="number" value={form.price} onChange={e => update('price', e.target.value)} className="w-full bg-transparent border-0 px-0 py-1 text-emerald-400 text-3xl font-black outline-none placeholder:text-neutral-800" placeholder="0" />
-                </div>
-              </div>
-            )}
-
-            {isForRent && (
-              <div className="grid grid-cols-2 gap-4 p-5 rounded-3xl bg-neutral-950/50 border border-emerald-500/20 shadow-xl relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-2 opacity-10"><DollarSign className="h-10 w-10 text-emerald-500" /></div>
-                <div className={`space-y-1 transition-all ${form.price_per_day ? 'opacity-100 scale-100' : 'opacity-70 scale-[0.98]'}`}>
-                  <label className="text-[10px] text-emerald-500/70 uppercase font-black tracking-widest">Цена / Сутки (€)</label>
-                  <input type="number" value={form.price_per_day} onChange={e => update('price_per_day', e.target.value)} className="w-full bg-transparent border-0 px-0 py-1 text-white text-3xl font-black outline-none placeholder:text-neutral-800" placeholder="0" />
-                </div>
-                <div className={`space-y-1 transition-all ${form.price_per_month ? 'opacity-100 scale-100' : 'opacity-70 scale-[0.98]'}`}>
-                  <label className="text-[10px] text-emerald-500/70 uppercase font-black tracking-widest">Цена / Месяц (€)</label>
-                  <input type="number" value={form.price_per_month} onChange={e => update('price_per_month', e.target.value)} className="w-full bg-transparent border-0 px-0 py-1 text-white text-3xl font-black outline-none placeholder:text-neutral-800" placeholder="0" />
-                </div>
-              </div>
-            )}
-            
-            <div className={`p-5 rounded-3xl transition-all border md:col-span-2 lg:col-span-2 ${form.area_m2 ? 'bg-neutral-900 border-neutral-700 shadow-lg' : 'bg-neutral-950/30 border-neutral-800'} relative overflow-hidden`}>
-               <div className="absolute top-0 right-0 p-2 opacity-5"><Building2 className="h-10 w-10 text-white" /></div>
-               <div className="space-y-1">
-                  <label className="text-[10px] text-neutral-400 uppercase font-black tracking-widest text-center block">Общая площадь объекта (м²)</label>
-                  <input type="number" value={form.area_m2} onChange={e => update('area_m2', e.target.value)} className="w-full bg-transparent border-0 px-0 py-1 text-white text-4xl font-black outline-none placeholder:text-neutral-800 text-center" placeholder="0" />
-               </div>
-            </div>
-          </div>
-
-          {category === 'sale' && (
-            <div className="grid grid-cols-3 gap-4">
-               <div className="space-y-1">
-                <label className="text-[10px] text-neutral-500 uppercase font-bold">Комнаты</label>
-                <input value={form.rooms} onChange={e => update('rooms', e.target.value)} className="w-full bg-neutral-900 border border-neutral-800 rounded-xl px-4 py-3 text-white text-center outline-none focus:border-emerald-500" placeholder="1+1" />
+        {/* HERO SECTION: District, Area, Floor */}
+        <section className="bg-neutral-900/50 rounded-[40px] border border-neutral-800 p-8 shadow-2xl space-y-8">
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-1">
+                <label className="text-[10px] text-neutral-500 uppercase font-black tracking-widest px-1">Город</label>
+                <input value={form.city} onChange={e => update('city', e.target.value)} className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl px-5 py-4 text-white font-bold outline-none focus:border-emerald-500 shadow-inner" placeholder="Alanya" />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-neutral-500 uppercase font-bold">Спальни</label>
-                <input type="number" value={form.bedrooms} onChange={e => update('bedrooms', e.target.value)} className="w-full bg-neutral-900 border border-neutral-800 rounded-xl px-4 py-3 text-white text-center outline-none focus:border-emerald-500" />
+                <label className="text-[10px] text-neutral-500 uppercase font-black tracking-widest px-1">Район</label>
+                <input value={form.district} onChange={e => update('district', e.target.value)} className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl px-5 py-4 text-white font-bold outline-none focus:border-emerald-500 shadow-inner" placeholder="Mahmutlar" />
               </div>
-              <div className="space-y-1">
-                <label className="text-[10px] text-neutral-500 uppercase font-bold">Гости (max)</label>
-                <input type="number" value={form.max_guests} onChange={e => update('max_guests', e.target.value)} className="w-full bg-neutral-900 border border-neutral-800 rounded-xl px-4 py-3 text-white text-center outline-none focus:border-emerald-500" />
+           </div>
+           
+           <div className="space-y-1">
+              <label className="text-[10px] text-neutral-500 uppercase font-black tracking-widest px-1">Точный адрес</label>
+              <input value={form.address} onChange={e => update('address', e.target.value)} className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl px-5 py-4 text-white font-medium outline-none focus:border-emerald-500 shadow-inner" placeholder="Улица, дом, номер квартиры..." />
+           </div>
+
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
+              <div className="p-6 rounded-3xl bg-neutral-950/40 border border-neutral-800 flex flex-col items-center gap-2 group hover:border-neutral-700 transition-colors">
+                <label className="text-[10px] text-neutral-500 uppercase font-black tracking-widest">Площадь (м²)</label>
+                <input type="number" value={form.area_m2} onChange={e => update('area_m2', e.target.value)} className="w-full bg-transparent border-0 text-center text-3xl font-black text-white outline-none placeholder:text-neutral-800" placeholder="0" />
               </div>
-            </div>
-          )}
+              <div className="p-6 rounded-3xl bg-neutral-950/40 border border-neutral-800 flex flex-col items-center gap-2 group hover:border-neutral-700 transition-colors">
+                <label className="text-[10px] text-neutral-500 uppercase font-black tracking-widest">Этаж</label>
+                <input type="number" value={form.floor} onChange={e => update('floor', e.target.value)} className="w-full bg-transparent border-0 text-center text-3xl font-black text-white outline-none placeholder:text-neutral-800" placeholder="0" />
+              </div>
+              <div className="p-6 rounded-3xl bg-neutral-950/40 border border-neutral-800 flex flex-col items-center gap-2 group hover:border-neutral-700 transition-colors">
+                <label className="text-[10px] text-neutral-500 uppercase font-black tracking-widest">Всего этажей</label>
+                <input type="number" value={form.floors_total} onChange={e => update('floors_total', e.target.value)} className="w-full bg-transparent border-0 text-center text-3xl font-black text-white outline-none placeholder:text-neutral-800" placeholder="0" />
+              </div>
+           </div>
         </section>
+
+        {/* PRICE MODULES SECTION */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+           {/* SALE CARD */}
+           <div className={`p-8 rounded-[40px] border transition-all duration-500 ${isForSale ? 'bg-emerald-500/5 border-emerald-500/40 shadow-[0_0_50px_rgba(16,185,129,0.05)] scale-100' : 'bg-neutral-900 border-neutral-800 opacity-40 grayscale-[0.5] scale-[0.98]'}`}>
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                   <div className={`p-2 rounded-xl ${isForSale ? 'bg-emerald-500 text-white' : 'bg-neutral-800 text-neutral-500'}`}>
+                      <DollarSign className="h-5 w-5" />
+                   </div>
+                   <h3 className={`text-sm font-black tracking-widest uppercase ${isForSale ? 'text-emerald-400' : 'text-neutral-500'}`}>Продажа</h3>
+                </div>
+                <button type="button" onClick={() => setIsForSale(!isForSale)} className={`w-12 h-6 rounded-full transition-all relative ${isForSale ? 'bg-emerald-600' : 'bg-neutral-700'}`}>
+                   <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${isForSale ? 'left-7' : 'left-1'}`} />
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] text-neutral-500 uppercase font-black tracking-widest">Цена продажи (€)</label>
+                <input 
+                  type="number" 
+                  disabled={!isForSale}
+                  value={form.price} 
+                  onChange={e => update('price', e.target.value)} 
+                  className={`w-full bg-transparent border-0 px-0 py-2 text-4xl font-black outline-none transition-colors ${isForSale ? 'text-emerald-400' : 'text-neutral-800'}`} 
+                  placeholder="0" 
+                />
+              </div>
+           </div>
+
+           {/* RENT CARD */}
+           <div className={`p-8 rounded-[40px] border transition-all duration-500 ${isForRent ? 'bg-emerald-500/5 border-emerald-500/40 shadow-[0_0_50px_rgba(16,185,129,0.05)] scale-100' : 'bg-neutral-900 border-neutral-800 opacity-40 grayscale-[0.5] scale-[0.98]'}`}>
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                   <div className={`p-2 rounded-xl ${isForRent ? 'bg-emerald-500 text-white' : 'bg-neutral-800 text-neutral-500'}`}>
+                      <Home className="h-5 w-5" />
+                   </div>
+                   <h3 className={`text-sm font-black tracking-widest uppercase ${isForRent ? 'text-emerald-400' : 'text-neutral-500'}`}>Аренда</h3>
+                </div>
+                <button type="button" onClick={() => setIsForRent(!isForRent)} className={`w-12 h-6 rounded-full transition-all relative ${isForRent ? 'bg-emerald-600' : 'bg-neutral-700'}`}>
+                   <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${isForRent ? 'left-7' : 'left-1'}`} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] text-neutral-500 uppercase font-black tracking-widest">Сутки (€)</label>
+                  <input 
+                    type="number" 
+                    disabled={!isForRent}
+                    value={form.price_per_day} 
+                    onChange={e => update('price_per_day', e.target.value)} 
+                    className={`w-full bg-transparent border-0 px-0 py-2 text-3xl font-black outline-none transition-colors ${isForRent ? 'text-white' : 'text-neutral-800'}`} 
+                    placeholder="0" 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] text-neutral-500 uppercase font-black tracking-widest">Месяц (€)</label>
+                  <input 
+                    type="number" 
+                    disabled={!isForRent}
+                    value={form.price_per_month} 
+                    onChange={e => update('price_per_month', e.target.value)} 
+                    className={`w-full bg-transparent border-0 px-0 py-2 text-3xl font-black outline-none transition-colors ${isForRent ? 'text-white' : 'text-neutral-800'}`} 
+                    placeholder="0" 
+                  />
+                </div>
+              </div>
+           </div>
+        </section>
+
+        {/* DETAILS SECTION: Rooms, Bedrooms, etc. */}
+        {category === 'sale' && (
+          <section className="bg-neutral-900/30 rounded-[40px] border border-neutral-800 p-8">
+            <h2 className="text-xs font-black text-neutral-500 uppercase tracking-widest mb-6 px-1">Детали планировки</h2>
+            <div className="grid grid-cols-3 gap-6">
+               <div className="space-y-2">
+                <label className="text-[10px] text-neutral-500 uppercase font-black tracking-widest px-1">Комнаты</label>
+                <input value={form.rooms} onChange={e => update('rooms', e.target.value)} className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl px-5 py-4 text-white text-center font-bold outline-none focus:border-emerald-500 shadow-inner" placeholder="1+1" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] text-neutral-500 uppercase font-black tracking-widest px-1">Спальни</label>
+                <input type="number" value={form.bedrooms} onChange={e => update('bedrooms', e.target.value)} className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl px-5 py-4 text-white text-center font-bold outline-none focus:border-emerald-500 shadow-inner" placeholder="0" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] text-neutral-500 uppercase font-black tracking-widest px-1">Гости (max)</label>
+                <input type="number" value={form.max_guests} onChange={e => update('max_guests', e.target.value)} className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl px-5 py-4 text-white text-center font-bold outline-none focus:border-emerald-500 shadow-inner" placeholder="0" />
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Теги */}
         <section>
