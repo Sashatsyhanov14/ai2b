@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     const supabase = getServerClient();
     const body = await req.json();
 
-    const category = body.category || body.type || "sale";
+    const category = body.category || body.type || "residential";
 
     // 1. AI Translation
     console.log(`[API Units] Translating for category: ${category}`);
@@ -57,6 +57,7 @@ export async function POST(req: Request) {
       district: baseEn.district ?? body.district ?? null,
       address: baseEn.address ?? body.address ?? null,
       description: baseEn.description ?? body.description ?? null,
+      transactions: Array.isArray(body.transactions) ? body.transactions : [],
 
       // Common Specs
       rooms: body.rooms ?? null,

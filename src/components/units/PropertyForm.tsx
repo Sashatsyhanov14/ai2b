@@ -60,9 +60,9 @@ export default function PropertyForm({ initialData }: { initialData?: any }) {
   const { t } = useI18n();
   const router = useRouter();
 
-  const [category, setCategory] = useState<'sale' | 'rent' | 'commercial' | 'land'>(initialData?.category || 'sale');
-  const [isForSale, setIsForSale] = useState(initialData?.price ? true : initialData?.category !== 'rent');
-  const [isForRent, setIsForRent] = useState(initialData?.category === 'rent' || !!initialData?.price_per_day);
+  const [category, setCategory] = useState<'residential' | 'commercial' | 'land' | 'sale' | 'rent'>(initialData?.category || 'residential');
+  const [isForSale, setIsForSale] = useState(initialData?.transactions ? initialData.transactions.includes('sale') : (initialData?.price ? true : initialData?.category !== 'rent'));
+  const [isForRent, setIsForRent] = useState(initialData?.transactions ? initialData.transactions.includes('rent') : (initialData?.category === 'rent' || !!initialData?.price_per_day));
 
   const [form, setForm] = useState({
     district: initialData?.district || "",
@@ -103,9 +103,14 @@ export default function PropertyForm({ initialData }: { initialData?: any }) {
     setError("");
 
     try {
+      const explicitTransactions = [];
+      if (isForSale) explicitTransactions.push('sale');
+      if (isForRent) explicitTransactions.push('rent');
+
       const payload = {
         ...form,
-        category: category, // Retain the structural category (sale=apartment, commercial, land)
+        category: category, 
+        transactions: explicitTransactions,
         features: selectedTags,
         photos: photos,
         // Ensure numbers
@@ -167,7 +172,7 @@ export default function PropertyForm({ initialData }: { initialData?: any }) {
         {/* Category Icons */}
         <section className="flex justify-center gap-4">
            {[
-             { id: 'sale', label: 'Квартира', icon: Home },
+             { id: 'residential', label: 'Квартира', icon: Home },
              { id: 'commercial', label: 'Коммерция', icon: Building2 },
              { id: 'land', label: 'Участок', icon: MapIcon },
            ].map((item) => (

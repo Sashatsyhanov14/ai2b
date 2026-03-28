@@ -61,7 +61,9 @@ export default function PropertiesPage() {
         (u.city || "").toLowerCase().includes(q) || 
         (u.address || "").toLowerCase().includes(q);
       
-      const matchesCategory = categoryFilter === "all" || u.category === categoryFilter;
+      const matchesCategory = categoryFilter === "all" || 
+        u.category === categoryFilter || 
+        (categoryFilter === "residential" && (u.category === "sale" || u.category === "rent"));
       
       return matchesSearch && matchesCategory;
     });
@@ -83,8 +85,7 @@ export default function PropertiesPage() {
 
   const categories = [
     { id: "all", label: t("properties.categoryAll") || "Все" },
-    { id: "sale", label: t("properties.categorySale") || "Продажа" },
-    { id: "rent", label: t("properties.categoryRent") || "Аренда" },
+    { id: "residential", label: t("properties.categoryResidential") || "Квартиры / Виллы" },
     { id: "commercial", label: t("properties.categoryCommercial") || "Коммерция" },
     { id: "land", label: t("properties.categoryLand") || "Земля" },
   ];
@@ -144,6 +145,7 @@ export default function PropertiesPage() {
               <tr>
                 <th className="px-3 py-3 text-left w-12">Фото</th>
                 <th className="px-3 py-3 text-left">{t("properties.fields.category") || "Категория"}</th>
+                <th className="px-3 py-3 text-left">{t("properties.fields.transaction") || "Сделка"}</th>
                 <th className="px-3 py-3 text-left">{t("properties.fields.city") || "Город"}</th>
                 <th className="px-3 py-3 text-left">{t("properties.fields.address") || "Адрес"}</th>
                 <th className="px-3 py-3 text-left">{t("properties.fields.price") || "Цена"}</th>
@@ -154,7 +156,7 @@ export default function PropertiesPage() {
             <tbody className="divide-y divide-neutral-800/50">
               {loading && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-neutral-400">
+                  <td colSpan={8} className="px-4 py-12 text-center text-neutral-400">
                     <div className="flex flex-col items-center gap-2">
                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
                        <span>{t("properties.loadingCount") || "Загрузка..."}</span>
@@ -164,14 +166,14 @@ export default function PropertiesPage() {
               )}
               {error && !loading && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-red-400">
+                  <td colSpan={8} className="px-4 py-12 text-center text-red-400">
                     {t("common.error")}: {error}
                   </td>
                 </tr>
               )}
               {!loading && !error && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-20 text-center text-neutral-500">
+                  <td colSpan={8} className="px-4 py-20 text-center text-neutral-500">
                     {t("properties.empty") || "Ничего не найдено"}
                   </td>
                 </tr>
@@ -193,16 +195,25 @@ export default function PropertiesPage() {
                   </td>
                   <td className="px-3 py-3">
                     <span className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                      u.category === 'sale' ? 'bg-blue-500/10 text-blue-400' :
-                      u.category === 'rent' ? 'bg-emerald-500/10 text-emerald-400' :
+                      u.category === 'residential' || u.category === 'sale' || u.category === 'rent' ? 'bg-blue-500/10 text-blue-400' :
                       u.category === 'commercial' ? 'bg-purple-500/10 text-purple-400' :
                       'bg-orange-500/10 text-orange-400'
                     }`}>
-                      {u.category === 'sale' ? t("properties.categorySale") :
-                       u.category === 'rent' ? t("properties.categoryRent") :
+                      {u.category === 'residential' || u.category === 'sale' || u.category === 'rent' ? (t("properties.categoryResidential") || "Квартира/Вилла") :
                        u.category === 'commercial' ? t("properties.categoryCommercial") :
                        t("properties.categoryLand")}
                     </span>
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="flex flex-col gap-1">
+                      {u.transactions?.includes('sale') || (!u.transactions && u.price) ? (
+                        <span className="inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 w-fit">Продажа</span>
+                      ) : null}
+                      {u.transactions?.includes('rent') || (!u.transactions && (u.price_per_month || u.price_per_day)) ? (
+                        <span className="inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 w-fit">Аренда</span>
+                      ) : null}
+                      {(!u.transactions?.length && !u.price && !u.price_per_month && !u.price_per_day) && <span className="text-neutral-500">—</span>}
+                    </div>
                   </td>
                   <td className="px-3 py-3 font-medium text-neutral-300">{u.city}</td>
                   <td className="px-3 py-3">
@@ -211,14 +222,18 @@ export default function PropertiesPage() {
                      </div>
                   </td>
                   <td className="px-3 py-3 text-neutral-200">
-                    {u.category === 'rent' ? (
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-emerald-400">{formatPrice(u.price_per_day)} €</span>
-                        <span className="text-[10px] text-neutral-500">/ сутки</span>
-                      </div>
-                    ) : (
-                       <span className="font-semibold text-neutral-100">{formatPrice(u.price)} €</span>
-                    )}
+                    <div className="flex flex-col gap-1">
+                      {u.price ? (
+                        <span className="font-semibold text-neutral-100 whitespace-nowrap">{formatPrice(u.price)} €</span>
+                      ) : null}
+                      {u.price_per_month ? (
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-emerald-400 whitespace-nowrap">{formatPrice(u.price_per_month)} €</span>
+                          <span className="text-[10px] text-neutral-500">/ мес</span>
+                        </div>
+                      ) : null}
+                      {(!u.price && !u.price_per_month) && <span className="text-neutral-500">—</span>}
+                    </div>
                   </td>
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-1.5">

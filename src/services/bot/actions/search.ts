@@ -23,8 +23,8 @@ export async function handleSearchDatabase(args: SearchArgs & { id?: string; pri
 
     if (args.intent) {
         if (args.intent === "rent" || args.intent === "sale") {
-            // intent 'rent' and 'sale' generally target Residential (apartment/villa) which are stored as category 'sale' (and legacy 'rent')
-            query = query.in("category", ["sale", "rent"]);
+            // intent 'rent' and 'sale' target Residential (apartment/villa) stored as 'residential' (and legacy 'sale', 'rent')
+            query = query.in("category", ["residential", "sale", "rent"]);
         } else {
             // 'commercial' or 'land'
             query = query.eq("category", args.intent);

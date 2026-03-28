@@ -59,6 +59,7 @@ export const ru = {
     newTitle: "Новый объект",
     actions: "Действия",
     categoryAll: "Все категории",
+    categoryResidential: "Квартиры / Виллы",
     categorySale: "Продажа",
     categoryRent: "Аренда",
     categoryCommercial: "Коммерция",

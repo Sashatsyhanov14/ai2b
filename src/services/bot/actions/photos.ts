@@ -11,10 +11,10 @@ export async function handleGetPhotos(args: any, token: string, chatId: string):
         return JSON.stringify({ status: "error", message: "CRITICAL: You must provide a valid 'unit_id' (the 'id' of the property from search results). Do not call get_photos without an ID." });
     }
 
-    // 1. Get Unit info (project name)
+    // 1. Get Unit info and photos array
     const { data: unitData, error: unitError } = await supabase
         .from("units")
-        .select("title")
+        .select("title, photos")
         .eq("id", unitId)
         .single();
 
@@ -23,19 +23,23 @@ export async function handleGetPhotos(args: any, token: string, chatId: string):
         return JSON.stringify({ status: "error", message: "Unit not found" });
     }
 
-    // 2. Get Photos from unit_photos table
-    const { data: photoData, error: photoError } = await supabase
-        .from("unit_photos")
-        .select("url")
-        .eq("unit_id", unitId)
-        .order("sort_order", { ascending: true });
+    let photos: string[] = [];
 
-    if (photoError) {
-        await sendMessage(token, chatId, "❌ Ошибка при загрузке фотографий.");
-        return JSON.stringify({ status: "error", message: "Error fetching photos" });
+    // Prioritize the modern text[] photos column
+    if (unitData.photos && Array.isArray(unitData.photos) && unitData.photos.length > 0) {
+        photos = unitData.photos;
+    } else {
+        // Fallback to legacy unit_photos table
+        const { data: photoData } = await supabase
+            .from("unit_photos")
+            .select("url")
+            .eq("unit_id", unitId)
+            .order("sort_order", { ascending: true });
+        
+        if (photoData) {
+            photos = photoData.map(p => p.url);
+        }
     }
-
-    let photos = photoData.map(p => p.url);
 
     // Filter out empty strings or invalid urls if needed
     photos = photos.filter(p => p && typeof p === 'string' && p.startsWith('http'));

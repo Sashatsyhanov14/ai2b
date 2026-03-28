@@ -42,6 +42,7 @@ function mapIncomingToDb(payload: any, baseEn: any, i18nData: any): Partial<Unit
   if (payload.features != null) out.features = payload.features
   
   if (payload.photos != null) out.photos = payload.photos
+  if (payload.transactions != null) out.transactions = payload.transactions
 
   return out
 }

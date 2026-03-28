@@ -3,7 +3,8 @@ export type UnitStatus = 'available' | 'reserved' | 'sold' | string
 // Canonical Unit type matching public.units as closely as possible.
 export type Unit = {
   id: string
-  category: 'sale' | 'rent' | 'commercial' | 'land'
+  category: 'residential' | 'sale' | 'rent' | 'commercial' | 'land'
+  transactions?: string[] | null
   title?: string | null
   city: string
   district?: string | null
@@ -32,7 +33,8 @@ export type Unit = {
 }
 
 export type UnitCreatePayload = {
-  category: 'sale' | 'rent' | 'commercial' | 'land'
+  category: 'residential' | 'sale' | 'rent' | 'commercial' | 'land'
+  transactions?: string[]
   title?: string
   city: string
   district?: string

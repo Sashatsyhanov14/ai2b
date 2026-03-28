@@ -64,8 +64,20 @@ CREATE TABLE IF NOT EXISTS public.faq (
 
 -- Enable RLS
 ALTER TABLE public.faq ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow public read access" ON public.faq FOR SELECT USING (true);
-CREATE POLICY "Allow all access for service role" ON public.faq FOR ALL USING (true);
+
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'faq' AND policyname = 'Allow public read access'
+    ) THEN
+        CREATE POLICY "Allow public read access" ON public.faq FOR SELECT USING (true);
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'faq' AND policyname = 'Allow all access for service role'
+    ) THEN
+        CREATE POLICY "Allow all access for service role" ON public.faq FOR ALL USING (true);
+    END IF;
+END $$;
 
 -- 7. Data Migration to FAQ (from instructions and manual text notes)
 DO $$ BEGIN
@@ -84,3 +96,47 @@ DO $$ BEGIN
         WHERE file_type = 'text' AND content_text IS NOT NULL;
     END IF;
 END $$;
+
+-- 8. PHOTO MIGRATION (Move from legacy unit_photos to units array)
+DO $$ BEGIN
+    IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'unit_photos') THEN
+        -- Transfer photos into the units.photos array
+        UPDATE public.units u
+        SET photos = COALESCE(
+            (
+                SELECT array_agg(url ORDER BY sort_order)
+                FROM public.unit_photos up
+                WHERE up.unit_id = u.id
+            ),
+            '{}'::text[]
+        )
+        WHERE EXISTS (
+            SELECT 1 FROM public.unit_photos up WHERE up.unit_id = u.id
+        ) AND array_length(u.photos, 1) IS NULL; -- only if empty
+
+        -- Drop the legacy table
+        DROP TABLE public.unit_photos CASCADE;
+    END IF;
+END $$;
+
+-- 9. PROPERTY CATEGORY RENAMING
+-- The old 'sale' and 'rent' categories were confusing as they mixed property type with transaction type.
+-- We add 'residential' to represent Apartments/Villas cleanly.
+ALTER TYPE property_category ADD VALUE IF NOT EXISTS 'residential';
+
+-- Update all existing apartments/villas currently stored under the legacy names
+UPDATE public.units 
+SET category = 'residential' 
+WHERE category IN ('sale', 'rent');
+
+-- 10. EXPLICIT TRANSACTIONS ARRAY
+-- Store 'sale' and/or 'rent' directly to support cheap AI models and explicit toggles
+ALTER TABLE public.units ADD COLUMN IF NOT EXISTS transactions text[] DEFAULT '{}'::text[];
+
+UPDATE public.units
+SET transactions = ARRAY(
+  SELECT unnest(array_remove(ARRAY[
+    CASE WHEN price IS NOT NULL THEN 'sale' ELSE NULL END,
+    CASE WHEN price_per_month IS NOT NULL OR price_per_day IS NOT NULL THEN 'rent' ELSE NULL END
+  ], NULL))
+);
