@@ -51,7 +51,7 @@ export async function handleMessage(
             ? companyInfoRows.map(r => `${r.key}: ${r.value}`).join("\n")
             : "";
 
-        const agencyFiles = await handleGetAgencyInfo();
+        const agencyFiles = await handleGetAgencyInfo(userInfo.language_code || "ru");
 
         const botKnowledge = `[ПРАВИЛА КОМПАНИИ]:
 ${rules}
