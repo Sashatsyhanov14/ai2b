@@ -68,16 +68,16 @@ export default function PropertyForm({ initialData }: { initialData?: any }) {
     district: initialData?.district || "",
     city: initialData?.city || "Alanya",
     address: initialData?.address || "",
-    rooms: initialData?.rooms || "1",
-    floor: initialData?.floor || "",
-    floors_total: initialData?.floors_total || "",
-    area_m2: initialData?.area_m2 || "",
-    price: initialData?.price || "",
-    price_per_day: initialData?.price_per_day || "",
-    price_per_month: initialData?.price_per_month || "",
-    bedrooms: initialData?.bedrooms || "",
-    bathrooms: initialData?.bathrooms || "",
-    max_guests: initialData?.max_guests || "",
+    rooms: initialData?.rooms ?? "1",
+    floor: initialData?.floor ?? "",
+    floors_total: initialData?.floors_total ?? "",
+    area_m2: initialData?.area_m2 ?? "",
+    price: initialData?.price ?? "",
+    price_per_day: initialData?.price_per_day ?? "",
+    price_per_month: initialData?.price_per_month ?? "",
+    bedrooms: initialData?.bedrooms ?? "",
+    bathrooms: initialData?.bathrooms ?? "",
+    max_guests: initialData?.max_guests ?? "",
     description: initialData?.description || "",
     ai_instructions: initialData?.ai_instructions || "",
   });
@@ -107,6 +107,9 @@ export default function PropertyForm({ initialData }: { initialData?: any }) {
       if (isForSale) explicitTransactions.push('sale');
       if (isForRent) explicitTransactions.push('rent');
 
+      const parseNum = (val: any) => (val === "" || val == null) ? null : Number(val);
+      const roomsStr = (form.rooms === "" || form.rooms == null) ? null : String(form.rooms);
+
       const payload = {
         ...form,
         category: category, 
@@ -114,11 +117,16 @@ export default function PropertyForm({ initialData }: { initialData?: any }) {
         features: selectedTags,
         photos: photos,
         // Ensure numbers
-        rooms: form.rooms ? String(form.rooms) : null,
-        price: form.price ? Number(form.price) : null,
-        price_per_day: form.price_per_day ? Number(form.price_per_day) : null,
-        price_per_month: form.price_per_month ? Number(form.price_per_month) : null,
-        area_m2: form.area_m2 ? Number(form.area_m2) : null,
+        rooms: roomsStr,
+        price: parseNum(form.price),
+        price_per_day: parseNum(form.price_per_day),
+        price_per_month: parseNum(form.price_per_month),
+        area_m2: parseNum(form.area_m2),
+        floor: parseNum(form.floor),
+        floors_total: parseNum(form.floors_total),
+        bedrooms: parseNum(form.bedrooms),
+        bathrooms: parseNum(form.bathrooms),
+        max_guests: parseNum(form.max_guests),
       };
 
       const url = initialData?.id ? `/api/units/${initialData.id}` : "/api/units";
