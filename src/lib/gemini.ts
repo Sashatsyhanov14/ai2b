@@ -6,7 +6,7 @@ type Message = {
 /**
  * Ask LLM via Polza AI API
  */
-type ModelType = 'deepseek' | 'gpt-4o-mini' | 'gemini-1.5-flash';
+type ModelType = 'deepseek' | 'gpt-4o-mini' | 'gemini-1.5-flash' | 'gemini-2.0-flash-001';
 
 export async function askLLM(
     promptOrMessages: string | Message[] | any[],
@@ -20,6 +20,7 @@ export async function askLLM(
 
     const modelName = modelType === 'deepseek' ? 'deepseek/deepseek-chat-v3-0324' 
         : modelType === 'gemini-1.5-flash' ? 'google/gemini-2.0-flash-001' 
+        : modelType === 'gemini-2.0-flash-001' ? 'google/gemini-2.0-flash-001'
         : 'openai/gpt-4o-mini';
 
     let messages: any[] = [];

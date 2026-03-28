@@ -7,7 +7,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import type { Unit } from "@/types/units";
 import { Button } from "@/components/ui/Button";
 
-export default function CommercialPage() {
+export default function LandPage() {
   const { t } = useI18n();
   const router = useRouter();
   const [units, setUnits] = useState<Unit[]>([]);
@@ -22,7 +22,7 @@ export default function CommercialPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch("/api/units?category=commercial");
+        const res = await fetch("/api/units?category=land");
         const json = await res.json().catch(() => ({}));
         if (!res.ok) {
           throw new Error(json?.error || `HTTP ${res.status}`);
@@ -54,7 +54,7 @@ export default function CommercialPage() {
   }, [units, search]);
 
   async function handleDelete(id: string) {
-    if (!confirm(t("commercial.deleteConfirm"))) return;
+    if (!confirm(t("land.deleteConfirm"))) return;
     try {
       const res = await fetch(`/api/units/${id}`, { method: "DELETE" });
       const json = await res.json().catch(() => ({}));
@@ -72,15 +72,15 @@ export default function CommercialPage() {
       <div className="mb-6 flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-neutral-50">
-            {t("commercial.title")}
+            {t("land.title")}
           </h1>
           <p className="mt-1 text-sm text-neutral-400">
-            {t("commercial.description")}
+            {t("land.description")}
           </p>
         </div>
         <div className="flex flex-col items-end gap-2 sm:flex-row">
-          <Button onClick={() => router.push("/app/commercial/new")}>
-            {t("commercial.addCommercial")}
+          <Button onClick={() => router.push("/app/land/new")}>
+            {t("land.addLand")}
           </Button>
         </div>
       </div>
@@ -90,12 +90,12 @@ export default function CommercialPage() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={t("commercial.searchPlaceholder")}
+            placeholder={t("land.searchPlaceholder")}
             className="w-full rounded-xl border border-neutral-800 bg-neutral-900/70 px-4 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 outline-none focus:border-emerald-500"
           />
         </div>
         <div className="hidden text-xs text-neutral-500 sm:block">
-          {t("commercial.found")}: {filtered.length}
+          {t("land.found")}: {filtered.length}
         </div>
       </div>
 
@@ -105,34 +105,33 @@ export default function CommercialPage() {
             <thead className="bg-neutral-900/70 text-xs uppercase tracking-wide text-neutral-500">
               <tr>
                 <th className="px-3 py-3 text-left w-12">Фото</th>
-                <th className="px-3 py-3 text-left">{t("commercial.fields.city")}</th>
-                <th className="px-3 py-3 text-left">{t("commercial.fields.address")}</th>
-                <th className="px-3 py-3 text-left">{t("commercial.fields.type")}</th>
-                <th className="px-3 py-3 text-left">{t("commercial.fields.area")}</th>
-                <th className="px-3 py-3 text-left">{t("commercial.fields.price")}, €</th>
-                <th className="px-3 py-3 text-left">{t("commercial.fields.status")}</th>
+                <th className="px-3 py-3 text-left">{t("land.fields.city")}</th>
+                <th className="px-3 py-3 text-left">{t("land.fields.address")}</th>
+                <th className="px-3 py-3 text-left">{t("land.fields.area")}</th>
+                <th className="px-3 py-3 text-left">{t("land.fields.price")}, €</th>
+                <th className="px-3 py-3 text-left">{t("land.fields.status")}</th>
                 <th className="px-3 py-3 text-right">{t("sales.actions")}</th>
               </tr>
             </thead>
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-6 text-center text-sm text-neutral-400">
-                    {t("commercial.loadingCount")}
+                  <td colSpan={7} className="px-4 py-6 text-center text-sm text-neutral-400">
+                    {t("land.loadingCount")}
                   </td>
                 </tr>
               )}
               {error && !loading && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-6 text-center text-sm text-red-300">
+                  <td colSpan={7} className="px-4 py-6 text-center text-sm text-red-300">
                     {t("common.error")}: {error}
                   </td>
                 </tr>
               )}
               {!loading && !error && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-10 text-center text-sm text-neutral-400">
-                    {t("commercial.empty")}
+                  <td colSpan={7} className="px-4 py-10 text-center text-sm text-neutral-400">
+                    {t("land.empty")}
                   </td>
                 </tr>
               )}
@@ -145,22 +144,16 @@ export default function CommercialPage() {
                       <div className="h-10 w-14 rounded-lg bg-neutral-800 border border-neutral-700 flex items-center justify-center text-neutral-600 text-[9px]">нет</div>
                     )}
                   </td>
-                  <td className="px-3 py-3 align-top text-sm">{u.city}</td>
-                  <td className="px-3 py-3 align-top text-sm truncate max-w-xs">{u.address}</td>
                   <td className="px-3 py-3 align-top text-sm">{u.category}</td>
+                  <td className="px-3 py-3 align-top text-sm truncate max-w-xs">{u.address}</td>
                   <td className="px-3 py-3 align-top text-sm">{u.area_m2}</td>
                   <td className="px-3 py-3 align-top text-sm font-medium text-emerald-400">
                     {u.price?.toLocaleString()} €
-                    {u.price && u.price < 50000 && (
-                      <div className="text-[10px] text-neutral-500">
-                        ~ {(u.price * 35).toLocaleString()} ₺
-                      </div>
-                    )}
                   </td>
                   <td className="px-3 py-3 align-top text-sm">{u.status}</td>
                   <td className="px-3 py-3 text-right">
                     <div className="flex justify-end gap-2">
-                      <button onClick={() => router.push(`/app/commercial/edit/${u.id}`)} className="text-neutral-400 hover:text-white transition-colors">
+                      <button onClick={() => router.push(`/app/land/edit/${u.id}`)} className="text-neutral-400 hover:text-white transition-colors">
                         <Pencil className="h-4 w-4" />
                       </button>
                       <button onClick={() => handleDelete(u.id)} className="text-neutral-400 hover:text-red-500 transition-colors">

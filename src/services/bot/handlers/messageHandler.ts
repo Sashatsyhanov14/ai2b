@@ -39,15 +39,8 @@ export async function handleMessage(
 
         // 2. Build Context
         const supabase = getServerClient();
-        const { data: instructions } = await supabase
-            .from('bot_instructions')
-            .select('text')
-            .eq('is_active', true)
-            .order('created_at', { ascending: true });
 
-        const rules = instructions && instructions.length > 0
-            ? instructions.map((r: any) => `- ${r.text}`).join("\n")
-            : "Общайся вежливо и помогай клиенту.";
+        const rules = "Общайся вежливо и помогай клиенту. Ты — эксперт по недвижимости Турецкой Республики.";
 
         const { data: companyInfoRows } = await supabase
             .from('company_info')

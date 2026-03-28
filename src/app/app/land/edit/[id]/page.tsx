@@ -3,7 +3,7 @@ import PropertyForm from "@/components/units/PropertyForm";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
-export default function EditSalePage() {
+export default function EditLandPage() {
   const params = useParams();
   const id = params.id;
   const [unit, setUnit] = useState<any>(null);
@@ -20,5 +20,5 @@ export default function EditSalePage() {
 
   if (!unit) return <div className="p-10 text-center text-neutral-500 text-sm">Загрузка...</div>;
 
-  return <PropertyForm category="sale" initialData={unit} />;
+  return <PropertyForm category="land" initialData={unit} />;
 }

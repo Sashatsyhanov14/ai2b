@@ -458,7 +458,7 @@ const RENTAL_TRANSLATION_SYSTEM_PROMPT = `
 export async function runRentalTranslationAgent(rentalData: any): Promise<any> {
     console.log("[runRentalTranslationAgent] Requesting AI translation for rental...");
     const input = JSON.stringify(rentalData);
-    const rawResult = await askLLM(input, RENTAL_TRANSLATION_SYSTEM_PROMPT, false, RentalTranslationAgentSchema, 'gemini-1.5-flash');
+    const rawResult = await askLLM(input, RENTAL_TRANSLATION_SYSTEM_PROMPT, false, RentalTranslationAgentSchema, 'gemini-2.0-flash-001');
     try {
         return JSON.parse(rawResult);
     } catch (e) {
@@ -481,7 +481,7 @@ export async function runClientTranslatorAgent(baseText: string, targetLang: str
 Текст для перевода/коррекции:
 ${baseText}`;
     
-    return await askLLM(prompt, "Ты ассистент-переводчик.", true, undefined, 'gemini-1.5-flash');
+    return await askLLM(prompt, "Ты ассистент-переводчик.", true, undefined, 'gemini-2.0-flash-001');
 }
 
 // ==========================================

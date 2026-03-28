@@ -104,6 +104,32 @@ const CITY_MAP: Record<string, string> = {
     // Erdemli (district of Mersin)
     "эрдемли": "Erdemli",
     "erdemli": "Erdemli",
+
+    // Izmit / Kocaeli
+    "измит": "Izmit",
+    "izmit": "Izmit",
+    "коджаэли": "Kocaeli",
+    "kocaeli": "Kocaeli",
+
+    // Sakarya
+    "сакарья": "Sakarya",
+    "sakarya": "Sakarya",
+
+    // Yalova
+    "ялова": "Yalova",
+    "yalova": "Yalova",
+
+    // Didim
+    "дидим": "Didim",
+    "didim": "Didim",
+
+    // Alacati
+    "алачаты": "Alacati",
+    "alacati": "Alacati",
+
+    // Cesme
+    "чешме": "Cesme",
+    "cesme": "Cesme",
 };
 
 /**

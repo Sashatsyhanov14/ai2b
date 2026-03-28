@@ -39,7 +39,7 @@ export default function SalesApartmentsPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch("/api/units?type=sale");
+        const res = await fetch("/api/units?category=sale");
         const json = await res.json().catch(() => ({}));
         if (!res.ok) {
           throw new Error(json?.error || `HTTP ${res.status}`);

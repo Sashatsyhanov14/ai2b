@@ -3,8 +3,8 @@ export type UnitStatus = 'available' | 'reserved' | 'sold' | string
 // Canonical Unit type matching public.units as closely as possible.
 export type Unit = {
   id: string
+  category: 'sale' | 'rent' | 'commercial' | 'land'
   title?: string | null
-  type?: string | null
   city: string
   address: string
   rooms?: number | null
@@ -12,41 +12,40 @@ export type Unit = {
   floors_total?: number | null
   area_m2?: number | null
   price?: number | null
+  
+  // Rental specific
+  price_per_day?: number | null
+  price_per_month?: number | null
+  bedrooms?: number | null
+  bathrooms?: number | null
+  max_guests?: number | null
+  
   status?: UnitStatus | null
-  project_id?: string | null
-  // is_rent removed
   description?: string | null
   created_at?: string
   updated_at?: string | null
   features?: string[] | null
-
-  // Computed fields
   photos?: string[] | null
-  photos_count?: number
-  main_photo_url?: string | null
-  project_name?: string | null
-
-  // I18n translations
+  is_active?: boolean
   i18n?: Record<string, any>
 }
 
-// Payload accepted by API when creating a unit (maps UI form -> DB columns)
 export type UnitCreatePayload = {
+  category: 'sale' | 'rent' | 'commercial' | 'land'
   title?: string
   city: string
   address: string
-  // UI may pass 'studio'|'4+' etc.; API will map to number
   rooms?: number | string
   floor?: number
   floors_total?: number
   area_m2?: number
-  area?: number  // Backwards compatibility
   price?: number
-  price_total?: number // Backwards compatibility for PATCH requests
-  status?: UnitStatus
-  project_id?: string | null
+  price_per_day?: number
+  price_per_month?: number
+  bedrooms?: number
+  bathrooms?: number
+  max_guests?: number
   description?: string
-  type?: string
   features?: string[]
   photos?: string[]
   i18n?: Record<string, any>

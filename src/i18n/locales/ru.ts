@@ -21,11 +21,12 @@ export const ru = {
     title: "ai2business дашборд",
   },
   nav: {
-    rentals: "Аренда",
-    sales: "Продажа",
+    rentals: "Квартиры — Аренда",
+    sales: "Квартиры — Продажа",
     leads: "Лиды",
     bots: "Боты",
     commercial: "Коммерция",
+    land: "Земля",
     settings: "Настройки",
     support: "Поддержка",
   },
@@ -124,6 +125,23 @@ export const ru = {
       address: "Адрес",
       area: "Площадь м²",
       type: "Тип объекта",
+      price: "Цена",
+      status: "Статус",
+    }
+  },
+  land: {
+    title: "Продажа — Участки / Земля",
+    description: "Управление земельными участками из таблицы public.units.",
+    addLand: "+ Добавить участок",
+    searchPlaceholder: "Поиск по городу или адресу",
+    found: "Найдено",
+    loadingCount: "Загрузка списка...",
+    empty: "Участков пока нет.",
+    deleteConfirm: "Удалить участок?",
+    fields: {
+      city: "Город",
+      address: "Адрес",
+      area: "Площадь м²",
       price: "Цена",
       status: "Статус",
     }

@@ -5,26 +5,24 @@ import { normalizeSearchKeywords } from "@/lib/cityNormalizer";
 export async function handleSearchDatabase(args: SearchArgs & { id?: string; price?: number }): Promise<string> {
     const supabase = getServerClient();
 
-    const tableName = args.intent === "rent" ? "rental_units" : "units";
+    const tableName = "units";
 
     // Query active units
     let query = supabase
         .from(tableName)
-        .select(args.intent === "rent"
-            ? "id, city, address, bedrooms, price_per_month as price_month, price_per_day as price_day, max_guests, title, is_active"
-            : "id, city, address, type, rooms, floor, floors_total, area_m2, price, status, title, features, is_active")
-        .neq("is_active", false); // null treated as active
+        .select(`
+            id, city, address, rooms, floor, floors_total, area_m2, price, 
+            status, title, features, is_active, category,
+            price_per_day, price_per_month, bedrooms, bathrooms, max_guests, photos
+        `)
+        .neq("is_active", false);
 
     if (args.id) {
         query = query.eq("id", args.id);
     }
 
-    if (args.intent === "land") {
-        query = query.eq("type", "land");
-    }
-
-    if (args.intent === "commercial") {
-        query = query.eq("type", "commercial");
+    if (args.intent) {
+        query = query.eq("category", args.intent);
     }
 
     // Date filtering (exclude booked units) - REMOVED BY USER REQUEST
@@ -58,11 +56,14 @@ export async function handleSearchDatabase(args: SearchArgs & { id?: string; pri
         query = query.gte("max_guests", args.guests);
     }
     if (args.price) {
-        // Return properties up to the maximum budget
-        query = query.lte(args.intent === "rent" ? "price_per_month" : "price", args.price);
+        if (args.intent === "rent") {
+            // Check both per day and per month if appropriate, or just month as primary
+            query = query.or(`price_per_month.lte.${args.price},price_per_day.lte.${args.price}`);
+        } else {
+            query = query.lte("price", args.price);
+        }
     }
     if (args.price_min) {
-        // Return properties at or above the minimum budget (e.g. for VNJ $250k+ requirement)
         query = query.gte(args.intent === "rent" ? "price_per_month" : "price", args.price_min);
     }
     if (args.area_min && args.intent === "land") {

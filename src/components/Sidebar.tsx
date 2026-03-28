@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bot, DollarSign, Home, Settings, Users, LifeBuoy, Building2 } from "lucide-react";
+import { Bot, DollarSign, Home, Settings, Users, LifeBuoy, Building2, Map as MapIcon } from "lucide-react";
 import SupportDialog from "@/components/SupportDialog";
 import { useState } from "react";
 import { useI18n } from "@/i18n";
@@ -50,13 +50,13 @@ export default function Sidebar() {
           <SidebarLink href="/app/sales" label={t("nav.sales")} icon={DollarSign} />
           <SidebarLink href="/app/rentals" label={t("nav.rentals") || "Аренда"} icon={Home} />
           <SidebarLink href="/app/commercial" label={t("nav.commercial") || "Коммерция"} icon={Building2} />
+          <SidebarLink href="/app/land" label={t("nav.land") || "Земля"} icon={MapIcon} />
           {/* Developer Projects link removed */}
           <SidebarLink href="/app/leads" label={t("nav.leads")} icon={Users} />
           <SidebarLink href="/app/bot" label={t("nav.bots")} icon={Bot} />
         </nav>
 
         <div className="px-2 pt-2 pb-4 space-y-1 border-t border-zinc-800 light:border-zinc-200">
-          <SidebarLink href="/app/settings" label={t("nav.settings")} icon={Settings} />
           <SidebarLink
             label={t("nav.support")}
             icon={LifeBuoy}

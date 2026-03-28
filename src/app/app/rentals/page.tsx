@@ -45,7 +45,7 @@ export default function RentalsPage() {
             setLoading(true);
             setError(null);
             try {
-                const res = await fetch("/api/rentals");
+                const res = await fetch("/api/units?category=rent");
                 const json = await res.json().catch(() => ({}));
                 if (!res.ok) {
                     throw new Error(json?.error || `HTTP ${res.status}`);
