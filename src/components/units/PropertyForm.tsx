@@ -18,9 +18,8 @@ export default function PropertyForm({ initialData }: { initialData?: any }) {
   const router = useRouter();
 
   const [category, setCategory] = useState<'sale' | 'rent' | 'commercial' | 'land'>(initialData?.category || 'sale');
-  const [transactionType, setTransactionType] = useState<'sale' | 'rent'>(
-    (initialData?.category === 'rent' || initialData?.price_per_day) ? 'rent' : 'sale'
-  );
+  const [isForSale, setIsForSale] = useState(initialData?.price ? true : initialData?.category !== 'rent');
+  const [isForRent, setIsForRent] = useState(initialData?.category === 'rent' || !!initialData?.price_per_day);
 
   const [form, setForm] = useState({
     title: initialData?.title || "",
@@ -63,7 +62,7 @@ export default function PropertyForm({ initialData }: { initialData?: any }) {
     try {
       const payload = {
         ...form,
-        category: transactionType === 'rent' ? 'rent' : category,
+        category: isForRent && !isForSale ? 'rent' : category, // If only rent, use rent category
         features: selectedTags,
         photos: photos,
         // Ensure numbers
@@ -116,19 +115,25 @@ export default function PropertyForm({ initialData }: { initialData?: any }) {
             </h1>
           </div>
           
-          {/* Transaction Toggle (Sale / Rent) */}
-          <div className="flex bg-neutral-900 p-1 rounded-xl border border-neutral-800">
+          {/* Dual Transaction Selector - Multi-Choice Style */}
+          <div className="flex bg-neutral-900 p-1.5 rounded-2xl border border-neutral-800 shadow-xl overflow-hidden relative gap-1">
             <button 
               type="button"
-              onClick={() => setTransactionType('sale')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${transactionType === 'sale' ? 'bg-emerald-600 text-white shadow-lg' : 'text-neutral-500 hover:text-neutral-300'}`}
+              onClick={() => {
+                if (isForSale && isForRent) setIsForSale(false); // Can't unselect all
+                else setIsForSale(true);
+              }}
+              className={`relative z-10 px-6 py-2 rounded-xl text-xs font-black tracking-widest transition-all duration-300 ${isForSale ? 'bg-emerald-600 text-white shadow-lg' : 'text-neutral-500 hover:bg-neutral-800 hover:text-neutral-300'}`}
             >
               ПРОДАЖА
             </button>
             <button 
               type="button"
-              onClick={() => setTransactionType('rent')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${transactionType === 'rent' ? 'bg-emerald-600 text-white shadow-lg' : 'text-neutral-500 hover:text-neutral-300'}`}
+              onClick={() => {
+                if (isForSale && isForRent) setIsForRent(false); // Can't unselect all
+                else setIsForRent(true);
+              }}
+              className={`relative z-10 px-6 py-2 rounded-xl text-xs font-black tracking-widest transition-all duration-300 ${isForRent ? 'bg-emerald-600 text-white shadow-lg' : 'text-neutral-500 hover:bg-neutral-800 hover:text-neutral-300'}`}
             >
               АРЕНДА
             </button>
@@ -147,10 +152,10 @@ export default function PropertyForm({ initialData }: { initialData?: any }) {
              <button
                 key={item.id}
                 type="button"
-                disabled={transactionType === 'rent' && item.id !== 'sale'}
+                disabled={isForRent && !isForSale && item.id !== 'sale'}
                 onClick={() => setCategory(item.id as any)}
                 className={`flex flex-col items-center gap-2 p-4 rounded-2xl border transition-all w-24 ${
-                  transactionType === 'rent' && item.id !== 'sale' ? 'opacity-20 cursor-not-allowed grayscale' :
+                  isForRent && !isForSale && item.id !== 'sale' ? 'opacity-20 cursor-not-allowed grayscale' :
                   category === item.id ? 'bg-emerald-600/10 border-emerald-500 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 
                   'bg-neutral-900 border-neutral-800 text-neutral-500 hover:border-neutral-700'
                 }`}
@@ -187,27 +192,37 @@ export default function PropertyForm({ initialData }: { initialData?: any }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {transactionType === 'rent' ? (
-              <>
-                <div className={`space-y-1 p-3 rounded-xl border transition-all ${form.price_per_day ? 'bg-emerald-600/5 border-emerald-500/30' : 'bg-neutral-900 border-neutral-800'}`}>
-                  <label className="text-[10px] text-neutral-500 uppercase font-bold">Цена / Сутки (€)</label>
-                  <input type="number" value={form.price_per_day} onChange={e => update('price_per_day', e.target.value)} className="w-full bg-transparent border-0 px-0 py-1 text-white text-xl font-bold outline-none placeholder:text-neutral-700" placeholder="0" />
+          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 p-6 rounded-[40px] border transition-all ${isForSale && isForRent ? 'bg-emerald-500/10 border-emerald-500/40' : 'bg-neutral-900 border-neutral-800'}`}>
+            {isForSale && (
+              <div className="p-5 rounded-3xl bg-neutral-950/50 border border-emerald-500/20 shadow-xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-2 opacity-10"><DollarSign className="h-10 w-10 text-emerald-500" /></div>
+                <div className={`space-y-1 transition-all ${form.price ? 'opacity-100 scale-100' : 'opacity-70 scale-[0.98]'}`}>
+                  <label className="text-[10px] text-emerald-500/70 uppercase font-black tracking-widest">Общая цена (€)</label>
+                  <input type="number" value={form.price} onChange={e => update('price', e.target.value)} className="w-full bg-transparent border-0 px-0 py-1 text-emerald-400 text-3xl font-black outline-none placeholder:text-neutral-800" placeholder="0" />
                 </div>
-                <div className={`space-y-1 p-3 rounded-xl border transition-all ${form.price_per_month ? 'bg-emerald-600/5 border-emerald-500/30' : 'bg-neutral-900 border-neutral-800'}`}>
-                  <label className="text-[10px] text-neutral-500 uppercase font-bold">Цена / Месяц (€)</label>
-                  <input type="number" value={form.price_per_month} onChange={e => update('price_per_month', e.target.value)} className="w-full bg-transparent border-0 px-0 py-1 text-white text-xl font-bold outline-none placeholder:text-neutral-700" placeholder="0" />
-                </div>
-              </>
-            ) : (
-              <div className={`space-y-1 p-3 rounded-xl border transition-all ${form.price ? 'bg-emerald-600/5 border-emerald-500/30 font-bold' : 'bg-neutral-900 border-neutral-800'}`}>
-                <label className="text-[10px] text-neutral-500 uppercase font-bold">Общая цена (€)</label>
-                <input type="number" value={form.price} onChange={e => update('price', e.target.value)} className="w-full bg-transparent border-0 px-0 py-1 text-emerald-400 text-xl font-bold outline-none placeholder:text-neutral-700" placeholder="0" />
               </div>
             )}
-            <div className={`space-y-1 p-3 rounded-xl border transition-all ${form.area_m2 ? 'bg-neutral-800 border-neutral-700' : 'bg-neutral-900 border-neutral-800'}`}>
-              <label className="text-[10px] text-neutral-500 uppercase font-bold">Площадь (м²)</label>
-              <input type="number" value={form.area_m2} onChange={e => update('area_m2', e.target.value)} className="w-full bg-transparent border-0 px-0 py-1 text-white text-xl font-bold outline-none placeholder:text-neutral-700" placeholder="0" />
+
+            {isForRent && (
+              <div className="grid grid-cols-2 gap-4 p-5 rounded-3xl bg-neutral-950/50 border border-emerald-500/20 shadow-xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-2 opacity-10"><DollarSign className="h-10 w-10 text-emerald-500" /></div>
+                <div className={`space-y-1 transition-all ${form.price_per_day ? 'opacity-100 scale-100' : 'opacity-70 scale-[0.98]'}`}>
+                  <label className="text-[10px] text-emerald-500/70 uppercase font-black tracking-widest">Цена / Сутки (€)</label>
+                  <input type="number" value={form.price_per_day} onChange={e => update('price_per_day', e.target.value)} className="w-full bg-transparent border-0 px-0 py-1 text-white text-3xl font-black outline-none placeholder:text-neutral-800" placeholder="0" />
+                </div>
+                <div className={`space-y-1 transition-all ${form.price_per_month ? 'opacity-100 scale-100' : 'opacity-70 scale-[0.98]'}`}>
+                  <label className="text-[10px] text-emerald-500/70 uppercase font-black tracking-widest">Цена / Месяц (€)</label>
+                  <input type="number" value={form.price_per_month} onChange={e => update('price_per_month', e.target.value)} className="w-full bg-transparent border-0 px-0 py-1 text-white text-3xl font-black outline-none placeholder:text-neutral-800" placeholder="0" />
+                </div>
+              </div>
+            )}
+            
+            <div className={`p-5 rounded-3xl transition-all border md:col-span-2 lg:col-span-2 ${form.area_m2 ? 'bg-neutral-900 border-neutral-700 shadow-lg' : 'bg-neutral-950/30 border-neutral-800'} relative overflow-hidden`}>
+               <div className="absolute top-0 right-0 p-2 opacity-5"><Building2 className="h-10 w-10 text-white" /></div>
+               <div className="space-y-1">
+                  <label className="text-[10px] text-neutral-400 uppercase font-black tracking-widest text-center block">Общая площадь объекта (м²)</label>
+                  <input type="number" value={form.area_m2} onChange={e => update('area_m2', e.target.value)} className="w-full bg-transparent border-0 px-0 py-1 text-white text-4xl font-black outline-none placeholder:text-neutral-800 text-center" placeholder="0" />
+               </div>
             </div>
           </div>
 
