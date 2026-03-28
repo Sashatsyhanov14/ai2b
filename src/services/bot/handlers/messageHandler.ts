@@ -141,12 +141,15 @@ ${agencyFiles}`;
             const searchTasks = [
                 baseParams, 
                 { ...baseParams, rooms: undefined }, 
-                { ...baseParams, rooms: undefined, price: baseParams.price ? baseParams.price * 1.5 : undefined }
+                { ...baseParams, rooms: undefined, price: baseParams.price ? baseParams.price * 1.5 : undefined },
+                { intent: "rent" } // FINAL FALLBACK: Find ANY active rental unit to check RLS/Table access
             ];
 
+            let logs = ``;
             for (let i = 0; i < searchTasks.length; i++) {
                 try {
                     const rawResult = await handleSearchDatabase(searchTasks[i]);
+                    logs += `Task ${i}: ${rawResult}\n`;
                     const parsed = JSON.parse(rawResult);
 
                     if (parsed.units && Array.isArray(parsed.units) && parsed.units.length > 0) {
@@ -163,8 +166,13 @@ ${agencyFiles}`;
                             break;
                         }
                     }
-                } catch (e) {}
+                } catch (e: any) {
+                    logs += `Task ${i} Error: ${e.message}\n`;
+                }
             }
+            
+            // DEBUG OUTPUT DB RESULTS
+            await sendMessage(token, chatId, `<pre>DEBUG DB QUERY LOGS:\n${logs}</pre>`, { parse_mode: "HTML" }).catch(()=>{});
         }
 
         // ==========================================
