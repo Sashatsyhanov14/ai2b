@@ -228,14 +228,23 @@ export default function PropertyForm({ initialData }: { initialData?: any }) {
                 <input value={form.city} onChange={e => update('city', e.target.value)} className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl px-5 py-4 text-white font-bold outline-none focus:border-emerald-500 shadow-inner" placeholder="Alanya" />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-neutral-500 uppercase font-black tracking-widest px-1">Район</label>
-                <input value={form.district} onChange={e => update('district', e.target.value)} className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl px-5 py-4 text-white font-bold outline-none focus:border-emerald-500 shadow-inner" placeholder="Mahmutlar" />
+                <label className="text-[10px] text-neutral-500 uppercase font-black tracking-widest px-1">
+                  {category === 'land' ? 'Местоположение / Район' : 'Район'}
+                </label>
+                <input value={form.district} onChange={e => update('district', e.target.value)} className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl px-5 py-4 text-white font-bold outline-none focus:border-emerald-500 shadow-inner" placeholder={category === 'land' ? 'Напр: Gazipaşa / Koru' : 'Mahmutlar'} />
               </div>
            </div>
            
            <div className="space-y-1">
-              <label className="text-[10px] text-neutral-500 uppercase font-black tracking-widest px-1">Точный адрес</label>
-              <input value={form.address} onChange={e => update('address', e.target.value)} className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl px-5 py-4 text-white font-medium outline-none focus:border-emerald-500 shadow-inner" placeholder="Улица, дом, номер квартиры..." />
+              <label className="text-[10px] text-neutral-500 uppercase font-black tracking-widest px-1">
+                {category === 'land' ? 'Ада / Парсель (Ada/Parsel)' : 'Точный адрес'}
+              </label>
+              <input 
+                value={form.address} 
+                onChange={e => update('address', e.target.value)} 
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl px-5 py-4 text-white font-medium outline-none focus:border-emerald-500 shadow-inner" 
+                placeholder={category === 'land' ? 'Например: 102 / 5' : 'Улица, дом, номер квартиры...'} 
+              />
            </div>
 
            <div className={`grid grid-cols-1 md:grid-cols-${category === 'land' ? '1' : '3'} gap-6 pt-4`}>
