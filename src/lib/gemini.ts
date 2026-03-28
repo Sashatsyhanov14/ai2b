@@ -18,9 +18,9 @@ export async function askLLM(
     const apiKey = process.env.POLZA_API_KEY;
     if (!apiKey) throw new Error("POLZA_API_KEY is not set.");
 
-    const modelName = modelType === 'deepseek' ? 'deepseek-chat' 
-        : modelType === 'gemini-1.5-flash' ? 'gemini-1.5-flash' 
-        : 'gpt-4o-mini';
+    const modelName = modelType === 'deepseek' ? 'deepseek/deepseek-chat-v3-0324' 
+        : modelType === 'gemini-1.5-flash' ? 'google/gemini-2.0-flash-001' 
+        : 'openai/gpt-4o-mini';
 
     let messages: any[] = [];
 
