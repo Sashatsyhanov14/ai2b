@@ -7,22 +7,52 @@ import UploadImage from "@/components/UploadImage";
 import { Button } from "@/components/ui/Button";
 import { useI18n } from "@/i18n";
 
-const TAG_CATEGORIES = [
+const RESIDENTIAL_TAGS = [
   {
     name: "Удобства",
-    tags: ["pool", "parking", "gas", "security", "fitness", "sauna", "playground"],
+    tags: ["pool", "parking", "gas", "security", "fitness", "sauna", "playground", "wifi", "smart_home", "air_conditioning"],
   },
   {
     name: "Вид и расположение",
-    tags: ["near_sea", "sea_view", "city_center", "near_school", "new_building"],
+    tags: ["near_sea", "sea_view", "city_center", "near_school", "new_building", "mountain_view", "quiet_area"],
   },
   {
     name: "Состояние",
-    tags: ["furnished", "renovated", "whitebox", "shell"],
+    tags: ["furnished", "renovated", "whitebox", "shell", "high_ceiling"],
   },
   {
     name: "Юридические",
-    tags: ["residence_permit", "citizenship"],
+    tags: ["residence_permit", "citizenship", "tapu_ready"],
+  }
+];
+
+const COMMERCIAL_TAGS = [
+  {
+    name: "Тип объекта",
+    tags: ["office", "shop", "warehouse", "restaurant", "hotel", "factory", "showroom"],
+  },
+  {
+    name: "Характеристики",
+    tags: ["high_power", "loading_dock", "high_ceiling", "open_space", "mezzanine", "exhaust_system"],
+  },
+  {
+    name: "Инфраструктура",
+    tags: ["parking", "security", "fiber_optics", "fire_safety", "reception", "elevators"],
+  }
+];
+
+const LAND_TAGS = [
+  {
+    name: "Назначение (Имaр)",
+    tags: ["residential_land", "commercial_land", "agricultural_land", "tourism_land", "industrial_land"],
+  },
+  {
+    name: "Коммуникации",
+    tags: ["electricity", "water", "natural_gas", "road_access", "sewage", "fiber_optics"],
+  },
+  {
+    name: "Особенности",
+    tags: ["sea_view", "mountain_view", "flat_land", "sloped_land", "corner_plot"],
   }
 ];
 
@@ -323,13 +353,13 @@ export default function PropertyForm({ initialData }: { initialData?: any }) {
         <section className="space-y-6">
           <div className="flex items-center justify-between px-1">
             <h2 className="text-xs font-black text-neutral-500 uppercase tracking-widest">Особенности и удобства</h2>
-            <span className="text-[10px] text-emerald-500 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full">
+            <span className="text-[10px] text-emerald-500 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full transition-all">
               Выбрано: {selectedTags.length}
             </span>
           </div>
 
           <div className="space-y-8">
-            {TAG_CATEGORIES.map((cat) => (
+            {(category === 'land' ? LAND_TAGS : category === 'commercial' ? COMMERCIAL_TAGS : RESIDENTIAL_TAGS).map((cat) => (
               <div key={cat.name} className="space-y-3">
                 <h3 className="text-[10px] text-neutral-600 uppercase font-black tracking-widest px-1">{cat.name}</h3>
                 <div className="flex flex-wrap gap-2">
@@ -345,7 +375,7 @@ export default function PropertyForm({ initialData }: { initialData?: any }) {
                       }`}
                     >
                       <div className={`h-1.5 w-1.5 rounded-full transition-all ${selectedTags.includes(tag) ? 'bg-white' : 'bg-neutral-700'}`} />
-                      {t(`sales.tags.${tag}` as any) || tag}
+                      {t(`sales.tags.${tag}` as any) || tag.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
                     </button>
                   ))}
                 </div>
