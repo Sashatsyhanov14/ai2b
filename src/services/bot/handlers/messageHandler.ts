@@ -174,6 +174,37 @@ ${agencyFiles}`;
                 : "[ВНИМАНИЕ: ОБЪЕКТЫ ПО ЗАПРОСУ НЕ НАЙДЕНЫ. Не придумывай. Скажи, что объектов нет.]";
         }
 
+        // ==========================================
+        // 4.5. RUN AVAILABILITY CHECKER
+        // ==========================================
+        if (analyzerInstruction.check_availability_agent && analyzerInstruction.check_availability_agent.target_unit) {
+            console.log("[Bot] 📅 CHECK AVAILABILITY AGENT TRIGGERED");
+            let unitIdToCheck = analyzerInstruction.check_availability_agent.target_unit;
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(unitIdToCheck);
+            
+            // Resolve implicit references (e.g. "is THIS available?")
+            if (!isUUID) {
+                const assistantHistory = messages.filter((m: any) => m.role === "assistant").map((m: any) => m.content).join(" ");
+                const shownIds = Array.from(assistantHistory.matchAll(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi)).map((m: any) => m[0]);
+                if (shownIds.length > 0) unitIdToCheck = shownIds[shownIds.length - 1]; // Fallback to last shown unit
+            }
+
+            if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(unitIdToCheck)) {
+                const { data: bookings } = await supabase.from("rental_bookings").select("start_date, end_date").eq("unit_id", unitIdToCheck).neq("status", "cancelled").order("start_date", { ascending: true });
+                const { data: unitData } = await supabase.from("rental_units").select("id, title, city, price_per_day").eq("id", unitIdToCheck).maybeSingle();
+
+                if (unitData) {
+                    unitsFound = [unitData]; // Ensure Writer sees the correct unit
+                    if (bookings && bookings.length > 0) {
+                        const calendarStr = bookings.map((b: any) => `- ЗАНЯТО с ${b.start_date} по ${b.end_date}`).join("\n");
+                        dbData = `[ИНФО О ЗАНЯТОСТИ]: Квартира ID ${unitIdToCheck} имеет следующие ЗАБРОНИРОВАННЫЕ даты:\n${calendarStr}\nВ остальные даты квартира СВОБОДНА.\n\nДанные квартиры: ${JSON.stringify(unitData)}`;
+                    } else {
+                        dbData = `[ИНФО О ЗАНЯТОСТИ]: Квартира ID ${unitIdToCheck} абсолютно СВОБОДНА во все даты!\n\nДанные квартиры: ${JSON.stringify(unitData)}`;
+                    }
+                }
+            }
+        }
+
         if (analyzerInstruction.writer_agent) {
             console.log("[Bot] ✍️ WRITER AGENT TRIGGERED for intent:", activeIntent);
             let customInstruction = analyzerInstruction.writer_agent.instruction || "Общайся вежливо.";

@@ -106,6 +106,13 @@ export const AnalyzerSchema = {
                 action: { type: "string", description: "'create_hold' или 'confirm'" },
                 target_unit: { type: "string" }
             }
+        },
+        check_availability_agent: {
+            type: "object",
+            description: "11. ЗАПОЛНИ, ЕСЛИ клиент задает вопрос о ДОСТУПНОСТИ конкретной квартиры (свободна ли она сейчас или на конкретные даты).",
+            properties: {
+                target_unit: { type: "string", description: "Название, ID или ссылка на квартиру" }
+            }
         }
     },
     required: ["writer_agent", "client_translator_agent"]
