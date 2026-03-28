@@ -21,103 +21,46 @@ export const AnalyzerSchema = {
                 intent: { type: "string", description: "sale, rent, land, или general" }
             }
         },
-        client_translator_agent: {
+        search_agent: {
             type: "object",
-            description: "2. ОБЯЗАТЕЛЬНО: Язык, на который Агент-Переводчик (Flash) переведет ответ Писателя.",
+            description: "2. ЗАПОЛНИ, ЕСЛИ клиент ищет недвижимость (покупка, аренда, земля). Возвращай максимально широкие критерии, чтобы найти похожее (строго без выдумок).",
             properties: {
-                target_language: { type: "string", description: "Язык клиента: 'ru', 'tr', 'en', 'de', 'fr'. Определи по контексту." }
+                category: { type: "string", description: "'residential', 'commercial', 'land', или 'all'" },
+                transaction_type: { type: "string", description: "'sale', 'rent', или 'all'" },
+                search_keywords: { type: "array", items: { type: "string" }, description: "Пиши Города или районы на английском, например 'Kestel, Alanya'" },
+                price_max: { type: "number" },
+                price_min: { type: "number" },
+                rooms: { type: "string" },
+                area_min: { type: "number", description: "Для земли/коммерции" }
             }
         },
-        search_sale_agent: {
+        lead_extractor_agent: {
             type: "object",
-            description: "3. ЗАПОЛНИ, ЕСЛИ клиент хочет КУПИТЬ КВАРТИРУ или ВИЛЛУ.",
-            properties: {
-                search_keywords: { type: "array", items: { type: "string" }, description: "Города или районы" },
-                price: { type: "number", description: "Максимальный бюджет" },
-                price_min: { type: "number", description: "Минимальный бюджет" },
-                rooms: { type: "string", description: "Например: '1+1'" }
-            }
-        },
-        search_rent_agent: {
-            type: "object",
-            description: "4. ЗАПОЛНИ, ЕСЛИ клиент ищет АРЕНДУ недвижимости.",
-            properties: {
-                search_keywords: { type: "array", items: { type: "string" } },
-                price_per_day: { type: "number" },
-                price_per_month: { type: "number" },
-                bedrooms: { type: "number" },
-                start_date: { type: "string", description: "YYYY-MM-DD" },
-                end_date: { type: "string", description: "YYYY-MM-DD" },
-                guests: { type: "number" }
-            }
-        },
-        search_land_agent: {
-            type: "object",
-            description: "5. ЗАПОЛНИ, ЕСЛИ клиент хочет КУПИТЬ УЧАСТОК ИЛИ ЗЕМЛЮ.",
-            properties: {
-                search_keywords: { type: "array", items: { type: "string" } },
-                price: { type: "number" },
-                area_min: { type: "number", description: "Минимальная площадь в м2" }
-            }
-        },
-        rag_agent: {
-            type: "object",
-            description: "6. ЗАПОЛНИ, ЕСЛИ клиент задает вопросы по ВНЖ, налогам, процедуре покупки, правилам (инфозапросы).",
-            properties: {
-                rag_query: { type: "string", description: "Формализованный поисковый запрос по базе знаний" }
-            }
-        },
-        photo_agent: {
-            type: "object",
-            description: "7. ЗАПОЛНИ, ЕСЛИ клиент просит прислать фото, планировки или видео объекта.",
-            properties: {
-                send_photos: { type: "boolean" },
-                focus_area: { type: "string", description: "Ванная, вид, кухня, планировка" }
-            }
-        },
-        lead_extractor_sale_agent: {
-            type: "object",
-            description: "8. ЗАПОЛНИ, ЕСЛИ клиент оставил контакт, назвал бюджет/цель или если он горячий лид на ПОКУПКУ.",
+            description: "3. ЗАПОЛНИ, ЕСЛИ появились данные: контакты или важные детали о клиенте (цель, семья, профессия, боли).",
             properties: {
                 client_name: { type: "string" },
                 client_phone: { type: "string" },
                 budget: { type: "number" },
                 lead_temperature: { type: "string", description: "cold / warm / hot" },
-                purpose: { type: "string" },
-                manager_alert_reason: { type: "string", description: "Если нужно срочно уведомить менеджера (покупка)" }
+                client_profile: { type: "string", description: "Подробно кто клиент, для чего ищет, состав семьи, особенности." }
             }
         },
-        lead_extractor_rent_agent: {
+        notifier_agent: {
             type: "object",
-            description: "9. ЗАПОЛНИ, ЕСЛИ клиент оставил контакт или формируется профиль на АРЕНДУ.",
+            description: "4. ЗАПОЛНИ, ЕСЛИ лид 'hot' (готов купить/забронировать) или оставил номер и нужен менеджер.",
             properties: {
-                client_name: { type: "string" },
-                client_phone: { type: "string" },
-                start_date: { type: "string" },
-                end_date: { type: "string" },
-                guests: { type: "number" },
-                manager_alert_reason: { type: "string", description: "Если нужно срочно уведомить менеджера (аренда)" }
+                alert_reason: { type: "string", description: "Причина вызова менеджера." }
             }
         },
-        booking_agent: {
+        photo_agent: {
             type: "object",
-            description: "10. ЗАПОЛНИ, ЕСЛИ ГОРЯЧИЙ клиент на АРЕНДУ подтверждает даты и хочет забронировать.",
+            description: "5. ЗАПОЛНИ, ЕСЛИ клиент прямо просит фото, видео или планировку конкретного объекта по UUID.",
             properties: {
-                action: { type: "string", description: "'create_hold' или 'confirm'" },
-                target_unit: { type: "string" }
-            }
-        },
-        search_commercial_agent: {
-            type: "object",
-            description: "11. ЗАПОЛНИ, ЕСЛИ клиент хочет КУПИТЬ ИЛИ АРЕНДОВАТЬ КОММЕРЧЕСКУЮ недвижимость (офисы, магазины, склады, отели).",
-            properties: {
-                search_keywords: { type: "array", items: { type: "string" } },
-                price: { type: "number" },
-                area_min: { type: "number" }
+                target_unit_uuid: { type: "string", description: "Точный 36-символьный UUID объекта." }
             }
         }
-    },
-    required: ["writer_agent", "client_translator_agent"]
+   },
+    required: ["writer_agent"]
 };
 
 // ==========================================
@@ -278,21 +221,18 @@ export async function runUnitTranslationAgent(unitData: any): Promise<any> {
 
 
 const ANALYZER_SYSTEM_PROMPT = `
-ТЫ — ГЛАВНЫЙ ИИ-АНАЛИЗАТОР (ANALYZER ORCHESTRATOR) АГЕНТСТВА НЕДВИЖИМОСТИ.
-Твоя задача — проанализировать историю чата и выдать гигантский JSON-объект, где каждый блок отвечает за запуск отдельного суб-агента.
-Если суб-агент НЕ НУЖЕН для ответа на текущее сообщение, просто не заполняй его блок (он должен отсутствовать в итоговом JSON).
+ТЫ — ГЛАВНЫЙ ИИ-АНАЛИЗАТОР (ORCHESTRATOR) АГЕНТСТВА НЕДВИЖИМОСТИ.
+Твоя задача — проанализировать историю чата и выдать JSON-объект, где каждый блок отвечает за запуск отдельного суб-агента.
+Если суб-агент НЕ НУЖЕН для ответа на текущее сообщение, просто не заполняй его блок (он должен отсутствовать в JSON).
 
-Твои основные суб-агенты:
-1. writer_agent (ОБЯЗАТЕЛЬНО) - Дай указание писателю, что ответить, о чем спросить в конце.
-2. client_translator_agent (ОБЯЗАТЕЛЬНО) - Укажи язык клиента (ru, en, tr, de, fr) для финального перевода сообщения.
-3. search_sale_agent - Запускай, если клиент просит варианты покупки квартиры/виллы.
-4. search_rent_agent - Запускай, если ищут аренду. ЕСЛИ НЕТ ДАТ -> НЕ запускай поиск! Скажи writer_agent выяснить даты.
-5. search_land_agent - Запускай, если ищут землю/участок (площадь в м2/сотках).
-6. rag_agent - Запускай, если клиент задает вопросы по правилам, ВНЖ, налогам или FAQ компании.
-7. photo_agent - Запускай, если клиент явно просит показать фото, видео или планировки объекта.
-8. lead_extractor_sale_agent - Фоновый сборщик в CRM. Запускай, если клиент назвал бюджет, оставил телефон/почту, или проявил сильный интерес к покупке (HOT lead).
-9. lead_extractor_rent_agent - Аналогично для аренды (сбор дат и гостей).
-10. booking_agent - Запускай ТОЛЬКО если клиент на аренду подтверждает даты и явно хочет забронировать.
+Твои доступные суб-агенты:
+1. writer_agent (ОБЯЗАТЕЛЬНО) - Дай прямые инструкции писателю: на какие вопросы ответить, что уточнить у клиента.
+2. search_agent - Запускай, если клиент просит скинуть варианты недвижимости (любого типа).
+3. lead_extractor_agent - Запускай, если клиент пишет контактные данные, бюджет, возраст, профессию, цели или семейное положение.
+4. notifier_agent - Запускай ТОЛЬКО если клиент горячий лид, оставил номер или требует менеджера.
+5. photo_agent - Запускай, если клиент явно просит скинуть фото, видео или планировки объекта (нужно указать UUID объекта).
+
+ПОИСК: Мы ищем варианты "широко". Если идеального совпадения не будет, база подкинет похожие.
 
 СТРОГО возвращай ТОЛЬКО JSON структуру по Схеме.
 `;
