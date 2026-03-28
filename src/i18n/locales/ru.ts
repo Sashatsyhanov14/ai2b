@@ -25,6 +25,7 @@ export const ru = {
     sales: "Продажа",
     leads: "Лиды",
     bots: "Боты",
+    commercial: "Коммерция",
     settings: "Настройки",
     support: "Поддержка",
   },
@@ -107,6 +108,24 @@ export const ru = {
       ready_1_year: "Сдача через 1 год",
       ready_2_years: "Сдача через 2 года",
       foundation_stage: "На этапе котлована",
+    }
+  },
+  commercial: {
+    title: "Продажа — коммерция",
+    description: "Управление офисами, магазинами, складами и готовым бизнесом.",
+    addCommercial: "+ Добавить объект",
+    searchPlaceholder: "Поиск по городу или адресу",
+    found: "Найдено",
+    loadingCount: "Загрузка списка...",
+    empty: "Коммерческих объектов пока нет.",
+    deleteConfirm: "Удалить коммерческий объект?",
+    fields: {
+      city: "Город",
+      address: "Адрес",
+      area: "Площадь м²",
+      type: "Тип объекта",
+      price: "Цена",
+      status: "Статус",
     }
   },
   rent: {

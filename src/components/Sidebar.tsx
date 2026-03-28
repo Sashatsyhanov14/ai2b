@@ -49,6 +49,7 @@ export default function Sidebar() {
         <nav className="px-2 pt-2 pb-4 space-y-1">
           <SidebarLink href="/app/sales" label={t("nav.sales")} icon={DollarSign} />
           <SidebarLink href="/app/rentals" label={t("nav.rentals") || "Аренда"} icon={Home} />
+          <SidebarLink href="/app/commercial" label={t("nav.commercial") || "Коммерция"} icon={Building2} />
           {/* Developer Projects link removed */}
           <SidebarLink href="/app/leads" label={t("nav.leads")} icon={Users} />
           <SidebarLink href="/app/bot" label={t("nav.bots")} icon={Bot} />

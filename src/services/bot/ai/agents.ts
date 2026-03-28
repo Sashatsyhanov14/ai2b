@@ -107,11 +107,13 @@ export const AnalyzerSchema = {
                 target_unit: { type: "string" }
             }
         },
-        check_availability_agent: {
+        search_commercial_agent: {
             type: "object",
-            description: "11. ЗАПОЛНИ, ЕСЛИ клиент задает вопрос о ДОСТУПНОСТИ конкретной квартиры (свободна ли она сейчас или на конкретные даты).",
+            description: "11. ЗАПОЛНИ, ЕСЛИ клиент хочет КУПИТЬ ИЛИ АРЕНДОВАТЬ КОММЕРЧЕСКУЮ недвижимость (офисы, магазины, склады, отели).",
             properties: {
-                target_unit: { type: "string", description: "Название, ID или ссылка на квартиру" }
+                search_keywords: { type: "array", items: { type: "string" } },
+                price: { type: "number" },
+                area_min: { type: "number" }
             }
         }
     },

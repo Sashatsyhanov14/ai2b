@@ -20,24 +20,19 @@ export async function handleSearchDatabase(args: SearchArgs & { id?: string; pri
     }
 
     if (args.intent === "land") {
-        query = query.ilike("type", "%land%"); // Or eq("type", "land") depending on db strings. Using ilike for safety (e.g. "Land", "land", "Участок"). We'll use eq("type", "land") per standard if we strictly enforce it, but ilike "%land%" helps catch variations. Actually, let's use eq("type", "land"). Wait, in DB it's often saved via translations. If it's standardized, let's just do eq("type", "land"). I will do ilike("%land%") just in case or just expect it to be handled by keyword search if not strict. Let's strictly enforce eq("type", "land").
         query = query.eq("type", "land");
     }
 
-    // Date filtering (exclude booked units)
-    if (args.intent === "rent" && args.start_date && args.end_date) {
-        const { data: bookings } = await supabase
-            .from("rental_bookings")
-            .select("unit_id")
-            .neq("status", "cancelled")
-            .lt("start_date", args.end_date)
-            .gt("end_date", args.start_date);
-
-        if (bookings && bookings.length > 0) {
-            const bookedUnitIds = bookings.map(b => b.unit_id);
-            query = query.not("id", "in", `(${bookedUnitIds.join(',')})`);
-        }
+    if (args.intent === "commercial") {
+        query = query.eq("type", "commercial");
     }
+
+    // Date filtering (exclude booked units) - REMOVED BY USER REQUEST
+    /*
+    if (args.intent === "rent" && args.start_date && args.end_date) {
+        ...
+    }
+    */
 
     // AI Typos / Fuzzy Search: normalize Russian/Turkish city names to English first
     const normalizedKeywords = normalizeSearchKeywords(args.search_keywords);

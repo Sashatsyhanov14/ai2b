@@ -18,7 +18,7 @@ export async function GET(req: Request) {
       .order("created_at", { ascending: false });
 
     if (id) query = query.eq("id", id);
-    // is_rent removed from schema. Filter by type if needed, but for now units table is all sales.
+    if (type) query = query.eq("type", type);
 
     const { data, error } = await query;
 
