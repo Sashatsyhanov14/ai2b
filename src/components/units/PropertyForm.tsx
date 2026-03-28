@@ -158,29 +158,8 @@ export default function PropertyForm({ initialData }: { initialData?: any }) {
             </h1>
           </div>
           
-          {/* Dual Transaction Selector - Multi-Choice Style */}
-          <div className="flex bg-neutral-900 p-1.5 rounded-2xl border border-neutral-800 shadow-xl overflow-hidden relative gap-1">
-            <button 
-              type="button"
-              onClick={() => {
-                if (isForSale && isForRent) setIsForSale(false); // Can't unselect all
-                else setIsForSale(true);
-              }}
-              className={`relative z-10 px-6 py-2 rounded-xl text-xs font-black tracking-widest transition-all duration-300 ${isForSale ? 'bg-emerald-600 text-white shadow-lg' : 'text-neutral-500 hover:bg-neutral-800 hover:text-neutral-300'}`}
-            >
-              ПРОДАЖА
-            </button>
-            <button 
-              type="button"
-              onClick={() => {
-                if (isForSale && isForRent) setIsForRent(false); // Can't unselect all
-                else setIsForRent(true);
-              }}
-              className={`relative z-10 px-6 py-2 rounded-xl text-xs font-black tracking-widest transition-all duration-300 ${isForRent ? 'bg-emerald-600 text-white shadow-lg' : 'text-neutral-500 hover:bg-neutral-800 hover:text-neutral-300'}`}
-            >
-              АРЕНДА
-            </button>
-          </div>
+          {/* Spacer to keep alignment if needed, or just let it empty */}
+
         </div>
       </div>
 
@@ -399,12 +378,8 @@ export default function PropertyForm({ initialData }: { initialData?: any }) {
         {/* Описание */}
         <section className="space-y-4">
           <div className="space-y-1">
-             <label className="text-[10px] text-neutral-500 uppercase font-bold">Описание для клиентов</label>
-             <textarea value={form.description} onChange={e => update('description', e.target.value)} className="w-full h-32 bg-neutral-900 border border-neutral-800 rounded-xl px-4 py-3 text-white outline-none focus:border-emerald-500 resize-none text-sm" />
-          </div>
-          <div className="space-y-1">
-             <label className="text-[10px] text-rose-500 uppercase font-bold">Инструкции для ИИ (закрыто от клиента)</label>
-             <textarea value={form.ai_instructions} onChange={e => update('ai_instructions', e.target.value)} className="w-full h-24 bg-rose-900/5 border border-rose-900/20 rounded-xl px-4 py-3 text-white outline-none focus:border-rose-800/40 resize-none text-sm" />
+             <label className="text-[10px] text-neutral-500 uppercase font-bold">Описание для клиентов (необязательно)</label>
+             <textarea value={form.description} onChange={e => update('description', e.target.value)} className="w-full h-32 bg-neutral-900 border border-neutral-800 rounded-xl px-4 py-3 text-white outline-none focus:border-emerald-500 resize-none text-sm" placeholder="Напишите всё, что важно знать об объекте..." />
           </div>
         </section>
 
