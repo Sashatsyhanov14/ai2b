@@ -92,7 +92,7 @@ export default function PropertiesPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-6">
+    <div className="mx-auto max-w-7xl px-4 md:px-6 py-6">
       <div className="mb-6 flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-neutral-50">
@@ -140,7 +140,7 @@ export default function PropertiesPage() {
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900/40">
-        <div className="max-h-[65vh] overflow-y-auto">
+        <div className="max-h-[65vh] overflow-y-auto overflow-x-auto">
           <table className="min-w-full text-sm text-neutral-200">
             <thead className="sticky top-0 z-10 bg-neutral-900/90 backdrop-blur text-xs uppercase tracking-wide text-neutral-500">
               <tr>
