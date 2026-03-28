@@ -38,34 +38,14 @@ function mapIncomingToDb(payload: any, baseEn: any, i18nData: any): Partial<Unit
   if (payload.price_total != null) out.price = Number(payload.price_total)
   if (payload.price != null) out.price = Number(payload.price)
   if (payload.status != null) out.status = String(payload.status)
-  if (payload.project_id != null) out.project_id = payload.project_id ? String(payload.project_id) : null
   if (payload.ai_instructions != null) (out as any).ai_instructions = String(payload.ai_instructions)
   if (payload.features != null) out.features = payload.features
+  
+  if (payload.photos != null) out.photos = payload.photos
 
   return out
 }
 
-async function enrich(u: Unit, sb: ReturnType<typeof getServerClient>) {
-  try {
-    const { data: photos } = await sb
-      .from('unit_photos')
-      .select('unit_id,url,sort_order,created_at')
-      .eq('unit_id', u.id)
-      .order('sort_order', { ascending: true })
-    if (photos && photos.length) {
-      u.photos_count = photos.length
-      u.main_photo_url = (photos as any[])[0]?.url ?? null
-    }
-  } catch { }
-
-  try {
-    if (u.project_id) {
-      const { data } = await sb.from('developer_projects').select('name').eq('id', u.project_id).single()
-      if (data) u.project_name = (data as any).name
-    }
-  } catch { }
-  return u
-}
 
 type Params = { params: { unitId: string } }
 
@@ -73,7 +53,7 @@ export async function GET(_req: Request, { params }: Params) {
   const sb = getServerClient()
   const { data, error } = await sb.from('units').select('*').eq('id', params.unitId).single()
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 404 })
-  const row = await enrich(data as Unit, sb)
+  const row = data as Unit
   return NextResponse.json({ ok: true, data: row })
 }
 
@@ -107,24 +87,6 @@ export async function PATCH(req: Request, { params }: Params) {
 
   const { data, error } = await sb.from('units').update(patch).eq('id', params.unitId).select('*').single()
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 400 })
-
-  // Handle photos update if present
-  if (payload.photos && Array.isArray(payload.photos)) {
-    // Delete existing photos
-    await sb.from('unit_photos').delete().eq('unit_id', params.unitId)
-
-    // Insert new photos
-    const rows = payload.photos.map((url, i) => ({
-      unit_id: params.unitId,
-      url,
-      is_main: i === 0,
-      sort_order: i
-    }))
-
-    if (rows.length > 0) {
-      await sb.from('unit_photos').insert(rows)
-    }
-  }
 
   return NextResponse.json({ ok: true, data })
 }
