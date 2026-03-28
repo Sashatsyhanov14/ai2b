@@ -13,90 +13,102 @@ export type RoleMessage = {
 export const AnalyzerSchema = {
     type: "object",
     properties: {
-        instructions_for_writer: {
-            type: "string",
-            description: "Прямое указание для Writer-Агента (что именно ответить клиенту). Пиши на языке клиента."
-        },
-        detected_language: {
-            type: "string",
-            description: "Язык клиента: 'ru', 'tr', 'en', 'de', 'fr'. Определи по контексту."
-        },
-        instructions_for_sale_search: {
+        writer_agent: {
             type: "object",
-            description: "ЗАПОЛНИ, ЕСЛИ клиент хочет КУПИТЬ КВАРТИРУ или ВИЛЛУ.",
+            description: "1. ОБЯЗАТЕЛЬНО: Инструкции для Агента-Писателя (GPT-4o-mini). Что ответить, о чем спросить.",
             properties: {
-                search_keywords: { type: "array", items: { type: "string" }, description: "Города или районы" },
-                intent: { type: "string", description: "СТРОГО: 'sale'" },
-                price: { type: "number", description: "Максимальный бюджет" },
-                price_min: { type: "number", description: "Минимальный бюджет" },
-                rooms: { type: "string", description: "Например: '1+1'" },
-                city: { type: "string" }
+                instruction: { type: "string", description: "Суть ответа. Кратко и по делу." },
+                intent: { type: "string", description: "sale, rent, land, или general" }
             }
         },
-        instructions_for_rent_search: {
+        client_translator_agent: {
             type: "object",
-            description: "ЗАПОЛНИ, ЕСЛИ клиент ищет АРЕНДУ недвижимости.",
+            description: "2. ОБЯЗАТЕЛЬНО: Язык, на который Агент-Переводчик (Flash) переведет ответ Писателя.",
+            properties: {
+                target_language: { type: "string", description: "Язык клиента: 'ru', 'tr', 'en', 'de', 'fr'. Определи по контексту." }
+            }
+        },
+        search_sale_agent: {
+            type: "object",
+            description: "3. ЗАПОЛНИ, ЕСЛИ клиент хочет КУПИТЬ КВАРТИРУ или ВИЛЛУ.",
+            properties: {
+                search_keywords: { type: "array", items: { type: "string" }, description: "Города или районы" },
+                price: { type: "number", description: "Максимальный бюджет" },
+                price_min: { type: "number", description: "Минимальный бюджет" },
+                rooms: { type: "string", description: "Например: '1+1'" }
+            }
+        },
+        search_rent_agent: {
+            type: "object",
+            description: "4. ЗАПОЛНИ, ЕСЛИ клиент ищет АРЕНДУ недвижимости.",
             properties: {
                 search_keywords: { type: "array", items: { type: "string" } },
-                intent: { type: "string", description: "СТРОГО: 'rent'" },
                 price_per_day: { type: "number" },
                 price_per_month: { type: "number" },
                 bedrooms: { type: "number" },
-                start_date: { type: "string", description: "Формат YYYY-MM-DD" },
-                end_date: { type: "string", description: "Формат YYYY-MM-DD" },
+                start_date: { type: "string", description: "YYYY-MM-DD" },
+                end_date: { type: "string", description: "YYYY-MM-DD" },
                 guests: { type: "number" }
             }
         },
-        instructions_for_land_search: {
+        search_land_agent: {
             type: "object",
-            description: "ЗАПОЛНИ, ЕСЛИ клиент хочет КУПИТЬ УЧАСТОК ИЛИ ЗЕМЛЮ.",
+            description: "5. ЗАПОЛНИ, ЕСЛИ клиент хочет КУПИТЬ УЧАСТОК ИЛИ ЗЕМЛЮ.",
             properties: {
                 search_keywords: { type: "array", items: { type: "string" } },
-                intent: { type: "string", description: "СТРОГО: 'land'" },
                 price: { type: "number" },
-                area_min: { type: "number", description: "Минимальная площадь участка в м2" }
+                area_min: { type: "number", description: "Минимальная площадь в м2" }
             }
         },
-        instructions_for_manager_agent: {
+        rag_agent: {
             type: "object",
-            description: "Секретный вызов CRM. Вызывай, если клиент оставил КОНТАКТЫ (телефон/почту) ИЛИ если он 'Горячий/Тёплый'.",
+            description: "6. ЗАПОЛНИ, ЕСЛИ клиент задает вопросы по ВНЖ, налогам, процедуре покупки, правилам (инфозапросы).",
             properties: {
-                reason: { type: "string" },
+                rag_query: { type: "string", description: "Формализованный поисковый запрос по базе знаний" }
+            }
+        },
+        photo_agent: {
+            type: "object",
+            description: "7. ЗАПОЛНИ, ЕСЛИ клиент просит прислать фото, планировки или видео объекта.",
+            properties: {
+                send_photos: { type: "boolean" },
+                focus_area: { type: "string", description: "Ванная, вид, кухня, планировка" }
+            }
+        },
+        lead_extractor_sale_agent: {
+            type: "object",
+            description: "8. ЗАПОЛНИ, ЕСЛИ клиент оставил контакт, назвал бюджет/цель или если он горячий лид на ПОКУПКУ.",
+            properties: {
                 client_name: { type: "string" },
                 client_phone: { type: "string" },
-                client_email: { type: "string" },
                 budget: { type: "number" },
-                interested_units: { type: "array", items: { type: "string" } },
                 lead_temperature: { type: "string", description: "cold / warm / hot" },
-                urgency: { type: "string" },
                 purpose: { type: "string" },
-                unit_type: { type: "string" },
-                preferred_areas: { type: "array", items: { type: "string" } },
-                manager_hints: { type: "string" },
-                client_summary: { type: "string" },
-                language: { type: "string" }
+                manager_alert_reason: { type: "string", description: "Если нужно срочно уведомить менеджера (покупка)" }
             }
         },
-        instructions_for_rental_manager_agent: {
+        lead_extractor_rent_agent: {
             type: "object",
-            description: "Прямой вызов менеджера по АРЕНДЕ.",
+            description: "9. ЗАПОЛНИ, ЕСЛИ клиент оставил контакт или формируется профиль на АРЕНДУ.",
             properties: {
-                reason: { type: "string" },
                 client_name: { type: "string" },
                 client_phone: { type: "string" },
-                interested_units: { type: "array", items: { type: "string" } },
                 start_date: { type: "string" },
                 end_date: { type: "string" },
                 guests: { type: "number" },
-                budget: { type: "number" },
-                purpose: { type: "string" },
-                manager_hints: { type: "string" },
-                client_summary: { type: "string" },
-                language: { type: "string" }
+                manager_alert_reason: { type: "string", description: "Если нужно срочно уведомить менеджера (аренда)" }
+            }
+        },
+        booking_agent: {
+            type: "object",
+            description: "10. ЗАПОЛНИ, ЕСЛИ ГОРЯЧИЙ клиент на АРЕНДУ подтверждает даты и хочет забронировать.",
+            properties: {
+                action: { type: "string", description: "'create_hold' или 'confirm'" },
+                target_unit: { type: "string" }
             }
         }
     },
-    required: ["instructions_for_writer"]
+    required: ["writer_agent", "client_translator_agent"]
 };
 
 // ==========================================
@@ -169,7 +181,7 @@ export async function runTranslationAgent(leadData: any): Promise<any> {
     console.log("[runTranslationAgent] Requesting AI translation...");
     const input = JSON.stringify(leadData);
     console.log(`[runTranslationAgent] Input leadData for translation: ${input.substring(0, 200)}...`); // Added log
-    const rawResult = await askLLM(input, TRANSLATION_SYSTEM_PROMPT, false, TranslationAgentSchema, true);
+    const rawResult = await askLLM(input, TRANSLATION_SYSTEM_PROMPT, false, TranslationAgentSchema, 'gemini-1.5-flash');
     console.log("[runTranslationAgent] AI Response length:", rawResult?.length || 0);
     try {
         return JSON.parse(rawResult);
@@ -242,7 +254,7 @@ const UNIT_TRANSLATION_SYSTEM_PROMPT = `
 export async function runUnitTranslationAgent(unitData: any): Promise<any> {
     console.log("[runUnitTranslationAgent] Requesting AI translation for unit...");
     const input = JSON.stringify(unitData);
-    const rawResult = await askLLM(input, UNIT_TRANSLATION_SYSTEM_PROMPT, false, UnitTranslationAgentSchema, true);
+    const rawResult = await askLLM(input, UNIT_TRANSLATION_SYSTEM_PROMPT, false, UnitTranslationAgentSchema, 'gemini-1.5-flash');
     try {
         return JSON.parse(rawResult);
     } catch (e) {
@@ -257,35 +269,28 @@ export async function runUnitTranslationAgent(unitData: any): Promise<any> {
 
 
 const ANALYZER_SYSTEM_PROMPT = `
-ТЫ — ГЛАВНЫЙ ИИ-АНАЛИЗАТОР (ANALYZER AGENT) АГЕНТСТВА НЕДВИЖИМОСТИ.
-Твоя задача — проанализировать историю чата и выдать указания другим специализированным агентам (Writer Agent, Search Executor).
+ТЫ — ГЛАВНЫЙ ИИ-АНАЛИЗАТОР (ANALYZER ORCHESTRATOR) АГЕНТСТВА НЕДВИЖИМОСТИ.
+Твоя задача — проанализировать историю чата и выдать гигантский JSON-объект, где каждый блок отвечает за запуск отдельного суб-агента.
+Если суб-агент НЕ НУЖЕН для ответа на текущее сообщение, просто не заполняй его блок (он должен отсутствовать в итоговом JSON).
 
-СТАТУС КЛИЕНТА (КРИТИЧНО):
-- ГОРЯЧИЙ: Клиент говорит "Мне нравится", "Подходит", "Хочу посмотреть", "Как забронировать?", задает конкретные вопросы по объекту. 
-- ТЁПЛЫЙ: Назвал город, бюджет или требования, но еще не выбрал конкретный объект.
-- ХОЛОДНЫЙ: Просто "привет" или общие вопросы без конкретики.
+Твои основные суб-агенты:
+1. writer_agent (ОБЯЗАТЕЛЬНО) - Дай указание писателю, что ответить, о чем спросить в конце.
+2. client_translator_agent (ОБЯЗАТЕЛЬНО) - Укажи язык клиента (ru, en, tr, de, fr) для финального перевода сообщения.
+3. search_sale_agent - Запускай, если клиент просит варианты покупки квартиры/виллы.
+4. search_rent_agent - Запускай, если ищут аренду. ЕСЛИ НЕТ ДАТ -> НЕ запускай поиск! Скажи writer_agent выяснить даты.
+5. search_land_agent - Запускай, если ищут землю/участок (площадь в м2/сотках).
+6. rag_agent - Запускай, если клиент задает вопросы по правилам, ВНЖ, налогам или FAQ компании.
+7. photo_agent - Запускай, если клиент явно просит показать фото, видео или планировки объекта.
+8. lead_extractor_sale_agent - Фоновый сборщик в CRM. Запускай, если клиент назвал бюджет, оставил телефон/почту, или проявил сильный интерес к покупке (HOT lead).
+9. lead_extractor_rent_agent - Аналогично для аренды (сбор дат и гостей).
+10. booking_agent - Запускай ТОЛЬКО если клиент на аренду подтверждает даты и явно хочет забронировать.
 
-ПРАВИЛА ОПРЕДЕЛЕНИЯ ИНТЕНТА:
-1. АРЕНДА: Если клиент ищет жилье снять/арендовать -> заполняй instructions_for_rent_search.
-2. ПОКУПКА ЗЕМЛИ/УЧАСТКА: Если клиент ищет землю, участок (land, plot) -> заполняй instructions_for_land_search. Участки измеряются в сотках или м2 (area_min).
-3. ПОКУПКА ЖИЛЬЯ: Во всех остальных случаях покупки (квартиры, виллы) -> заполняй instructions_for_sale_search.
-
-ПРАВИЛА ПОИСКА АРЕНДЫ (СТРОГО):
-1. Для АРЕНДЫ — ОБЯЗАТЕЛЬНО нужны даты заезда и выезда ПЕРЕД показом квартир.
-2. ЕСЛИ клиент назвал город, но НЕ назвал даты → НЕ запускай поиск. Вместо этого дай указание writer агенту спросить ТОЛЬКО даты (не спрашивай сразу всё).
-3. ЕСЛИ клиент назвал город И даты → НЕМЕДЛЕННО заполняй instructions_for_rent_search.
-4. Если клиент сообщил кол-во гостей ("я с девушкой" = 2) — передай в поле guests.
-
-ПРАВИЛА КОММУНИКАЦИИ (instructions_for_writer):
-1. ПРИОРИТЕТ КОНТАКТА: Если клиент ГОРЯЧИЙ — ОБЯЗАН сказать Writer Агенту запросить телефон или WhatsApp.
-2. Дай Writer Агенту четкую инструкцию, в каком тоне отвечать и о чем спросить в конце.
-
-Выдай ТОЛЬКО JSON строго по Схеме.
+СТРОГО возвращай ТОЛЬКО JSON структуру по Схеме.
 `;
 
 export async function runAnalyzerAgent(messages: RoleMessage[], companyKnowledge: string): Promise<any> {
     const fullSystem = ANALYZER_SYSTEM_PROMPT + "\n\n[БАЗА ЗНАНИЙ И ПРАВИЛА КОМПАНИИ]:\n" + companyKnowledge;
-    const rawResult = await askLLM(messages, fullSystem, false, AnalyzerSchema, false);
+    const rawResult = await askLLM(messages, fullSystem, false, AnalyzerSchema, 'deepseek');
     if (!rawResult) {
         return { instructions_for_writer: "Извините, я временно недоступен. Попробуйте позже." };
     }
@@ -354,12 +359,10 @@ ${COMMON_WRITER_RULES}
 (Никогда не упоминай спальни, этажи или санузлы для земли!)
 `;
 
-async function executeWriter(prompt: string, history: RoleMessage[], instructionsAndCompanyInfo: string, dynamicData: string, language: string) {
-    const langLabel = language === 'ru' ? 'RUSSIAN' : language === 'tr' ? 'TURKISH' : language === 'en' ? 'ENGLISH' : language.toUpperCase();
+async function executeWriter(prompt: string, history: RoleMessage[], instructionsAndCompanyInfo: string, dynamicData: string) {
     const fullSystemPrompt = `${prompt}
 
-[CLIENT LANGUAGE]:
-${langLabel} (Отвечай СТРОГО на этом языке!)
+[ВНИМАНИЕ]: Твоя задача — составить ИДЕАЛЬНЫЙ ответ на БАЗОВОМ ЯЗЫКЕ (Русский/Английский). Агент-Переводчик переведет твой текст позже. Фокусируйся на структуре и продажах.
 
 [ЗНАНИЯ О КОМПАНИИ И ИНСТРУКЦИИ АНАЛИЗАТОРА]:
 ${instructionsAndCompanyInfo}
@@ -367,19 +370,19 @@ ${instructionsAndCompanyInfo}
 [DATA]:
 ${dynamicData}`;
 
-    return await askLLM(history, fullSystemPrompt, true, undefined, true);
+    return await askLLM(history, fullSystemPrompt, true, undefined, 'gpt-4o-mini');
 }
 
-export async function runSaleWriterAgent(history: RoleMessage[], instr: string, data: string, lang: string) {
-    return executeWriter(SALE_WRITER_PROMPT, history, instr, data, lang);
+export async function runSaleWriterAgent(history: RoleMessage[], instr: string, data: string) {
+    return executeWriter(SALE_WRITER_PROMPT, history, instr, data);
 }
 
-export async function runRentWriterAgent(history: RoleMessage[], instr: string, data: string, lang: string) {
-    return executeWriter(RENT_WRITER_PROMPT, history, instr, data, lang);
+export async function runRentWriterAgent(history: RoleMessage[], instr: string, data: string) {
+    return executeWriter(RENT_WRITER_PROMPT, history, instr, data);
 }
 
-export async function runLandWriterAgent(history: RoleMessage[], instr: string, data: string, lang: string) {
-    return executeWriter(LAND_WRITER_PROMPT, history, instr, data, lang);
+export async function runLandWriterAgent(history: RoleMessage[], instr: string, data: string) {
+    return executeWriter(LAND_WRITER_PROMPT, history, instr, data);
 }
 
 // ==========================================
@@ -445,7 +448,7 @@ const RENTAL_TRANSLATION_SYSTEM_PROMPT = `
 export async function runRentalTranslationAgent(rentalData: any): Promise<any> {
     console.log("[runRentalTranslationAgent] Requesting AI translation for rental...");
     const input = JSON.stringify(rentalData);
-    const rawResult = await askLLM(input, RENTAL_TRANSLATION_SYSTEM_PROMPT, false, RentalTranslationAgentSchema, true);
+    const rawResult = await askLLM(input, RENTAL_TRANSLATION_SYSTEM_PROMPT, false, RentalTranslationAgentSchema, 'gemini-1.5-flash');
     try {
         return JSON.parse(rawResult);
     } catch (e) {
@@ -456,4 +459,38 @@ export async function runRentalTranslationAgent(rentalData: any): Promise<any> {
             i18n: { ru: {}, tr: {} }
         };
     }
+}
+
+// ==========================================
+// CLIENT TRANSLATOR AGENT (Пользовательский Локализатор)
+// ==========================================
+export async function runClientTranslatorAgent(baseText: string, targetLang: string, history: RoleMessage[]): Promise<string> {
+    const prompt = `ТЫ — ПРОФЕССИОНАЛЬНЫЙ ЛИНГВИСТ компании.
+Твоя единственная цель — перевести финальный текст Ассистента (составленный Writer-Агентом) на язык: '${targetLang}'.
+Если текст уже на этом языке, просто сделай его более естественным и привлекательным.
+Текст для перевода/коррекции:
+${baseText}`;
+    
+    return await askLLM(prompt, "Ты ассистент-переводчик.", true, undefined, 'gemini-1.5-flash');
+}
+
+// ==========================================
+// RAG AGENT (База Знаний и FAQ)
+// ==========================================
+export async function runRagAgent(query: string, companyKnowledge: string): Promise<string> {
+    const prompt = `Твоя задача — найти ответ на вопрос клиента, используя ТОЛЬКО предоставленную Базу Знаний.
+Вопрос от аналитика: ${query}
+
+База Знаний:
+${companyKnowledge}
+
+Если прямого ответа нет, так и скажи.`;
+    return await askLLM(prompt, "Ты аналитик базы знаний RAG.", true, undefined, 'gemini-1.5-flash');
+}
+
+// ==========================================
+// PHOTO AGENT
+// ==========================================
+export async function runPhotoAgent(focus: string, unitImages: string[]): Promise<string[]> {
+    return unitImages.slice(0, 5); // Return up to 5 images
 }

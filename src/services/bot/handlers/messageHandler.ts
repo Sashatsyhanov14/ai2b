@@ -98,157 +98,50 @@ ${agencyFiles}`;
         let unitsFound: any[] = [];
         let finalReplyText = "";
         
-        // 3.1 Extract Active Search Params
+        // ==========================================
+        // 1. EXTRACT SEARCH PARAMS
+        // ==========================================
         let searchParams: any = null;
-        let activeIntent: "sale" | "rent" | "land" = "sale"; // default fallback
+        let activeIntent = analyzerInstruction.writer_agent?.intent || "general";
         
-        if (analyzerInstruction.instructions_for_sale_search) {
-            searchParams = analyzerInstruction.instructions_for_sale_search;
+        if (analyzerInstruction.search_sale_agent) {
+            searchParams = analyzerInstruction.search_sale_agent;
             searchParams.intent = "sale";
             activeIntent = "sale";
-        } else if (analyzerInstruction.instructions_for_rent_search) {
-            searchParams = analyzerInstruction.instructions_for_rent_search;
+        } else if (analyzerInstruction.search_rent_agent) {
+            searchParams = analyzerInstruction.search_rent_agent;
             searchParams.intent = "rent";
             activeIntent = "rent";
             searchParams.rooms = searchParams.bedrooms != null ? String(searchParams.bedrooms) : undefined;
             searchParams.price = searchParams.price_per_month || undefined;
-        } else if (analyzerInstruction.instructions_for_land_search) {
-            searchParams = analyzerInstruction.instructions_for_land_search;
+        } else if (analyzerInstruction.search_land_agent) {
+            searchParams = analyzerInstruction.search_land_agent;
             searchParams.intent = "land";
             activeIntent = "land";
         }
 
-        if (analyzerInstruction.instructions_for_rental_manager_agent) {
-            analyzerInstruction.instructions_for_manager_agent = {
-                ...analyzerInstruction.instructions_for_rental_manager_agent,
-                purpose: analyzerInstruction.instructions_for_rental_manager_agent.purpose || "АРЕНДА"
-            };
+        // ==========================================
+        // 2. RUN RAG AGENT (Database Info Retrieval)
+        // ==========================================
+        let ragResponse = "Специфических запросов RAG не требовалось.";
+        if (analyzerInstruction.rag_agent && analyzerInstruction.rag_agent.rag_query) {
+            console.log("[Bot] 🧠 RAG AGENT TRIGGERED for query:", analyzerInstruction.rag_agent.rag_query);
+            ragResponse = await require("../ai/agents").runRagAgent(analyzerInstruction.rag_agent.rag_query, botKnowledge);
         }
 
-        // A. MANAGER AGENT (Alerts & Leads)
-        if (analyzerInstruction.instructions_for_manager_agent) {
-            console.log("[Bot] 🚨 MANAGER AGENT TRIGGERED 🚨");
-            const mgr = analyzerInstruction.instructions_for_manager_agent;
-            const phone = mgr.client_phone || userInfo.phone || "Unknown";
-            const name = mgr.client_name || userInfo.fullName || userInfo.username || "Client";
-            const reason = mgr.reason || "Аналитика диалога";
-            const email = mgr.client_email || null;
-            const budget = mgr.budget || null;
-            const interested_units = mgr.interested_units || [];
-            const temp = mgr.lead_temperature || "cold";
-            const lang = analyzerInstruction.detected_language || userInfo.language_code || "ru";
-            const purpose = mgr.purpose || null;
-            const start_date = mgr.start_date || undefined;
-            const end_date = mgr.end_date || undefined;
-            const guests = mgr.guests || undefined;
-
-            if (phone !== "Unknown" || temp === "warm" || temp === "hot") {
-                console.log(`[Bot] Saving Lead for ${chatId}...`);
-                try {
-                    await handleSaveLead({ phone, name, info: reason, email, budget, interested_units, temperature: temp, language: lang, purpose, start_date, end_date, guests } as any, chatId, userInfo.username);
-                    console.log(`[Bot] Lead saved successfully.`);
-                } catch (saveErr) {
-                    console.error("[Bot] handleSaveLead failed:", saveErr);
-                }
-
-                // Create a PENDING booking to hold the slot while manager decides
-                // Pending = dates are blocked for bot search, but not yet confirmed
-                const isRentalIntent = purpose === "АРЕНДА"
-                    || activeIntent === "rent"
-                    || !!analyzerInstruction.instructions_for_rental_manager_agent;
-
-                if ((temp === "warm" || temp === "hot") && start_date && end_date && unitsFound.length > 0 && isRentalIntent) {
-                    const rentalUnit = unitsFound[0];
-                    // Only create if no pending booking already exists for this unit+dates
-                    const { data: existing } = await supabase
-                        .from("rental_bookings")
-                        .select("id")
-                        .eq("unit_id", rentalUnit.id)
-                        .eq("start_date", start_date)
-                        .eq("end_date", end_date)
-                        .neq("status", "cancelled")
-                        .maybeSingle();
-
-                    if (!existing) {
-                        try {
-                            await supabase.from("rental_bookings").insert({
-                                unit_id: rentalUnit.id,
-                                start_date,
-                                end_date,
-                                guest_name: name !== "Unknown" ? name : null,
-                                guest_phone: phone !== "Unknown" ? phone : null,
-                                status: "pending",
-                                notes: `Авто-запрос из бота. @${userInfo.username || chatId}. Ожидает подтверждения менеджера.`,
-                            });
-                            console.log(`[Bot] Pending booking created for unit ${rentalUnit.id} (${start_date} → ${end_date})`);
-                        } catch (bookErr) {
-                            console.error("[Bot] Pending booking failed:", bookErr);
-                        }
-                    }
-                }
-            }
-
-            let alertMsg = `🔥 <b>ВНИМАНИЕ МЕНЕДЖЕРАМ! (ИИ-БОТ)</b> 🔥\n\n👤 Пользователь: @${userInfo.username || chatId}\n👤 Имя: ${name}\n📞 Контакт: ${phone !== "Unknown" ? phone : "Пока не оставил"}\n💬 Инфо: ${reason}`;
-            if (budget) alertMsg += `\n💰 Бюджет: $${budget}`;
-            if (temp) alertMsg += `\n🌡 Горячесть: ${temp === 'hot' ? '🔥 Горячий' : temp === 'warm' ? '☀️ Теплый' : '❄️ Холодный'}`;
-            if (interested_units && interested_units.length > 0) alertMsg += `\n🏢 Интересы: ${interested_units.join(', ')}`;
-            alertMsg += `\n\n🤖 <i>ИИ продолжает диалог, но вы можете перехватить!</i>`;
-
-            // Send notifications to Managers only for formed leads (warm or hot)
-            if (temp === "warm" || temp === "hot") {
-                const { data: managers } = await supabase
-                    .from("telegram_managers")
-                    .select("telegram_id, preferred_lang")
-                    .eq("is_active", true);
-
-                if (managers && managers.length > 0) {
-                    const dashboardUrl = "https://ai2b.app/app/leads";
-
-                    for (const m of managers) {
-                        if (!m.telegram_id) continue;
-
-                        const m_lang = m.preferred_lang || "ru";
-                        const safeName = escapeHtml(name);
-                        const notificationText =
-                            m_lang === "tr" ? `🚀 <b>Yeni bir lead'iniz var!</b>\n\nMüşteri: ${safeName}\nDetayları görüntülemek için panele gidin.` :
-                                m_lang === "en" ? `🚀 <b>You have a new lead!</b>\n\nClient: ${safeName}\nGo to the dashboard to view details.` :
-                                    `🚀 <b>У вас новый лид!</b>\n\nКлиент: ${safeName}\nПерейдите в дашборд для просмотра деталей.`;
-
-                        const btnLabel =
-                            m_lang === "tr" ? "Panele Git ↗️" :
-                                m_lang === "en" ? "To Dashboard ↗️" :
-                                    "В дашборд ↗️";
-
-                        try {
-                            await sendMessage(token, m.telegram_id, notificationText, {
-                                parse_mode: "HTML",
-                                reply_markup: {
-                                    inline_keyboard: [
-                                        [{ text: btnLabel, url: dashboardUrl }]
-                                    ]
-                                }
-                            });
-                        } catch (e) {
-                            console.error("Manager Alert failed for", m.telegram_id, e);
-                        }
-                    }
-                }
-            }
-        }
-
-        // B. SEARCH EXECUTOR
+        // ==========================================
+        // 3. RUN SEARCH EXECUTOR
+        // ==========================================
         if (searchParams) {
             console.log("[Bot] 🔍 SEARCH EXECUTOR TRIGGERED for", activeIntent);
             const baseParams = searchParams;
-
             const searchTasks = [
-                baseParams, // 1. Strict search (up to Price + 15% as per agent rules)
-                { ...baseParams, rooms: undefined }, // 2. Relaxed rooms
-                { ...baseParams, rooms: undefined, price: baseParams.price ? baseParams.price * 1.5 : undefined } // 3. Very relaxed price
+                baseParams, 
+                { ...baseParams, rooms: undefined }, 
+                { ...baseParams, rooms: undefined, price: baseParams.price ? baseParams.price * 1.5 : undefined }
             ];
 
             for (let i = 0; i < searchTasks.length; i++) {
-                console.log(`[Bot] Executing Multi-Search attempt ${i + 1}/${searchTasks.length}...`, searchTasks[i]);
                 try {
                     const rawResult = await handleSearchDatabase(searchTasks[i]);
                     const parsed = JSON.parse(rawResult);
@@ -261,79 +154,102 @@ ${agencyFiles}`;
                         const newUnits = parsed.units.filter((u: any) => !shownIds.includes(u.id));
                         if (newUnits.length > 0) {
                             unitsFound = newUnits;
-                            console.log(`[Bot] Found ${unitsFound.length} new properties on attempt ${i + 1}. Breaking search loop.`);
                             break;
                         } else if (parsed.units.length > 0) {
-                            // Focus on the best match even if it was shown before, to avoid saying "Not found" when it exists
                             unitsFound = parsed.units;
-                            console.log(`[Bot] Only previously shown properties found (${unitsFound.length}) on attempt ${i + 1}. Re-using to avoid false negative.`);
                             break;
                         }
                     }
-                } catch (e) {
-                    console.error("Search failed on attempt", i + 1, e);
-                }
+                } catch (e) {}
             }
         }
 
-        // C. WRITER AGENT (Communication)
-        if (analyzerInstruction.instructions_for_writer) {
-            console.log("[Bot] 🗣 WRITER AGENT TRIGGERED for intent:", activeIntent);
+        // ==========================================
+        // 4. RUN WRITER AGENT (Base Response Generation)
+        // ==========================================
+        let dbData = "База недвижимости не запрашивалась.";
+        if (searchParams) {
+            dbData = unitsFound.length > 0
+                ? JSON.stringify(unitsFound.slice(0, 1), null, 2)
+                : "[ВНИМАНИЕ: ОБЪЕКТЫ ПО ЗАПРОСУ НЕ НАЙДЕНЫ. Не придумывай. Скажи, что объектов нет.]";
+        }
 
-            let dbData = "База данных не запрашивалась.";
-            if (searchParams) {
-                dbData = unitsFound.length > 0
-                    ? JSON.stringify(unitsFound.slice(0, 1), null, 2)
-                    : "[ВНИМАНИЕ: ОБЪЕКТЫ ПО ЗАПРОСУ НЕ НАЙДЕНЫ. КРИТИЧЕСКОЕ ПРАВИЛО: КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО выдумывать объекты или брать другие варианты из истории чата! Просто скажи, что по таким параметрам сейчас ничего нет, и предложи изменить запрос. Никаких общих шаблонных описаний.]";
-            }
-
-            let customInstruction = analyzerInstruction.instructions_for_writer;
-
-            // Rental price calculation: inject total cost for the requested dates
+        if (analyzerInstruction.writer_agent) {
+            console.log("[Bot] ✍️ WRITER AGENT TRIGGERED for intent:", activeIntent);
+            let customInstruction = analyzerInstruction.writer_agent.instruction || "Общайся вежливо.";
+            
             if (activeIntent === "rent" && searchParams && unitsFound.length > 0) {
                 const unit = unitsFound[0];
-                const startD = searchParams.start_date || analyzerInstruction.instructions_for_manager_agent?.start_date;
-                const endD = searchParams.end_date || analyzerInstruction.instructions_for_manager_agent?.end_date;
+                const startD = searchParams.start_date;
+                const endD = searchParams.end_date;
                 if (startD && endD && unit.price_per_day) {
                     const days = Math.round((new Date(endD).getTime() - new Date(startD).getTime()) / 86400000);
                     if (days > 0) {
                         const totalCost = days * unit.price_per_day;
-                        customInstruction = `РАСЧЁТ СТОИМОСТИ: клиент запросил аренду с ${startD} по ${endD} (${days} ${days === 1 ? 'ночь' : days < 5 ? 'ночи' : 'ночей'}). Цена за сутки: ${unit.price_per_day} €. ИТОГО за ${days} ночей: ${totalCost} €. ОБЯЗАТЕЛЬНО назови итоговую сумму ${totalCost} € клиенту в ответе.\n\n${customInstruction}`;
+                        customInstruction = `РАСЧЁТ: Клиент просил ${startD} - ${endD} (${days} дн). ИТОГО: ${totalCost} €. ОБРЕЗУЙ ЦЕНУ!\n\n${customInstruction}`;
                     }
                 }
             }
 
-            // Force prioritization and structure of found units
             if (unitsFound.length > 0) {
-                customInstruction = `ВНИМАНИЕ: ОБЪЕКТ НАЙДЕН! 
-Твой ответ ДОЛЖЕН состоять из 3-х частей в одном сообщении:
-1. ОТВЕТ на сообщение клиента.
-2. ПРЕЗЕНТАЦИЯ объекта по шаблону.
-3. ЗАКРЫТИЕ: Если клиенту нравится вариант — ПРЯМО предложи оставить номер телефона или WhatsApp для консультации с брокером. Если он еще выбирает — задай вопрос про локацию или пожелания. НЕ СПРАШИВАЙ бюджет, если он уже понятен.
-\n\n${customInstruction}`;
+                customInstruction = `ВНИМАНИЕ: ОБЪЕКТ НАЙДЕН! 1) ОТВЕТЬ клиенту; 2) ПРЕЗЕНТУЙ объект; 3) ЗАКРОЙ (CTA - возьми номер!).\n\n${customInstruction}`;
             }
 
-            const fullInstruction = `[УКАЗАНИЕ ОТ АНАЛИЗАТОРА]:\n${customInstruction}\n\n[ИСТОРИЯ И КОНТЕКСТ]:\nОпирайся на историю диалога и учитывай правила компании!`;
-            const lang = analyzerInstruction.detected_language || userInfo.language_code || "ru";
-
-            sendChatAction(token, chatId, 'typing').catch(() => { });
+            const combinedInstruction = `[ИНСТРУКЦИЯ]: ${customInstruction}\n\n[ДАННЫЕ ОТ RAG-АГЕНТА (База Знаний)]:\n${ragResponse}`;
             
-            // Branch to specific specialized writer
+            // Generate the base text in generic language (usually RU or EN depending on history)
+            sendChatAction(token, chatId, 'typing').catch(() => { });
             if (activeIntent === "rent") {
-                finalReplyText = await runRentWriterAgent(messages, botKnowledge, dbData + "\n\n" + fullInstruction, lang);
+                finalReplyText = await require("../ai/agents").runRentWriterAgent(messages, combinedInstruction, dbData);
             } else if (activeIntent === "land") {
-                finalReplyText = await runLandWriterAgent(messages, botKnowledge, dbData + "\n\n" + fullInstruction, lang);
+                finalReplyText = await require("../ai/agents").runLandWriterAgent(messages, combinedInstruction, dbData);
             } else {
-                finalReplyText = await runSaleWriterAgent(messages, botKnowledge, dbData + "\n\n" + fullInstruction, lang);
+                finalReplyText = await require("../ai/agents").runSaleWriterAgent(messages, combinedInstruction, dbData);
+            }
+        } else {
+            // Fallback if DeepSeek hallucinates missing writer
+            finalReplyText = "Спасибо за ваш запрос! Минуту, я проверяю данные...";
+        }
+
+        // ==========================================
+        // 5. RUN CLIENT TRANSLATOR AGENT (Localization)
+        // ==========================================
+        if (finalReplyText && analyzerInstruction.client_translator_agent) {
+            console.log("[Bot] 🌍 CLIENT TRANSLATOR AGENT TRIGGERED");
+            const targetLang = analyzerInstruction.client_translator_agent.target_language || userInfo.language_code || "ru";
+            finalReplyText = await require("../ai/agents").runClientTranslatorAgent(finalReplyText, targetLang, messages);
+        }
+
+        // ==========================================
+        // 6. SYNCHRONOUS MEDIA DISPATCH (Photos arrive before text)
+        // ==========================================
+        if (searchParams && unitsFound.length > 0) {
+            console.log("[Bot] 📸 PHOTO AGENT (Auto Trigger)");
+            const displayedUnits = unitsFound.slice(0, 1);
+            for (const unit of displayedUnits) {
+                if (unit.id) {
+                    sendChatAction(token, chatId, 'upload_photo').catch(() => { });
+                    await handleGetPhotos({ unit_id: String(unit.id) }, token, chatId).catch(e => console.error(e));
+                }
+            }
+        } else if (analyzerInstruction.photo_agent && analyzerInstruction.photo_agent.send_photos) {
+            console.log("[Bot] 📸 PHOTO AGENT (Explicit Instruction)");
+            // In case the agent explicitly asked for photos of the last known unit but didn't trigger search
+            const assistantHistory = messages.filter((m: any) => m.role === "assistant").map((m: any) => m.content).join(" ");
+            const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+            const shownIds = Array.from(assistantHistory.matchAll(uuidRegex)).map((m: any) => m[0]);
+            if (shownIds.length > 0) {
+                await handleGetPhotos({ unit_id: String(shownIds[shownIds.length - 1]) }, token, chatId).catch(e => console.error(e));
             }
         }
 
-        // 4. Final Output to User
+        // ==========================================
+        // 7. OUTPUT TO USER
+        // ==========================================
         if (finalReplyText) {
             console.log("[Bot] Sending final text to Telegram...");
             await sendMessage(token, chatId, finalReplyText);
 
-            // secretly append UUIDs to the database history so the search agent won't show repeats
             let dbStoreText = finalReplyText;
             if (searchParams && unitsFound.length > 0) {
                 const shownIdsString = unitsFound.slice(0, 1).map((u: any) => `[HIDDEN_SYSTEM_ID: ${u.id}]`).join("\n");
@@ -342,15 +258,64 @@ ${agencyFiles}`;
             await appendMessage({ session_id: sessionId, bot_id: botId, role: "assistant", content: dbStoreText });
         }
 
-        // 5. Send Photos strictly AFTER text message if we found units
-        if (searchParams && unitsFound.length > 0) {
-            console.log(`[Bot] Sending photos for ${unitsFound.length} units...`);
-            const displayedUnits = unitsFound.slice(0, 1); // Show exactly 1 unit per response
-            for (const unit of displayedUnits) {
-                if (unit.id) {
-                    sendChatAction(token, chatId, 'upload_photo').catch(() => { });
-                    await handleGetPhotos({ unit_id: String(unit.id) }, token, chatId).catch(e => console.error("Error sending photo for", unit.id, e));
+        // ==========================================
+        // 8. ASYNC BACKGROUND AGENTS (Leads, Bookings)
+        // ==========================================
+        // Lead Extractors
+        const saleExtractor = analyzerInstruction.lead_extractor_sale_agent;
+        const rentExtractor = analyzerInstruction.lead_extractor_rent_agent;
+        const extractor = saleExtractor || rentExtractor;
+        
+        if (extractor) {
+            console.log("[Bot] 💼 LEAD EXTRACTOR TRIGGERED");
+            const phone = extractor.client_phone || userInfo.phone || "Unknown";
+            const name = extractor.client_name || userInfo.fullName || userInfo.username || "Client";
+            const temp = extractor.lead_temperature || "warm";
+            const lang = analyzerInstruction.client_translator_agent?.target_language || "ru";
+            const purpose = extractor.purpose || (rentExtractor ? "АРЕНДА" : "ПОКУПКА");
+            
+            // Save lead
+            await handleSaveLead({ 
+                phone, name, info: extractor.manager_alert_reason || "Аналитика диалога", 
+                budget: extractor.budget, temperature: temp, language: lang, purpose,
+                start_date: rentExtractor?.start_date, end_date: rentExtractor?.end_date, guests: rentExtractor?.guests
+            } as any, chatId, userInfo.username).catch(e => console.error("[Bot] Save Lead Error:", e));
+
+            // Alert Managers
+            if (temp === "warm" || temp === "hot") {
+                const { data: managers } = await supabase.from("telegram_managers").select("telegram_id, preferred_lang").eq("is_active", true);
+                if (managers && managers.length > 0) {
+                    const alertMsg = `🔥 <b>ВНИМАНИЕ МЕНЕДЖЕРАМ! (ИИ-БОТ)</b> 🔥\n\n👤 Пользователь: @${userInfo.username || chatId}\n👤 Имя: ${escapeHtml(name)}\n📞 Контакт: ${phone !== "Unknown" ? escapeHtml(phone) : "Не оставил"}\n💬 Инфо: ${escapeHtml(extractor.manager_alert_reason || "Лид из бота")}`;
+                    for (const m of managers) {
+                        if (m.telegram_id) {
+                            await sendMessage(token, m.telegram_id, alertMsg, {
+                                parse_mode: "HTML",
+                                reply_markup: { inline_keyboard: [[{ text: "В дашборд ↗️", url: "https://ai2b.app/app/leads" }]] }
+                            }).catch(() => {});
+                        }
+                    }
                 }
+            }
+
+            // Booking Agent
+            if (analyzerInstruction.booking_agent && unitsFound.length > 0 && rentExtractor?.start_date && rentExtractor?.end_date) {
+                console.log("[Bot] 📅 BOOKING AGENT TRIGGERED");
+                try {
+                    const rentalUnit = unitsFound[0];
+                    const { data: existing } = await supabase.from("rental_bookings").select("id")
+                        .eq("unit_id", rentalUnit.id).eq("start_date", rentExtractor.start_date).eq("end_date", rentExtractor.end_date)
+                        .neq("status", "cancelled").maybeSingle();
+
+                    if (!existing) {
+                        await supabase.from("rental_bookings").insert({
+                            unit_id: rentalUnit.id,
+                            start_date: rentExtractor.start_date, end_date: rentExtractor.end_date,
+                            guest_name: name !== "Unknown" ? name : null, guest_phone: phone !== "Unknown" ? phone : null,
+                            status: "pending", notes: `Авто-запрос из бота. @${userInfo.username || chatId}.`
+                        });
+                        console.log(`[Bot] Pending booking created for unit ${rentalUnit.id}`);
+                    }
+                } catch (bookErr) { console.error("[Bot] Pending booking failed:", bookErr); }
             }
         }
 

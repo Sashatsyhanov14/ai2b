@@ -6,18 +6,21 @@ type Message = {
 /**
  * Ask LLM via Polza AI API
  */
+type ModelType = 'deepseek' | 'gpt-4o-mini' | 'gemini-1.5-flash';
+
 export async function askLLM(
     promptOrMessages: string | Message[] | any[],
     system?: string,
     noJson: boolean = false,
     jsonSchema?: any,
-    fastModel: boolean = false
+    modelType: ModelType = 'gpt-4o-mini'
 ): Promise<string> {
     const apiKey = process.env.POLZA_API_KEY;
     if (!apiKey) throw new Error("POLZA_API_KEY is not set.");
 
-    // gpt-4o-mini and gemini-1.5-flash will keep costs well under 0.05 per client
-    const modelName = fastModel ? "gemini-1.5-flash" : "gpt-4o-mini";
+    const modelName = modelType === 'deepseek' ? 'deepseek-chat' 
+        : modelType === 'gemini-1.5-flash' ? 'gemini-1.5-flash' 
+        : 'gpt-4o-mini';
 
     let messages: any[] = [];
 
