@@ -152,10 +152,8 @@ export default function PropertyForm({ initialData }: { initialData?: any }) {
              <button
                 key={item.id}
                 type="button"
-                disabled={isForRent && !isForSale && item.id !== 'sale'}
                 onClick={() => setCategory(item.id as any)}
                 className={`flex flex-col items-center gap-2 p-4 rounded-2xl border transition-all w-24 ${
-                  isForRent && !isForSale && item.id !== 'sale' ? 'opacity-20 cursor-not-allowed grayscale' :
                   category === item.id ? 'bg-emerald-600/10 border-emerald-500 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 
                   'bg-neutral-900 border-neutral-800 text-neutral-500 hover:border-neutral-700'
                 }`}
@@ -197,19 +195,23 @@ export default function PropertyForm({ initialData }: { initialData?: any }) {
               <input value={form.address} onChange={e => update('address', e.target.value)} className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl px-5 py-4 text-white font-medium outline-none focus:border-emerald-500 shadow-inner" placeholder="Улица, дом, номер квартиры..." />
            </div>
 
-           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
+           <div className={`grid grid-cols-1 md:grid-cols-${category === 'land' ? '1' : '3'} gap-6 pt-4`}>
               <div className="p-6 rounded-3xl bg-neutral-950/40 border border-neutral-800 flex flex-col items-center gap-2 group hover:border-neutral-700 transition-colors">
-                <label className="text-[10px] text-neutral-500 uppercase font-black tracking-widest">Площадь (м²)</label>
+                <label className="text-[10px] text-neutral-500 uppercase font-black tracking-widest">Общая площадь (м²)</label>
                 <input type="number" value={form.area_m2} onChange={e => update('area_m2', e.target.value)} className="w-full bg-transparent border-0 text-center text-3xl font-black text-white outline-none placeholder:text-neutral-800" placeholder="0" />
               </div>
-              <div className="p-6 rounded-3xl bg-neutral-950/40 border border-neutral-800 flex flex-col items-center gap-2 group hover:border-neutral-700 transition-colors">
-                <label className="text-[10px] text-neutral-500 uppercase font-black tracking-widest">Этаж</label>
-                <input type="number" value={form.floor} onChange={e => update('floor', e.target.value)} className="w-full bg-transparent border-0 text-center text-3xl font-black text-white outline-none placeholder:text-neutral-800" placeholder="0" />
-              </div>
-              <div className="p-6 rounded-3xl bg-neutral-950/40 border border-neutral-800 flex flex-col items-center gap-2 group hover:border-neutral-700 transition-colors">
-                <label className="text-[10px] text-neutral-500 uppercase font-black tracking-widest">Всего этажей</label>
-                <input type="number" value={form.floors_total} onChange={e => update('floors_total', e.target.value)} className="w-full bg-transparent border-0 text-center text-3xl font-black text-white outline-none placeholder:text-neutral-800" placeholder="0" />
-              </div>
+              {category !== 'land' && (
+                <>
+                  <div className="p-6 rounded-3xl bg-neutral-950/40 border border-neutral-800 flex flex-col items-center gap-2 group hover:border-neutral-700 transition-colors">
+                    <label className="text-[10px] text-neutral-500 uppercase font-black tracking-widest">Этаж</label>
+                    <input type="number" value={form.floor} onChange={e => update('floor', e.target.value)} className="w-full bg-transparent border-0 text-center text-3xl font-black text-white outline-none placeholder:text-neutral-800" placeholder="0" />
+                  </div>
+                  <div className="p-6 rounded-3xl bg-neutral-950/40 border border-neutral-800 flex flex-col items-center gap-2 group hover:border-neutral-700 transition-colors">
+                    <label className="text-[10px] text-neutral-500 uppercase font-black tracking-widest">Всего этажей</label>
+                    <input type="number" value={form.floors_total} onChange={e => update('floors_total', e.target.value)} className="w-full bg-transparent border-0 text-center text-3xl font-black text-white outline-none placeholder:text-neutral-800" placeholder="0" />
+                  </div>
+                </>
+              )}
            </div>
         </section>
 
@@ -283,21 +285,21 @@ export default function PropertyForm({ initialData }: { initialData?: any }) {
            </div>
         </section>
 
-        {/* DETAILS SECTION: Rooms, Bedrooms, etc. */}
-        {category === 'sale' && (
+        {/* DETAILS SECTION: Rooms, Bedrooms, etc. - Only for Homes and Commercial (if applicable) */}
+        {category !== 'land' && (
           <section className="bg-neutral-900/30 rounded-[40px] border border-neutral-800 p-8">
-            <h2 className="text-xs font-black text-neutral-500 uppercase tracking-widest mb-6 px-1">Детали планировки</h2>
+            <h2 className="text-xs font-black text-neutral-500 uppercase tracking-widest mb-6 px-1">Детали объекта</h2>
             <div className="grid grid-cols-3 gap-6">
                <div className="space-y-2">
-                <label className="text-[10px] text-neutral-500 uppercase font-black tracking-widest px-1">Комнаты</label>
+                <label className="text-[10px] text-neutral-500 uppercase font-black tracking-widest px-1">Помещения</label>
                 <input value={form.rooms} onChange={e => update('rooms', e.target.value)} className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl px-5 py-4 text-white text-center font-bold outline-none focus:border-emerald-500 shadow-inner" placeholder="1+1" />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] text-neutral-500 uppercase font-black tracking-widest px-1">Спальни</label>
+                <label className="text-[10px] text-neutral-500 uppercase font-black tracking-widest px-1">{category === 'commercial' ? 'Санузлы' : 'Спальни'}</label>
                 <input type="number" value={form.bedrooms} onChange={e => update('bedrooms', e.target.value)} className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl px-5 py-4 text-white text-center font-bold outline-none focus:border-emerald-500 shadow-inner" placeholder="0" />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] text-neutral-500 uppercase font-black tracking-widest px-1">Гости (max)</label>
+                <label className="text-[10px] text-neutral-500 uppercase font-black tracking-widest px-1">Гардеробные / кладовые</label>
                 <input type="number" value={form.max_guests} onChange={e => update('max_guests', e.target.value)} className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl px-5 py-4 text-white text-center font-bold outline-none focus:border-emerald-500 shadow-inner" placeholder="0" />
               </div>
             </div>
