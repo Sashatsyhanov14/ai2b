@@ -246,12 +246,12 @@ export default function SecondaryList() {
                 <td className="px-3 py-2">{u.i18n?.[lang]?.address || u.address}</td>
                 <td className="px-3 py-2">{u.rooms === 0 ? 'Студия' : u.rooms}</td>
                 <td className="px-3 py-2">
-                  {u.floor}/{(u as any).floors_total}
+                  {u.floor}
                 </td>
                 <td className="px-3 py-2">{u.area_m2}</td>
                 <td className="px-3 py-2">{(u.price ?? 0).toLocaleString('ru-RU')}</td>
                 <td className="px-3 py-2">{u.status ? statusBadge(u.status) : '-'}</td>
-                <td className="px-3 py-2">{u.photos_count ?? 0}</td>
+                <td className="px-3 py-2">{(u.photos?.length) ?? 0}</td>
                 <td className="px-3 py-2">
                   <div className="flex gap-2">
                     <Link href={`/app/sales/secondary/${u.id}`} className="rounded border border-white/15 px-2 py-1 hover:bg-white/10">Редактировать</Link>
