@@ -389,5 +389,13 @@ export const tr = {
       placeholder: "Kuralı buraya girin...",
       empty: "Kural listesi boş. Başlamak için 'Kural Ekle'ye tıklayın.",
     },
+    faq: {
+      title: "SSS — Bilgi Bankası",
+      description: "Yapay zeka otomatik olarak müşterinin diline çevirecek.",
+      add: "Ekle",
+      empty: "SSS boş. İlk soruyu ekleyin.",
+      questionPlaceholder: "Soru...",
+      answerPlaceholder: "Cevap...",
+    },
   },
 } as const;

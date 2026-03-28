@@ -7,7 +7,9 @@ import { runUnitTranslationAgent } from '@/services/bot/ai/agents'
 function mapIncomingToDb(payload: any, baseEn: any, i18nData: any): Partial<Unit> {
   const out: Partial<Unit> = {}
 
-  // Apply AI translated fields if present
+  if (baseEn.title != null) out.title = String(baseEn.title)
+  else if (payload.title != null) out.title = String(payload.title)
+
   if (baseEn.city != null) out.city = normalizeCity(String(baseEn.city))
   else if (payload.city != null) out.city = normalizeCity(String(payload.city))
 
@@ -73,8 +75,9 @@ export async function PATCH(req: Request, { params }: Params) {
   let i18nData = null;
   if (payload.title || payload.city || payload.district || payload.address || payload.description) {
     console.log(`[API Units ${params.unitId}] Running Unit Translation Agent for update...`);
+    const categoryName = payload.category || 'property';
     const translationResult = await runUnitTranslationAgent({
-      title: payload.title || (payload.city ? `Property in ${payload.city}` : undefined),
+      title: payload.title || (payload.city ? `${categoryName} in ${payload.city}` : undefined),
       city: payload.city,
       district: payload.district,
       address: payload.address,

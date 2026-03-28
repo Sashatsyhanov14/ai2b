@@ -50,9 +50,8 @@ const DEFAULT_I18N = {
 };
 
 export default function UnifiedBotPage() {
-    const { t } = useI18n();
+    const { t, locale } = useI18n();
     const [activeTab, setActiveTab] = useState<Tab>("faq");
-    const [faqLang, setFaqLang] = useState<"ru" | "en" | "tr">("ru");
 
     // --- State: Dashboard & Managers ---
     const [, setSessionsCount] = useState<number | null>(null);
@@ -155,7 +154,7 @@ export default function UnifiedBotPage() {
             return { 
                 ...f, 
                 i18n: newI18n,
-                ...(lang === "ru" || lang === faqLang ? { [field]: value } : {})
+                ...(lang === "ru" ? { [field]: value } : {})
             };
         }));
     }
@@ -301,35 +300,19 @@ export default function UnifiedBotPage() {
                     <section className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                             <div>
-                                <h2 className="text-xl font-bold text-neutral-100 italic">Часто задаваемые вопросы (FAQ)</h2>
+                                <h2 className="text-xl font-bold text-neutral-100 italic">{t("bot.faq.title") || "FAQ — База знаний"}</h2>
                                 <p className="text-sm text-neutral-400 mt-1">
-                                    Управляйте списком популярных вопросов и ответов на 3 языках.
+                                    {t("bot.faq.description") || "ИИ автоматически переведёт на нужный язык клиента."}
                                 </p>
                             </div>
                             
                             <div className="flex items-center gap-4">
-                                {/* Language Selector */}
-                                <div className="flex items-center gap-1 rounded-xl bg-neutral-950 p-1 border border-neutral-800">
-                                    {(["ru", "en", "tr"] as const).map((lang) => (
-                                        <button
-                                            key={lang}
-                                            onClick={() => setFaqLang(lang)}
-                                            className={`
-                                                px-3 py-1.5 text-xs font-bold rounded-lg transition-all
-                                                ${faqLang === lang ? "bg-blue-600 text-white shadow-lg" : "text-neutral-500 hover:text-neutral-300"}
-                                            `}
-                                        >
-                                            {lang.toUpperCase()}
-                                        </button>
-                                    ))}
-                                </div>
-
                                 <Button
                                     onClick={handleAddFaq}
                                     disabled={faqSaving}
                                     className="gap-2 bg-emerald-600/10 text-emerald-400 border-emerald-600/20 hover:bg-emerald-600/20 h-10 px-4"
                                 >
-                                    <Plus className="h-4 w-4" /> Добавить FAQ
+                                    <Plus className="h-4 w-4" /> {t("bot.faq.add") || "Добавить"}
                                 </Button>
                             </div>
                         </div>
@@ -341,8 +324,8 @@ export default function UnifiedBotPage() {
                         ) : (
                             <div className="space-y-4">
                                 {faqs.map((faq) => {
-                                    const l = faqLang;
-                                    const val = faq.i18n?.[l] || { question: "", answer: "" };
+                                    const lang = (locale === 'tr' || locale === 'en') ? locale : 'ru';
+                                    const val = faq.i18n?.[lang] || faq.i18n?.ru || { question: faq.question || "", answer: faq.answer || "" };
 
                                     return (
                                         <div key={faq.id} className="group relative rounded-2xl border border-neutral-800 bg-neutral-950 p-6 transition-all hover:border-neutral-700">
@@ -350,14 +333,14 @@ export default function UnifiedBotPage() {
                                                 <div className="flex items-start justify-between gap-4">
                                                     <div className="flex-1 flex items-center gap-3">
                                                         <div className="w-8 h-8 rounded-lg bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-[10px] font-bold text-blue-400">
-                                                            {l.toUpperCase()}
+                                                            {lang.toUpperCase()}
                                                         </div>
                                                         <input
                                                             className="flex-1 bg-transparent border-none text-neutral-100 font-bold outline-none placeholder:text-neutral-700 p-0 text-lg"
                                                             value={val.question}
-                                                            onChange={(e) => handleUpdateFaqI18n(faq.id, l, "question", e.target.value)}
-                                                            onBlur={(e) => handleSaveFaq(faq.id, { i18n: { ...faq.i18n, [l]: { ...val, question: e.target.value } } })}
-                                                            placeholder={`Вопрос на ${l.toUpperCase()}...`}
+                                                            onChange={(e) => handleUpdateFaqI18n(faq.id, lang as any, "question", e.target.value)}
+                                                            onBlur={(e) => handleSaveFaq(faq.id, { question: e.target.value, i18n: { ...faq.i18n, [lang]: { ...val, question: e.target.value } } })}
+                                                            placeholder={t("bot.faq.questionPlaceholder") || "Вопрос..."}
                                                         />
                                                     </div>
                                                     <button
@@ -371,9 +354,9 @@ export default function UnifiedBotPage() {
                                                     <textarea
                                                         className="w-full bg-neutral-900/30 border border-neutral-800 rounded-xl p-4 text-sm text-neutral-400 leading-relaxed outline-none focus:border-emerald-500/30 transition-all resize-none min-h-[100px]"
                                                         value={val.answer}
-                                                        onChange={(e) => handleUpdateFaqI18n(faq.id, l, "answer", e.target.value)}
-                                                        onBlur={(e) => handleSaveFaq(faq.id, { i18n: { ...faq.i18n, [l]: { ...val, answer: e.target.value } } })}
-                                                        placeholder={`Ответ на ${l.toUpperCase()}...`}
+                                                        onChange={(e) => handleUpdateFaqI18n(faq.id, lang as any, "answer", e.target.value)}
+                                                        onBlur={(e) => handleSaveFaq(faq.id, { answer: e.target.value, i18n: { ...faq.i18n, [lang]: { ...val, answer: e.target.value } } })}
+                                                        placeholder={t("bot.faq.answerPlaceholder") || "Ответ..."}
                                                     />
                                                 </div>
                                             </div>
@@ -382,7 +365,7 @@ export default function UnifiedBotPage() {
                                 })}
                                 {faqs.length === 0 && (
                                     <div className="py-20 text-center text-neutral-600 italic">
-                                        Список FAQ пуст. Добавьте первый вопрос.
+                                        {t("bot.faq.empty") || "FAQ пуст. Добавьте первый вопрос."}
                                     </div>
                                 )}
                             </div>

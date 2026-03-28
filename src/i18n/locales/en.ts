@@ -388,5 +388,13 @@ export const en = {
       placeholder: "Enter rule here...",
       empty: "Rules list is empty. Click 'Add Rule' to start.",
     },
+    faq: {
+      title: "FAQ — Knowledge Base",
+      description: "AI will automatically translate for the client's language.",
+      add: "Add",
+      empty: "FAQ is empty. Add your first question.",
+      questionPlaceholder: "Question...",
+      answerPlaceholder: "Answer...",
+    },
   },
 } as const;

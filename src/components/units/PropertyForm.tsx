@@ -57,7 +57,7 @@ const LAND_TAGS = [
 ];
 
 export default function PropertyForm({ initialData }: { initialData?: any }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const router = useRouter();
 
   const [category, setCategory] = useState<'residential' | 'commercial' | 'land' | 'sale' | 'rent'>(initialData?.category || 'residential');
@@ -65,9 +65,9 @@ export default function PropertyForm({ initialData }: { initialData?: any }) {
   const [isForRent, setIsForRent] = useState(initialData?.transactions ? initialData.transactions.includes('rent') : (initialData?.category === 'rent' || !!initialData?.price_per_day));
 
   const [form, setForm] = useState({
-    district: initialData?.district || "",
-    city: initialData?.city || "Alanya",
-    address: initialData?.address || "",
+    district: initialData?.i18n?.[locale]?.district || initialData?.district || "",
+    city: initialData?.i18n?.[locale]?.city || initialData?.city || "Alanya",
+    address: initialData?.i18n?.[locale]?.address || initialData?.address || "",
     rooms: initialData?.rooms ?? "1",
     floor: initialData?.floor ?? "",
     floors_total: initialData?.floors_total ?? "",
@@ -78,7 +78,7 @@ export default function PropertyForm({ initialData }: { initialData?: any }) {
     bedrooms: initialData?.bedrooms ?? "",
     bathrooms: initialData?.bathrooms ?? "",
     max_guests: initialData?.max_guests ?? "",
-    description: initialData?.description || "",
+    description: initialData?.i18n?.[locale]?.description || initialData?.description || "",
     ai_instructions: initialData?.ai_instructions || "",
   });
 

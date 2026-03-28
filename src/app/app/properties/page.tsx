@@ -17,7 +17,7 @@ function formatPrice(value?: number | null) {
 }
 
 export default function PropertiesPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const router = useRouter();
   const [units, setUnits] = useState<Unit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,9 +57,10 @@ export default function PropertiesPage() {
   const filtered = useMemo(() => {
     return units.filter((u) => {
       const q = search.trim().toLowerCase();
-      const matchesSearch = !q || 
-        (u.city || "").toLowerCase().includes(q) || 
-        (u.address || "").toLowerCase().includes(q);
+      const cityStr = (u.i18n?.[locale]?.city || u.city || "").toLowerCase();
+      const addrStr = (u.i18n?.[locale]?.address || u.address || "").toLowerCase();
+      
+      const matchesSearch = !q || cityStr.includes(q) || addrStr.includes(q);
       
       const matchesCategory = categoryFilter === "all" || 
         u.category === categoryFilter || 
@@ -215,10 +216,12 @@ export default function PropertiesPage() {
                       {(!u.transactions?.length && !u.price && !u.price_per_month && !u.price_per_day) && <span className="text-neutral-500">—</span>}
                     </div>
                   </td>
-                  <td className="px-3 py-3 font-medium text-neutral-300">{u.city}</td>
+                  <td className="px-3 py-3 font-medium text-neutral-300">
+                    {u.i18n?.[locale]?.city || u.city}
+                  </td>
                   <td className="px-3 py-3">
-                     <div className="max-w-[200px] truncate text-neutral-400" title={u.address}>
-                        {u.address}
+                     <div className="max-w-[200px] truncate text-neutral-400" title={u.i18n?.[locale]?.address || u.address}>
+                        {u.i18n?.[locale]?.address || u.address}
                      </div>
                   </td>
                   <td className="px-3 py-3 text-neutral-200">
