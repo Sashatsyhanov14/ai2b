@@ -105,7 +105,7 @@ export default function PropertyForm({ initialData }: { initialData?: any }) {
     try {
       const payload = {
         ...form,
-        category: isForRent && !isForSale ? 'rent' : category, // If only rent, use rent category
+        category: category, // Retain the structural category (sale=apartment, commercial, land)
         features: selectedTags,
         photos: photos,
         // Ensure numbers

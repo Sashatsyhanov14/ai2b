@@ -22,7 +22,20 @@ export async function handleSearchDatabase(args: SearchArgs & { id?: string; pri
     }
 
     if (args.intent) {
-        query = query.eq("category", args.intent);
+        if (args.intent === "rent" || args.intent === "sale") {
+            // intent 'rent' and 'sale' generally target Residential (apartment/villa) which are stored as category 'sale' (and legacy 'rent')
+            query = query.in("category", ["sale", "rent"]);
+        } else {
+            // 'commercial' or 'land'
+            query = query.eq("category", args.intent);
+        }
+    }
+    
+    // Explicit Transaction Type filters for Residential
+    if (args.intent === "rent") {
+        query = query.not("price_per_month", "is", null);
+    } else if (args.intent === "sale") {
+        query = query.not("price", "is", null);
     }
 
     // Date filtering (exclude booked units) - REMOVED BY USER REQUEST
