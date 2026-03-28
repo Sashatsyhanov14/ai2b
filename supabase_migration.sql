@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS public.faq (
     category text DEFAULT 'general',
     is_active boolean DEFAULT true,
     sort_order integer DEFAULT 0,
+    i18n jsonb DEFAULT '{}'::jsonb,
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now()
 );
@@ -65,3 +66,21 @@ CREATE TABLE IF NOT EXISTS public.faq (
 ALTER TABLE public.faq ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow public read access" ON public.faq FOR SELECT USING (true);
 CREATE POLICY "Allow all access for service role" ON public.faq FOR ALL USING (true);
+
+-- 7. Data Migration to FAQ (from instructions and manual text notes)
+DO $$ BEGIN
+    -- Move instructions
+    IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'bot_instructions') THEN
+        INSERT INTO public.faq (question, answer, category)
+        SELECT 'Инструкция', text, 'instruction'
+        FROM public.bot_instructions;
+    END IF;
+
+    -- Move text knowledge bits
+    IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'company_files') THEN
+        INSERT INTO public.faq (question, answer, category)
+        SELECT name, content_text, 'knowledge'
+        FROM public.company_files
+        WHERE file_type = 'text' AND content_text IS NOT NULL;
+    END IF;
+END $$;

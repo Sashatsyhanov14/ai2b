@@ -2,29 +2,13 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import {
-    Plus, Trash2, FileText, Image as ImageIcon, Video, File,
-    Pencil, Users, BarChart3, Settings as SettingsIcon, Database,
-    LayoutDashboard, Building2
+    Plus, Trash2, Users, LayoutDashboard, Globe
 } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/Button";
-import UploadImage from "@/components/UploadImage";
 import { useI18n } from "@/i18n";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 // --- Types ---
-type CompanyFile = {
-    id: string;
-    name: string;
-    description: string | null;
-    file_type: string | null;
-    url: string;
-    category: string;
-    sort_order: number;
-    is_active: boolean;
-    created_at: string;
-    content_text?: string;
-};
 
 type Lead = {
     id: string;
@@ -45,50 +29,28 @@ type TelegramManager = {
     created_at: string;
 };
 
-type BotInstruction = {
+type Tab = "managers" | "faq";
+
+type FAQEntry = {
     id: string;
-    text: string;
+    question: string;
+    answer: string;
+    is_active: boolean;
+    i18n: {
+        ru?: { question: string, answer: string },
+        en?: { question: string, answer: string },
+        tr?: { question: string, answer: string }
+    }
 };
 
-type Tab = "dashboard" | "knowledge" | "managers" | "instructions" | "faq";
-
-// --- Constants ---
-
-function getFileIcon(type: string | null) {
-    if (type === "image") return ImageIcon;
-    if (type === "video") return Video;
-    if (type === "document") return FileText;
-    return File;
-}
-
 export default function UnifiedBotPage() {
-    const { t, locale } = useI18n();
-    const [activeTab, setActiveTab] = useState<Tab>("instructions");
-
-    const CATEGORIES = [
-        { value: "about", label: t("bot.categories.about") },
-        { value: "general", label: t("bot.categories.general") },
-        { value: "instructions", label: t("bot.categories.instructions") },
-        { value: "license", label: t("bot.categories.license") },
-        { value: "certificate", label: t("bot.categories.certificate") },
-        { value: "presentation", label: t("bot.categories.presentation") },
-    ];
-
-    // --- State: Knowledge Base ---
-    const [files, setFiles] = useState<CompanyFile[]>([]);
-    const [loadingFiles, setLoadingFiles] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [editingContent, setEditingContent] = useState<{ id: string; name: string; content: string } | null>(null);
-    const [form, setForm] = useState({ name: "", description: "", file_type: "document", url: "", category: "about" });
-    const [totalSummary, setTotalSummary] = useState("");
-    const [loadingSummary, setLoadingSummary] = useState(false);
-    const [quickNote, setQuickNote] = useState("");
-    const [globalInstructions, setGlobalInstructions] = useState<BotInstruction[]>([]);
-    const [loadingInstructions, setLoadingInstructions] = useState(false);
+    const { t } = useI18n();
+    const [activeTab, setActiveTab] = useState<Tab>("faq");
+    const [faqLang, setFaqLang] = useState<"ru" | "en" | "tr">("ru");
 
     // --- State: Dashboard & Managers ---
-    const [sessionsCount, setSessionsCount] = useState<number | null>(null);
-    const [leads, setLeads] = useState<Lead[]>([]);
+    const [, setSessionsCount] = useState<number | null>(null);
+    const [, setLeads] = useState<Lead[]>([]);
     const [loadingLeads, setLoadingLeads] = useState(true);
     const [managers, setManagers] = useState<TelegramManager[]>([]);
     const [managerName, setManagerName] = useState("");
@@ -99,55 +61,14 @@ export default function UnifiedBotPage() {
     const [managerLang, setManagerLang] = useState("ru");
 
     // --- State: FAQ ---
-    const [faqs, setFaqs] = useState<{ id: string, question: string, answer: string, is_active: boolean }[]>([]);
+    const [faqs, setFaqs] = useState<FAQEntry[]>([]);
     const [loadingFaqs, setLoadingFaqs] = useState(false);
     const [faqSaving, setFaqSaving] = useState(false);
 
     // --- Load Data ---
     useEffect(() => {
-        loadKnowledge();
         loadBotData();
     }, []);
-
-    useEffect(() => {
-        if (activeTab === "knowledge") {
-            loadTotalSummary();
-        }
-    }, [locale, activeTab]);
-
-    async function loadKnowledge() {
-        setLoadingFiles(true);
-        try {
-            const { data, error } = await supabase
-                .from("company_files")
-                .select("*, content_text")
-                .order("category")
-                .order("sort_order");
-            if (error) throw error;
-            setFiles(data || []);
-            loadTotalSummary();
-        } finally {
-            setLoadingFiles(false);
-        }
-    }
-
-    async function loadTotalSummary() {
-        setLoadingSummary(true);
-        try {
-            const res = await fetch(`/api/company/summary?lang=${locale}`);
-            const json = await res.json();
-            if (json.ok) {
-                setTotalSummary(json.summary);
-            } else {
-                setTotalSummary(t("bot.knowledge.errorSummary") || "Не удалось загрузить сводку.");
-            }
-        } catch (e) {
-            console.error("Failed to load summary", e);
-            setTotalSummary("Error loading summary");
-        } finally {
-            setLoadingSummary(false);
-        }
-    }
 
     async function loadBotData() {
         setLoadingLeads(true);
@@ -165,63 +86,10 @@ export default function UnifiedBotPage() {
             if (statsJson?.ok) setSessionsCount(statsJson.sessionsCount ?? 0);
             if (leadsJson?.ok && Array.isArray(leadsJson.data)) setLeads(leadsJson.data);
             if (managersJson?.ok && Array.isArray(managersJson.data)) setManagers(managersJson.data);
-            loadGlobalInstructions();
             loadFaqs();
         } finally {
             setLoadingLeads(false);
             setManagersLoading(false);
-        }
-    }
-
-    async function loadGlobalInstructions() {
-        setLoadingInstructions(true);
-        try {
-            const { data, error } = await supabase
-                .from("bot_instructions")
-                .select("id, text")
-                .order("created_at", { ascending: true });
-            if (data) setGlobalInstructions(data);
-        } catch (e) {
-            console.error("Failed to load instructions", e);
-        } finally {
-            setLoadingInstructions(false);
-        }
-    }
-
-    async function handleAddInstruction() {
-        try {
-            const { data, error } = await supabase
-                .from("bot_instructions")
-                .insert({ text: "" })
-                .select()
-                .single();
-            if (data) setGlobalInstructions([...globalInstructions, data]);
-        } catch (e) {
-            console.error("Add instruction error", e);
-        }
-    }
-
-    async function handleUpdateInstruction(id: string, text: string) {
-        setGlobalInstructions(prev => prev.map(item => item.id === id ? { ...item, text } : item));
-    }
-
-    async function handleSaveInstruction(id: string, text: string) {
-        try {
-            await supabase
-                .from("bot_instructions")
-                .update({ text })
-                .eq("id", id);
-        } catch (e) {
-            console.error("Save instruction error", e);
-        }
-    }
-
-    async function handleDeleteInstruction(id: string) {
-        try {
-            await supabase.from("bot_instructions").delete().eq("id", id);
-            setGlobalInstructions(prev => prev.filter(item => item.id !== id));
-        } catch (e) {
-            console.error("Delete instruction error", e);
         }
     }
 
@@ -243,7 +111,15 @@ export default function UnifiedBotPage() {
             const res = await fetch("/api/faq", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ question: "Новый вопрос", answer: "Ответ на вопрос" })
+                body: JSON.stringify({ 
+                    question: "Новый вопрос", 
+                    answer: "Ответ на вопрос",
+                    i18n: {
+                        ru: { question: "Новый вопрос", answer: "Ответ на вопрос" },
+                        en: { question: "New Question", answer: "Answer here" },
+                        tr: { question: "Yeni Soru", answer: "Cevap buraya" }
+                    }
+                })
             });
             const json = await res.json();
             if (json.ok) setFaqs([...faqs, json.data]);
@@ -254,6 +130,23 @@ export default function UnifiedBotPage() {
 
     async function handleUpdateFaq(id: string, updates: any) {
         setFaqs(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f));
+    }
+
+    async function handleUpdateFaqI18n(id: string, lang: string, field: string, value: string) {
+        setFaqs(prev => prev.map(f => {
+            if (f.id !== id) return f;
+            const newI18n = { ...f.i18n };
+            newI18n[lang as keyof typeof f.i18n] = {
+                ...newI18n[lang as keyof typeof f.i18n],
+                [field]: value
+            };
+            return { 
+                ...f, 
+                i18n: newI18n,
+                // Update top level if it's currently active language or default RU
+                ...(lang === "ru" || lang === faqLang ? { [field]: value } : {})
+            };
+        }));
     }
 
     async function handleSaveFaq(id: string, updates: any) {
@@ -275,90 +168,6 @@ export default function UnifiedBotPage() {
             setFaqs(prev => prev.filter(f => f.id !== id));
         } catch (e) {
             console.error("Delete FAQ error", e);
-        }
-    }
-
-    // --- Actions: Knowledge ---
-    async function handleQuickUpload(e: React.ChangeEvent<HTMLInputElement>) {
-        const filesToUpload = Array.from(e.target.files || []);
-        if (filesToUpload.length === 0) return;
-
-        setSaving(true);
-        try {
-            for (const file of filesToUpload) {
-                const ts = Date.now();
-                const ext = file.name.split('.').pop() || 'bin';
-                const safeName = `${ts}-${Math.random().toString(36).substring(2, 6)}.${ext}`;
-                const key = `public/company/files/${safeName}`;
-
-                const { error: uploadError } = await supabase.storage
-                    .from("property-images")
-                    .upload(key, file, { upsert: true });
-
-                if (uploadError) throw uploadError;
-                const { data: { publicUrl } } = supabase.storage.from("property-images").getPublicUrl(key);
-
-                let type = 'document';
-                const lowerExt = ext.toLowerCase();
-                if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(lowerExt)) type = 'image';
-                if (['mp4', 'mov', 'avi'].includes(lowerExt)) type = 'video';
-
-                const { data: inserted, error: dbError } = await supabase.from("company_files").insert({
-                    name: file.name,
-                    url: publicUrl,
-                    file_type: type,
-                    category: form.category || 'general',
-                    is_active: true,
-                    sort_order: 0
-                }).select().single();
-
-                if (dbError) throw dbError;
-                if (inserted) {
-                    fetch('/api/company/process', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id: inserted.id })
-                    }).catch(console.error);
-                }
-            }
-            loadKnowledge();
-        } finally {
-            setSaving(false);
-            e.target.value = '';
-        }
-    }
-
-    async function saveContent() {
-        if (!editingContent) return;
-        setSaving(true);
-        try {
-            const { error } = await supabase
-                .from("company_files")
-                .update({ content_text: editingContent.content })
-                .eq("id", editingContent.id);
-            if (error) throw error;
-            setFiles(prev => prev.map(f => f.id === editingContent.id ? { ...f, content_text: editingContent.content } : f));
-            setEditingContent(null);
-        } finally {
-            setSaving(false);
-        }
-    }
-
-    async function handleDeleteFile(id: string) {
-        if (!confirm(t("common.delete") + "?")) return;
-        try {
-            console.log("Attempting to delete file:", id);
-            const res = await fetch(`/api/company/files?id=${id}`, { method: 'DELETE' });
-            const json = await res.json().catch(() => ({}));
-
-            if (res.ok && json.ok) {
-                setFiles(prev => prev.filter(f => f.id !== id));
-            } else {
-                throw new Error(json.error || "Failed to delete file on server");
-            }
-        } catch (e: any) {
-            console.error("Delete file error:", e);
-            alert(t("common.error") + ": " + e.message);
         }
     }
 
@@ -446,13 +255,8 @@ export default function UnifiedBotPage() {
         }
     }
 
-    const groupedFiles = CATEGORIES.map((cat) => ({
-        ...cat,
-        files: files.filter((f) => f.category === cat.value || (cat.value === 'general' && !f.category)),
-    })).filter((cat) => cat.files.length > 0 || cat.value === 'general');
-
     return (
-        <div className="mx-auto max-w-6xl px-6 py-6">
+        <div className="mx-auto max-w-6xl px-6 py-6 font-sans">
             <header className="mb-8 flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold text-neutral-50">{t("bot.title")}</h1>
@@ -465,25 +269,11 @@ export default function UnifiedBotPage() {
             {/* Tabs */}
             <div className="mb-8 flex flex-wrap gap-1 rounded-xl bg-neutral-900/50 p-1 w-fit border border-neutral-800">
                 <button
-                    onClick={() => setActiveTab("instructions")}
-                    className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${activeTab === "instructions" ? "bg-zinc-800 text-white shadow-sm" : "text-neutral-400 hover:text-neutral-200"
-                        }`}
-                >
-                    <FileText className="h-4 w-4" /> {t("bot.tabs.instructions")}
-                </button>
-                <button
                     onClick={() => setActiveTab("faq")}
                     className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${activeTab === "faq" ? "bg-zinc-800 text-white shadow-sm" : "text-neutral-400 hover:text-neutral-200"
                         }`}
                 >
                     <LayoutDashboard className="h-4 w-4" /> FAQ
-                </button>
-                <button
-                    onClick={() => setActiveTab("knowledge")}
-                    className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${activeTab === "knowledge" ? "bg-zinc-800 text-white shadow-sm" : "text-neutral-400 hover:text-neutral-200"
-                        }`}
-                >
-                    <Database className="h-4 w-4" /> {t("bot.tabs.knowledge")}
                 </button>
                 <button
                     onClick={() => setActiveTab("managers")}
@@ -494,163 +284,101 @@ export default function UnifiedBotPage() {
                 </button>
             </div>
 
+            {/* Tab: FAQ */}
+            {activeTab === "faq" && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+                    <section className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                            <div>
+                                <h2 className="text-xl font-bold text-neutral-100 italic">Часто задаваемые вопросы (FAQ)</h2>
+                                <p className="text-sm text-neutral-400 mt-1">
+                                    Управляйте списком популярных вопросов и ответов на 3 языках.
+                                </p>
+                            </div>
+                            
+                            <div className="flex items-center gap-4">
+                                {/* Language Selector */}
+                                <div className="flex items-center gap-1 rounded-xl bg-neutral-950 p-1 border border-neutral-800">
+                                    {(["ru", "en", "tr"] as const).map((lang) => (
+                                        <button
+                                            key={lang}
+                                            onClick={() => setFaqLang(lang)}
+                                            className={`
+                                                px-3 py-1.5 text-xs font-bold rounded-lg transition-all
+                                                ${faqLang === lang ? "bg-blue-600 text-white shadow-lg" : "text-neutral-500 hover:text-neutral-300"}
+                                            `}
+                                        >
+                                            {lang.toUpperCase()}
+                                        </button>
+                                    ))}
+                                </div>
 
-            {/* Tab: Knowledge Base */}
-            {activeTab === "knowledge" && (
-                <div className="space-y-12 animate-in fade-in slide-in-from-bottom-2 pb-20">
+                                <Button
+                                    onClick={handleAddFaq}
+                                    disabled={faqSaving}
+                                    className="gap-2 bg-emerald-600/10 text-emerald-400 border-emerald-600/20 hover:bg-emerald-600/20 h-10 px-4"
+                                >
+                                    <Plus className="h-4 w-4" /> Добавить FAQ
+                                </Button>
+                            </div>
+                        </div>
 
-                    {/* 1. QUICK ADD & UPLOAD */}
-                    <section className="space-y-4">
-                        <div className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6">
-                            <h2 className="text-sm font-semibold text-neutral-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <Plus className="h-4 w-4" /> {t("bot.knowledge.addNote")}
-                            </h2>
+                        {loadingFaqs ? (
+                            <div className="flex justify-center py-12">
+                                <Loader2 className="h-8 w-8 animate-spin text-neutral-600" />
+                            </div>
+                        ) : (
                             <div className="space-y-4">
-                                <textarea
-                                    className="w-full h-32 bg-neutral-950 border border-neutral-800 rounded-xl p-4 text-sm text-neutral-300 leading-relaxed outline-none focus:border-blue-700 transition-all resize-none"
-                                    placeholder={t("bot.knowledge.placeholder")}
-                                    value={quickNote}
-                                    onChange={(e) => setQuickNote(e.target.value)}
-                                />
-                                <div className="flex items-center justify-between gap-4">
-                                    <div className="flex items-center gap-3">
-                                        <label className={`
-                                            flex items-center gap-2 px-4 py-2 rounded-xl border border-neutral-800 bg-neutral-950 text-sm font-medium text-neutral-400 cursor-pointer transition-all hover:bg-neutral-900 hover:text-white
-                                            ${saving ? 'opacity-50 cursor-not-allowed' : ''}
-                                        `}>
-                                            <ImageIcon className="h-4 w-4" /> {t("bot.knowledge.upload")}
-                                            <input type="file" multiple className="hidden"
-                                                onChange={(e) => {
-                                                    setForm(prev => ({ ...prev, category: 'general' }));
-                                                    handleQuickUpload(e);
-                                                }}
-                                                disabled={saving}
-                                            />
-                                        </label>
-                                    </div>
-                                    <Button
-                                        disabled={!quickNote.trim() || saving}
-                                        onClick={async () => {
-                                            setSaving(true);
-                                            const { error } = await supabase.from("company_files").insert({
-                                                name: `${t("bot.knowledge.addNote")} ${new Date().toLocaleString()}`,
-                                                file_type: "text",
-                                                url: "manual-entry",
-                                                category: "general",
-                                                content_text: quickNote,
-                                                is_active: true
-                                            });
-                                            if (!error) {
-                                                setQuickNote("");
-                                                loadKnowledge();
-                                            } else {
-                                                alert(error.message);
-                                            }
-                                            setSaving(false);
-                                        }}
-                                    >
-                                        {saving ? t("common.loading") : t("bot.knowledge.addNote")}
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
+                                {faqs.map((faq) => {
+                                    const l = faqLang;
+                                    const val = faq.i18n?.[l] || { question: "", answer: "" };
 
-                    {/* 2. KNOWLEDGE LIST */}
-                    <section className="space-y-6">
-                        <h2 className="text-sm font-semibold text-neutral-400 uppercase tracking-widest ml-1">{t("bot.knowledge.title")}</h2>
-                        <div className="space-y-8">
-                            {groupedFiles.map((group) => (
-                                <div key={group.value} className="space-y-4">
-                                    {group.files.length > 0 && <h3 className="text-xs font-medium text-neutral-500 uppercase tracking-widest pl-4">{group.label}</h3>}
-                                    <div className="grid grid-cols-1 gap-4">
-                                        {group.files.map((file) => {
-                                            const Icon = getFileIcon(file.file_type);
-                                            return (
-                                                <div key={file.id} className="group relative rounded-2xl border border-neutral-800 bg-neutral-900/40 p-5 transition-all hover:bg-neutral-900/60 border-l-2 border-l-blue-500/20">
-                                                    <div className="flex items-start justify-between">
-                                                        <div className="flex gap-4 items-center">
-                                                            <div className="shrink-0">
-                                                                {file.file_type === "image" ? (
-                                                                    <img src={file.url} alt="" className="w-10 h-10 rounded-lg object-cover border border-neutral-800" />
-                                                                ) : (
-                                                                    <div className="w-10 h-10 rounded-lg bg-neutral-800 flex items-center justify-center text-neutral-500 border border-neutral-700">
-                                                                        <Icon className="h-5 w-5" />
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                            <div>
-                                                                <div className="font-medium text-neutral-200 text-sm">{file.name}</div>
-                                                                <div className="text-[10px] text-neutral-500 mt-0.5 uppercase tracking-wider">
-                                                                    {new Date(file.created_at).toLocaleDateString()}
-                                                                </div>
-                                                            </div>
+                                    return (
+                                        <div key={faq.id} className="group relative rounded-2xl border border-neutral-800 bg-neutral-950 p-6 transition-all hover:border-neutral-700">
+                                            <div className="flex flex-col gap-4">
+                                                <div className="flex items-start justify-between gap-4">
+                                                    <div className="flex-1 flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-lg bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-[10px] font-bold text-blue-400">
+                                                            {l.toUpperCase()}
                                                         </div>
-                                                        <div className="flex gap-2">
-                                                            <button
-                                                                onClick={() => setEditingContent({ id: file.id, name: file.name, content: file.content_text || "" })}
-                                                                className="p-2 rounded-lg hover:bg-neutral-800 text-neutral-400 hover:text-white transition-colors"
-                                                            >
-                                                                <Pencil className="h-4 w-4" />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDeleteFile(file.id)}
-                                                                className="p-2 rounded-lg hover:bg-red-900/20 text-neutral-500 hover:text-red-400 transition-colors"
-                                                            >
-                                                                <Trash2 className="h-4 w-4" />
-                                                            </button>
-                                                        </div>
+                                                        <input
+                                                            className="flex-1 bg-transparent border-none text-neutral-100 font-bold outline-none placeholder:text-neutral-700 p-0 text-lg"
+                                                            value={val.question}
+                                                            onChange={(e) => handleUpdateFaqI18n(faq.id, l, "question", e.target.value)}
+                                                            onBlur={(e) => handleSaveFaq(faq.id, { i18n: { ...faq.i18n, [l]: { ...val, question: e.target.value } } })}
+                                                            placeholder={`Вопрос на ${l.toUpperCase()}...`}
+                                                        />
                                                     </div>
+                                                    <button
+                                                        onClick={() => handleDeleteFaq(faq.id)}
+                                                        className="p-2 rounded-lg bg-red-500/5 text-neutral-600 hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
                                                 </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
-
-                    {/* 3. AI TOTAL SUMMARY */}
-                    <section className="pt-8 border-t border-neutral-800">
-                        <div className="rounded-3xl border border-blue-500/20 bg-blue-500/5 p-8 relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-8 opacity-10">
-                                <Sparkles className="h-24 w-24 text-blue-500" />
-                            </div>
-
-                            <div className="relative">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-xl font-bold text-neutral-50 flex items-center gap-3">
-                                        <Sparkles className="h-5 w-5 text-blue-400" /> {t("bot.knowledge.summary")}
-                                    </h2>
-                                    <Button
-                                        variant="secondary"
-                                        onClick={loadTotalSummary}
-                                        disabled={loadingSummary}
-                                        className="bg-neutral-900/50 hover:bg-neutral-800 border-neutral-700 h-8 px-3 text-xs"
-                                    >
-                                        {loadingSummary ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Plus className="h-3 w-3 mr-2 rotate-45" />}
-                                        {t("dashboard.update")}
-                                    </Button>
-                                </div>
-
-                                {loadingSummary ? (
-                                    <div className="flex flex-col items-center justify-center py-12 space-y-4">
-                                        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                                        <p className="text-sm text-neutral-400 animate-pulse">{t("bot.knowledge.processing")}</p>
-                                    </div>
-                                ) : (
-                                    <div className="prose prose-invert prose-blue max-w-none">
-                                        <div className="text-neutral-300 leading-relaxed text-sm whitespace-pre-wrap font-sans">
-                                            {totalSummary || t("bot.knowledge.emptySummary")}
+                                                <div className="relative">
+                                                    <textarea
+                                                        className="w-full bg-neutral-900/30 border border-neutral-800 rounded-xl p-4 text-sm text-neutral-400 leading-relaxed outline-none focus:border-emerald-500/30 transition-all resize-none min-h-[100px]"
+                                                        value={val.answer}
+                                                        onChange={(e) => handleUpdateFaqI18n(faq.id, l, "answer", e.target.value)}
+                                                        onBlur={(e) => handleSaveFaq(faq.id, { i18n: { ...faq.i18n, [l]: { ...val, answer: e.target.value } } })}
+                                                        placeholder={`Ответ на ${l.toUpperCase()}...`}
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
+                                    );
+                                })}
+                                {faqs.length === 0 && (
+                                    <div className="py-20 text-center text-neutral-600 italic">
+                                        Список FAQ пуст. Добавьте первый вопрос.
                                     </div>
                                 )}
                             </div>
-                        </div>
+                        )}
                     </section>
                 </div>
             )}
-
 
             {/* Tab: Managers */}
             {activeTab === "managers" && (
@@ -663,7 +391,7 @@ export default function UnifiedBotPage() {
                             <div className="flex-1 space-y-2">
                                 <label className="text-xs font-medium text-neutral-400 ml-1">{t("bot.managers.name")}</label>
                                 <input
-                                    className="w-full rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-100 outline-none focus:border-blue-500 transition-all"
+                                    className="w-full rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-100 outline-none focus:border-blue-500 transition-all font-sans"
                                     value={managerName}
                                     onChange={(e) => setManagerName(e.target.value)}
                                     placeholder="Анна"
@@ -672,7 +400,7 @@ export default function UnifiedBotPage() {
                             <div className="flex-1 space-y-2">
                                 <label className="text-xs font-medium text-neutral-400 ml-1">{t("bot.managers.tgId")}</label>
                                 <input
-                                    className="w-full rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-100 outline-none focus:border-blue-500 transition-all"
+                                    className="w-full rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-100 outline-none focus:border-blue-500 transition-all font-mono"
                                     value={managerTelegramId}
                                     onChange={(e) => setManagerTelegramId(e.target.value)}
                                     placeholder="123456789"
@@ -767,203 +495,6 @@ export default function UnifiedBotPage() {
                             </tbody>
                         </table>
                     </div>
-                </div>
-            )}
-
-            {/* Editing Modal */}
-            {editingContent && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                    <div className="w-full max-w-2xl rounded-2xl border border-neutral-800 bg-neutral-950 p-6 shadow-2xl">
-                        <div className="mb-4 flex items-center justify-between">
-                            <h3 className="text-lg font-semibold">
-                                {editingContent?.id === "new" ? t("bot.knowledge.addNote") : `${t("bot.knowledge.editNote")}: ${editingContent?.name}`}
-                            </h3>
-                            <button onClick={() => setEditingContent(null)} className="rounded p-1 text-neutral-400 hover:bg-neutral-900 hover:text-white transition-colors">
-                                {t("common.cancel")}
-                            </button>
-                        </div>
-
-                        {editingContent?.id === "new" && (
-                            <div className="mb-4">
-                                <input
-                                    className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none transition-all"
-                                    placeholder={t("bot.knowledge.noteTitlePlaceholder")}
-                                    value={form.name}
-                                    onChange={e => setForm({ ...form, name: e.target.value })}
-                                    autoFocus
-                                />
-                            </div>
-                        )}
-
-                        <div className="space-y-2">
-                            <textarea
-                                className="w-full h-96 bg-neutral-900/30 border border-neutral-800 rounded-2xl p-4 text-sm font-mono text-neutral-300 leading-relaxed outline-none focus:border-blue-900 transition-colors resize-none"
-                                value={editingContent?.content || ""}
-                                onChange={e => setEditingContent(prev => prev ? { ...prev, content: e.target.value } : null)}
-                                placeholder={t("bot.knowledge.noteContentPlaceholder")}
-                            />
-                        </div>
-
-                        <div className="mt-8 flex justify-end gap-3">
-                            <Button variant="secondary" onClick={() => setEditingContent(null)}>{t("common.cancel")}</Button>
-                            <Button
-                                onClick={async () => {
-                                    if (editingContent?.id === "new") {
-                                        if (!form.name) return alert("Введите название");
-                                        setSaving(true);
-                                        const { error } = await supabase.from("company_files").insert({
-                                            name: form.name,
-                                            file_type: "text",
-                                            url: "manual-entry",
-                                            category: form.category || "general",
-                                            content_text: editingContent?.content,
-                                            is_active: true
-                                        });
-                                        setSaving(false);
-                                        if (!error) {
-                                            setEditingContent(null);
-                                            loadKnowledge();
-                                        } else {
-                                            alert(error.message);
-                                        }
-                                    } else {
-                                        saveContent();
-                                    }
-                                }}
-                                disabled={saving}
-                            >
-                                {saving ? t("common.loading") : t("bot.knowledge.saveChanges")}
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Tab: FAQ */}
-            {activeTab === "faq" && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-                    <section className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6">
-                        <div className="flex items-center justify-between mb-8">
-                            <div>
-                                <h2 className="text-xl font-bold text-neutral-100 italic">Часто задаваемые вопросы (FAQ)</h2>
-                                <p className="text-sm text-neutral-400 mt-1">
-                                    Управляйте списком популярных вопросов и ответов для быстрого обучения бота.
-                                </p>
-                            </div>
-                            <Button
-                                onClick={handleAddFaq}
-                                disabled={faqSaving}
-                                className="gap-2 bg-emerald-600/10 text-emerald-400 border-emerald-600/20 hover:bg-emerald-600/20"
-                            >
-                                <Plus className="h-4 w-4" /> Добавить FAQ
-                            </Button>
-                        </div>
-
-                        {loadingFaqs ? (
-                            <div className="flex justify-center py-12">
-                                <Loader2 className="h-8 w-8 animate-spin text-neutral-600" />
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                {faqs.map((faq) => (
-                                    <div key={faq.id} className="group relative rounded-2xl border border-neutral-800 bg-neutral-950 p-6 transition-all hover:border-neutral-700">
-                                        <div className="flex flex-col gap-4">
-                                            <div className="flex items-start justify-between gap-4">
-                                                <div className="flex-1">
-                                                    <input
-                                                        className="w-full bg-transparent border-none text-neutral-100 font-bold outline-none placeholder:text-neutral-700 p-0 text-lg"
-                                                        value={faq.question}
-                                                        onChange={(e) => handleUpdateFaq(faq.id, { question: e.target.value })}
-                                                        onBlur={(e) => handleSaveFaq(faq.id, { question: e.target.value })}
-                                                        placeholder="Введите вопрос..."
-                                                    />
-                                                </div>
-                                                <button
-                                                    onClick={() => handleDeleteFaq(faq.id)}
-                                                    className="p-2 rounded-lg bg-red-500/5 text-neutral-600 hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                            <div className="relative">
-                                                <textarea
-                                                    className="w-full bg-neutral-900/30 border border-neutral-800 rounded-xl p-4 text-sm text-neutral-400 leading-relaxed outline-none focus:border-emerald-500/30 transition-all resize-none min-h-[100px]"
-                                                    value={faq.answer}
-                                                    onChange={(e) => handleUpdateFaq(faq.id, { answer: e.target.value })}
-                                                    onBlur={(e) => handleSaveFaq(faq.id, { answer: e.target.value })}
-                                                    placeholder="Введите ответ на вопрос..."
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                                {faqs.length === 0 && (
-                                    <div className="py-20 text-center text-neutral-600 italic">
-                                        Список FAQ пуст. Добавьте первый вопрос.
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </section>
-                </div>
-            )}
-            {activeTab === "instructions" && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-                    <section className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6">
-                        <div className="flex items-center justify-between mb-8">
-                            <div>
-                                <h2 className="text-xl font-bold text-neutral-100 italic">{t("bot.instructions.title")}</h2>
-                                <p className="text-sm text-neutral-400 mt-1">
-                                    {t("bot.instructions.description")}
-                                </p>
-                            </div>
-                            <Button
-                                onClick={handleAddInstruction}
-                                variant="secondary"
-                                className="gap-2 bg-blue-600/10 text-blue-400 border-blue-600/20 hover:bg-blue-600/20"
-                            >
-                                <Plus className="h-4 w-4" /> {t("bot.instructions.addRule")}
-                            </Button>
-                        </div>
-
-                        {loadingInstructions ? (
-                            <div className="flex justify-center py-12">
-                                <Loader2 className="h-8 w-8 animate-spin text-neutral-600" />
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                {globalInstructions.map((instruction, index) => (
-                                    <div key={instruction.id} className="group relative flex gap-4 items-start bg-neutral-950/50 border border-neutral-800/50 rounded-xl p-4 transition-all hover:border-neutral-700/50">
-                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-neutral-900 text-sm font-bold text-neutral-500">
-                                            {index + 1}
-                                        </div>
-                                        <div className="flex-1 space-y-2">
-                                            <textarea
-                                                className="w-full bg-transparent border-none p-0 text-sm text-neutral-200 placeholder:text-neutral-600 focus:ring-0 resize-none min-h-[60px]"
-                                                placeholder={t("bot.instructions.placeholder")}
-                                                value={instruction.text}
-                                                onChange={(e) => handleUpdateInstruction(instruction.id, e.target.value)}
-                                                onBlur={(e) => handleSaveInstruction(instruction.id, e.target.value)}
-                                            />
-                                        </div>
-                                        <button
-                                            onClick={() => handleDeleteInstruction(instruction.id)}
-                                            className="p-2 rounded-lg text-neutral-600 hover:text-red-400 hover:bg-red-400/10 transition-all"
-                                            title={t("common.delete")}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </button>
-                                    </div>
-                                ))}
-
-                                {globalInstructions.length === 0 && (
-                                    <div className="text-center py-12 border-2 border-dashed border-neutral-800 rounded-2xl">
-                                        <p className="text-neutral-500">{t("bot.instructions.empty")}</p>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </section>
                 </div>
             )}
         </div>
