@@ -8,6 +8,7 @@ END $$;
 -- 2. Add new columns to 'units' to accommodate rental data
 ALTER TABLE public.units 
 ADD COLUMN IF NOT EXISTS category property_category DEFAULT 'sale',
+ADD COLUMN IF NOT EXISTS district text,
 ADD COLUMN IF NOT EXISTS price_per_day numeric,
 ADD COLUMN IF NOT EXISTS price_per_month numeric,
 ADD COLUMN IF NOT EXISTS bedrooms integer,

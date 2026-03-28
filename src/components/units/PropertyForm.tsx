@@ -7,10 +7,23 @@ import UploadImage from "@/components/UploadImage";
 import { Button } from "@/components/ui/Button";
 import { useI18n } from "@/i18n";
 
-const COMMON_TAGS = [
-  "near_sea", "sea_view", "pool", "parking", "gas", "security", "fitness", "sauna",
-  "playground", "near_school", "city_center", "furnished", "residence_permit",
-  "citizenship", "renovated", "whitebox", "shell", "new_building",
+const TAG_CATEGORIES = [
+  {
+    name: "Удобства",
+    tags: ["pool", "parking", "gas", "security", "fitness", "sauna", "playground"],
+  },
+  {
+    name: "Вид и расположение",
+    tags: ["near_sea", "sea_view", "city_center", "near_school", "new_building"],
+  },
+  {
+    name: "Состояние",
+    tags: ["furnished", "renovated", "whitebox", "shell"],
+  },
+  {
+    name: "Юридические",
+    tags: ["residence_permit", "citizenship"],
+  }
 ];
 
 export default function PropertyForm({ initialData }: { initialData?: any }) {
@@ -307,13 +320,36 @@ export default function PropertyForm({ initialData }: { initialData?: any }) {
         )}
 
         {/* Теги */}
-        <section>
-          <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">Особенности</h2>
-          <div className="flex flex-wrap gap-2">
-            {COMMON_TAGS.map(tag => (
-              <button key={tag} type="button" onClick={() => toggleTag(tag)} className={`px-4 py-2 rounded-full text-xs transition-all border ${selectedTags.includes(tag) ? "bg-emerald-600 border-emerald-500 text-white" : "bg-neutral-900 border-neutral-800 text-neutral-400"}`}>
-                {t(`sales.tags.${tag}` as any) || tag}
-              </button>
+        <section className="space-y-6">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-xs font-black text-neutral-500 uppercase tracking-widest">Особенности и удобства</h2>
+            <span className="text-[10px] text-emerald-500 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full">
+              Выбрано: {selectedTags.length}
+            </span>
+          </div>
+
+          <div className="space-y-8">
+            {TAG_CATEGORIES.map((cat) => (
+              <div key={cat.name} className="space-y-3">
+                <h3 className="text-[10px] text-neutral-600 uppercase font-black tracking-widest px-1">{cat.name}</h3>
+                <div className="flex flex-wrap gap-2">
+                  {cat.tags.map(tag => (
+                    <button 
+                      key={tag} 
+                      type="button" 
+                      onClick={() => toggleTag(tag)} 
+                      className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all duration-300 border shadow-sm flex items-center gap-2 ${
+                        selectedTags.includes(tag) 
+                          ? "bg-emerald-600 border-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.2)] scale-105 z-10" 
+                          : "bg-neutral-900/50 border-neutral-800 text-neutral-500 hover:border-neutral-700 hover:bg-neutral-800"
+                      }`}
+                    >
+                      <div className={`h-1.5 w-1.5 rounded-full transition-all ${selectedTags.includes(tag) ? 'bg-white' : 'bg-neutral-700'}`} />
+                      {t(`sales.tags.${tag}` as any) || tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         </section>

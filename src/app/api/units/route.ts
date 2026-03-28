@@ -39,8 +39,9 @@ export async function POST(req: Request) {
     // 1. AI Translation
     console.log(`[API Units] Translating for category: ${category}`);
     const translationResult = await runUnitTranslationAgent({
-      title: body.title,
+      title: body.title || `${category} in ${body.city}`, // Fallback if no title
       city: body.city,
+      district: body.district,
       address: body.address,
       description: body.description,
     });
@@ -53,6 +54,7 @@ export async function POST(req: Request) {
       category,
       title: baseEn.title ?? body.title ?? null,
       city: baseEn.city ? normalizeCity(baseEn.city) : body.city ? normalizeCity(body.city) : null,
+      district: baseEn.district ?? body.district ?? null,
       address: baseEn.address ?? body.address ?? null,
       description: baseEn.description ?? body.description ?? null,
 

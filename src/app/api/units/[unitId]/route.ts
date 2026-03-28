@@ -14,8 +14,8 @@ function mapIncomingToDb(payload: any, baseEn: any, i18nData: any): Partial<Unit
   if (baseEn.address != null) out.address = String(baseEn.address)
   else if (payload.address != null) out.address = String(payload.address)
 
-  if (baseEn.title != null) out.title = String(baseEn.title)
-  else if (payload.title != null) out.title = String(payload.title)
+  if (baseEn.district != null) out.district = String(baseEn.district)
+  else if (payload.district != null) out.district = String(payload.district)
 
   if (baseEn.description != null) out.description = String(baseEn.description)
   else if (payload.description != null) out.description = String(payload.description)
@@ -70,12 +70,12 @@ export async function PATCH(req: Request, { params }: Params) {
   // Process translation using AI if textual fields are being updated
   let baseEn = {};
   let i18nData = null;
-
-  if (payload.title || payload.city || payload.address || payload.description) {
+  if (payload.title || payload.city || payload.district || payload.address || payload.description) {
     console.log(`[API Units ${params.unitId}] Running Unit Translation Agent for update...`);
     const translationResult = await runUnitTranslationAgent({
-      title: payload.title,
+      title: payload.title || (payload.city ? `Property in ${payload.city}` : undefined),
       city: payload.city,
+      district: payload.district,
       address: payload.address,
       description: payload.description,
     });

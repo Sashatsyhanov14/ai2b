@@ -6,6 +6,7 @@ export type Unit = {
   category: 'sale' | 'rent' | 'commercial' | 'land'
   title?: string | null
   city: string
+  district?: string | null
   address: string
   rooms?: number | null
   floor?: number | null
@@ -34,6 +35,7 @@ export type UnitCreatePayload = {
   category: 'sale' | 'rent' | 'commercial' | 'land'
   title?: string
   city: string
+  district?: string
   address: string
   rooms?: number | string
   floor?: number
