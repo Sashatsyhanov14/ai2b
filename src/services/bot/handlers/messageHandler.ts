@@ -95,6 +95,9 @@ ${agencyFiles}`;
         const analyzerInstruction = await runAnalyzerAgent(messages, botKnowledge);
         console.log(`[Bot] Analyzer decision:`, JSON.stringify(analyzerInstruction));
 
+        // DEBUG OUTPUT FOR USER
+        await sendMessage(token, chatId, `<pre>DEBUG JSON:\n${JSON.stringify(analyzerInstruction, null, 2)}</pre>`, { parse_mode: "HTML" }).catch(()=>{});
+
         let unitsFound: any[] = [];
         let finalReplyText = "";
         
