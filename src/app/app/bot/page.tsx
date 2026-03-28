@@ -37,10 +37,16 @@ type FAQEntry = {
     answer: string;
     is_active: boolean;
     i18n: {
-        ru?: { question: string, answer: string },
-        en?: { question: string, answer: string },
-        tr?: { question: string, answer: string }
+        ru: { question: string, answer: string },
+        en: { question: string, answer: string },
+        tr: { question: string, answer: string }
     }
+};
+
+const DEFAULT_I18N = {
+    ru: { question: "", answer: "" },
+    en: { question: "", answer: "" },
+    tr: { question: "", answer: "" }
 };
 
 export default function UnifiedBotPage() {
@@ -132,18 +138,23 @@ export default function UnifiedBotPage() {
         setFaqs(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f));
     }
 
-    async function handleUpdateFaqI18n(id: string, lang: string, field: string, value: string) {
+    async function handleUpdateFaqI18n(id: string, lang: "ru" | "en" | "tr", field: "question" | "answer", value: string) {
         setFaqs(prev => prev.map(f => {
             if (f.id !== id) return f;
-            const newI18n = { ...f.i18n };
-            newI18n[lang as keyof typeof f.i18n] = {
-                ...newI18n[lang as keyof typeof f.i18n],
-                [field]: value
+            const currentI18n = f.i18n || { ...DEFAULT_I18N };
+            const langData = currentI18n[lang] || { question: "", answer: "" };
+            
+            const newI18n = { 
+                ...currentI18n,
+                [lang]: {
+                    ...langData,
+                    [field]: value
+                }
             };
+            
             return { 
                 ...f, 
                 i18n: newI18n,
-                // Update top level if it's currently active language or default RU
                 ...(lang === "ru" || lang === faqLang ? { [field]: value } : {})
             };
         }));

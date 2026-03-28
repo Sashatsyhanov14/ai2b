@@ -362,28 +362,31 @@ export default function PropertyForm({ initialData }: { initialData?: any }) {
         <section className="space-y-6">
           <div className="flex items-center justify-between px-1">
             <h2 className="text-xs font-black text-neutral-500 uppercase tracking-widest">Особенности и удобства</h2>
-            <span className="text-[10px] text-emerald-500 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full transition-all">
+            <span className="text-[10px] text-emerald-500 font-bold bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 shadow-sm animate-pulse">
               Выбрано: {selectedTags.length}
             </span>
           </div>
 
-          <div className="space-y-8">
+          <div className="grid grid-cols-1 gap-8">
             {(category === 'land' ? LAND_TAGS : category === 'commercial' ? COMMERCIAL_TAGS : RESIDENTIAL_TAGS).map((cat) => (
-              <div key={cat.name} className="space-y-3">
-                <h3 className="text-[10px] text-neutral-600 uppercase font-black tracking-widest px-1">{cat.name}</h3>
-                <div className="flex flex-wrap gap-2">
+              <div key={cat.name} className="space-y-4 bg-neutral-900/20 p-6 rounded-[32px] border border-neutral-800/50">
+                <h3 className="text-[10px] text-neutral-400 uppercase font-black tracking-widest px-1 flex items-center gap-2">
+                  <div className="w-1 h-3 bg-emerald-500 rounded-full" />
+                  {cat.name}
+                </h3>
+                <div className="flex flex-wrap gap-2.5">
                   {cat.tags.map(tag => (
                     <button 
                       key={tag} 
                       type="button" 
                       onClick={() => toggleTag(tag)} 
-                      className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all duration-300 border shadow-sm flex items-center gap-2 ${
+                      className={`px-5 py-3 rounded-2xl text-xs font-bold transition-all duration-300 border flex items-center gap-2.5 shadow-sm active:scale-95 ${
                         selectedTags.includes(tag) 
-                          ? "bg-emerald-600 border-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.2)] scale-105 z-10" 
-                          : "bg-neutral-900/50 border-neutral-800 text-neutral-500 hover:border-neutral-700 hover:bg-neutral-800"
+                          ? "bg-emerald-600 border-emerald-500 text-white shadow-[0_10px_20px_rgba(16,185,129,0.2)] scale-[1.02] z-10" 
+                          : "bg-neutral-950 border-neutral-800 text-neutral-400 hover:border-neutral-600 hover:text-neutral-200"
                       }`}
                     >
-                      <div className={`h-1.5 w-1.5 rounded-full transition-all ${selectedTags.includes(tag) ? 'bg-white' : 'bg-neutral-700'}`} />
+                      <div className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${selectedTags.includes(tag) ? 'bg-white scale-125' : 'bg-neutral-700'}`} />
                       {t(`sales.tags.${tag}` as any) || tag.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
                     </button>
                   ))}
