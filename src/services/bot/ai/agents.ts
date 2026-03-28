@@ -296,7 +296,8 @@ const ANALYZER_SYSTEM_PROMPT = `
 `;
 
 export async function runAnalyzerAgent(messages: RoleMessage[], companyKnowledge: string): Promise<any> {
-    const fullSystem = ANALYZER_SYSTEM_PROMPT + "\n\n[БАЗА ЗНАНИЙ И ПРАВИЛА КОМПАНИИ]:\n" + companyKnowledge;
+    const todayStr = new Date().toISOString().substring(0, 10);
+    const fullSystem = ANALYZER_SYSTEM_PROMPT + `\n\n[СИСТЕМНАЯ ДАТА: Сегодня ${todayStr}. При извлечении дат аренды (YYYY-MM-DD), используй текущий год, если клиент его не назвал.]\n\n[БАЗА ЗНАНИЙ И ПРАВИЛА КОМПАНИИ]:\n` + companyKnowledge;
     const rawResult = await askLLM(messages, fullSystem, false, AnalyzerSchema, 'deepseek');
     if (!rawResult) {
         return { instructions_for_writer: "Извините, я временно недоступен. Попробуйте позже." };
