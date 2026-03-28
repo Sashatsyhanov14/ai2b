@@ -49,4 +49,19 @@ DROP TABLE IF EXISTS public.rental_units CASCADE;
 DROP TABLE IF EXISTS public.bot_instructions CASCADE;
 DROP TABLE IF EXISTS public.bot_settings CASCADE;
 DROP TABLE IF EXISTS public.session_scores CASCADE;
-DROP TABLE IF EXISTS public.reactivation_queue CASCADE;
+-- 6. FAQ Table
+CREATE TABLE IF NOT EXISTS public.faq (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    question text NOT NULL,
+    answer text NOT NULL,
+    category text DEFAULT 'general',
+    is_active boolean DEFAULT true,
+    sort_order integer DEFAULT 0,
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now()
+);
+
+-- Enable RLS
+ALTER TABLE public.faq ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read access" ON public.faq FOR SELECT USING (true);
+CREATE POLICY "Allow all access for service role" ON public.faq FOR ALL USING (true);

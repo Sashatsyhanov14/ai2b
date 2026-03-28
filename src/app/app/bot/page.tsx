@@ -50,7 +50,7 @@ type BotInstruction = {
     text: string;
 };
 
-type Tab = "dashboard" | "knowledge" | "managers" | "instructions";
+type Tab = "dashboard" | "knowledge" | "managers" | "instructions" | "faq";
 
 // --- Constants ---
 
@@ -97,6 +97,11 @@ export default function UnifiedBotPage() {
     const [managerError, setManagerError] = useState<string | null>(null);
     const [managerSaving, setManagerSaving] = useState(false);
     const [managerLang, setManagerLang] = useState("ru");
+
+    // --- State: FAQ ---
+    const [faqs, setFaqs] = useState<{ id: string, question: string, answer: string, is_active: boolean }[]>([]);
+    const [loadingFaqs, setLoadingFaqs] = useState(false);
+    const [faqSaving, setFaqSaving] = useState(false);
 
     // --- Load Data ---
     useEffect(() => {
@@ -161,6 +166,7 @@ export default function UnifiedBotPage() {
             if (leadsJson?.ok && Array.isArray(leadsJson.data)) setLeads(leadsJson.data);
             if (managersJson?.ok && Array.isArray(managersJson.data)) setManagers(managersJson.data);
             loadGlobalInstructions();
+            loadFaqs();
         } finally {
             setLoadingLeads(false);
             setManagersLoading(false);
@@ -216,6 +222,59 @@ export default function UnifiedBotPage() {
             setGlobalInstructions(prev => prev.filter(item => item.id !== id));
         } catch (e) {
             console.error("Delete instruction error", e);
+        }
+    }
+
+    // --- Actions: FAQ ---
+    async function loadFaqs() {
+        setLoadingFaqs(true);
+        try {
+            const res = await fetch("/api/faq");
+            const json = await res.json();
+            if (json.ok) setFaqs(json.data);
+        } finally {
+            setLoadingFaqs(false);
+        }
+    }
+
+    async function handleAddFaq() {
+        setFaqSaving(true);
+        try {
+            const res = await fetch("/api/faq", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ question: "Новый вопрос", answer: "Ответ на вопрос" })
+            });
+            const json = await res.json();
+            if (json.ok) setFaqs([...faqs, json.data]);
+        } finally {
+            setFaqSaving(false);
+        }
+    }
+
+    async function handleUpdateFaq(id: string, updates: any) {
+        setFaqs(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f));
+    }
+
+    async function handleSaveFaq(id: string, updates: any) {
+        try {
+            await fetch(`/api/faq/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(updates)
+            });
+        } catch (e) {
+            console.error("Save FAQ error", e);
+        }
+    }
+
+    async function handleDeleteFaq(id: string) {
+        if (!confirm(t("common.delete") + "?")) return;
+        try {
+            await fetch(`/api/faq/${id}`, { method: "DELETE" });
+            setFaqs(prev => prev.filter(f => f.id !== id));
+        } catch (e) {
+            console.error("Delete FAQ error", e);
         }
     }
 
@@ -411,6 +470,13 @@ export default function UnifiedBotPage() {
                         }`}
                 >
                     <FileText className="h-4 w-4" /> {t("bot.tabs.instructions")}
+                </button>
+                <button
+                    onClick={() => setActiveTab("faq")}
+                    className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${activeTab === "faq" ? "bg-zinc-800 text-white shadow-sm" : "text-neutral-400 hover:text-neutral-200"
+                        }`}
+                >
+                    <LayoutDashboard className="h-4 w-4" /> FAQ
                 </button>
                 <button
                     onClick={() => setActiveTab("knowledge")}
@@ -773,7 +839,74 @@ export default function UnifiedBotPage() {
                 </div>
             )}
 
-            {/* Tab: Global Instructions */}
+            {/* Tab: FAQ */}
+            {activeTab === "faq" && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+                    <section className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6">
+                        <div className="flex items-center justify-between mb-8">
+                            <div>
+                                <h2 className="text-xl font-bold text-neutral-100 italic">Часто задаваемые вопросы (FAQ)</h2>
+                                <p className="text-sm text-neutral-400 mt-1">
+                                    Управляйте списком популярных вопросов и ответов для быстрого обучения бота.
+                                </p>
+                            </div>
+                            <Button
+                                onClick={handleAddFaq}
+                                disabled={faqSaving}
+                                className="gap-2 bg-emerald-600/10 text-emerald-400 border-emerald-600/20 hover:bg-emerald-600/20"
+                            >
+                                <Plus className="h-4 w-4" /> Добавить FAQ
+                            </Button>
+                        </div>
+
+                        {loadingFaqs ? (
+                            <div className="flex justify-center py-12">
+                                <Loader2 className="h-8 w-8 animate-spin text-neutral-600" />
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {faqs.map((faq) => (
+                                    <div key={faq.id} className="group relative rounded-2xl border border-neutral-800 bg-neutral-950 p-6 transition-all hover:border-neutral-700">
+                                        <div className="flex flex-col gap-4">
+                                            <div className="flex items-start justify-between gap-4">
+                                                <div className="flex-1">
+                                                    <input
+                                                        className="w-full bg-transparent border-none text-neutral-100 font-bold outline-none placeholder:text-neutral-700 p-0 text-lg"
+                                                        value={faq.question}
+                                                        onChange={(e) => handleUpdateFaq(faq.id, { question: e.target.value })}
+                                                        onBlur={(e) => handleSaveFaq(faq.id, { question: e.target.value })}
+                                                        placeholder="Введите вопрос..."
+                                                    />
+                                                </div>
+                                                <button
+                                                    onClick={() => handleDeleteFaq(faq.id)}
+                                                    className="p-2 rounded-lg bg-red-500/5 text-neutral-600 hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                            <div className="relative">
+                                                <textarea
+                                                    className="w-full bg-neutral-900/30 border border-neutral-800 rounded-xl p-4 text-sm text-neutral-400 leading-relaxed outline-none focus:border-emerald-500/30 transition-all resize-none min-h-[100px]"
+                                                    value={faq.answer}
+                                                    onChange={(e) => handleUpdateFaq(faq.id, { answer: e.target.value })}
+                                                    onBlur={(e) => handleSaveFaq(faq.id, { answer: e.target.value })}
+                                                    placeholder="Введите ответ на вопрос..."
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                                {faqs.length === 0 && (
+                                    <div className="py-20 text-center text-neutral-600 italic">
+                                        Список FAQ пуст. Добавьте первый вопрос.
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </section>
+                </div>
+            )}
             {activeTab === "instructions" && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
                     <section className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6">
