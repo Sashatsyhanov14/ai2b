@@ -24,6 +24,7 @@ export type SearchArgs = {
 export type SaveLeadArgs = {
   phone: string;
   name?: string;
+  unit_id?: string;        // ID of the main unit of interest
   info?: string;           // summary of interest
   email?: string;
   budget?: number;

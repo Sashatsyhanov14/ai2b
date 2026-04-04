@@ -119,6 +119,13 @@ export async function handleMessage(
             const ext = plan.lead_extractor_agent;
             leadContext = `[ПРОФИЛЬ КЛИЕНТА]: ${ext.client_profile || "Неизвестно"}. Бюджет: ${ext.budget || "Не указан"}. Температура: ${ext.lead_temperature || "warm"}`;
             
+            // Fix: Store human-readable address in the lead instead of a UUID
+            let interested_units: string[] = [];
+            if (unitsFound.length > 0) {
+                const u = unitsFound[0];
+                interested_units = [`${u.city}, ${u.address}`];
+            }
+
             handleSaveLead({ 
                 phone: ext.client_phone || userInfo.phone || "Unknown", 
                 name: ext.client_name || userInfo.fullName || userInfo.username || "Client", 
@@ -126,7 +133,9 @@ export async function handleMessage(
                 budget: ext.budget, 
                 temperature: ext.lead_temperature || "warm", 
                 language: userInfo.language_code || "ru", 
-                purpose: "НЕДВИЖИМОСТЬ"
+                purpose: "НЕДВИЖИМОСТЬ",
+                unit_id: unitsFound.length > 0 ? unitsFound[0].id : undefined,
+                interested_units: interested_units.length > 0 ? interested_units : undefined
             } as any, chatId, userInfo.username).catch(e => console.error("[Bot] Save Lead Error:", e));
         }
 

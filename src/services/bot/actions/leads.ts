@@ -38,6 +38,7 @@ export async function handleSaveLead(
         data: {
             chat_id: chatId,
             tg_username: username,
+            unit_id: args.unit_id,
             interest: args.info,
             email: args.email,
             budget: args.budget,
