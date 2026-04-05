@@ -21,6 +21,28 @@ export async function handleMessage(
 ) {
     try {
         console.log(`[Bot] Message from ${chatId}: ${text}`);
+
+        // 0. REGISTER / UPDATE USER in Supabase (with Referral support)
+        const supabase = getServerClient();
+        let referrer_id: number | null = null;
+        if (text.startsWith("/start ") && text.length > 7) {
+            const refParam = text.split(" ")[1];
+            if (!isNaN(parseInt(refParam)) && refParam !== chatId) {
+                referrer_id = parseInt(refParam);
+                console.log(`[Bot] Referral detected! Referrer: ${referrer_id} for User: ${chatId}`);
+            }
+        }
+
+        await supabase.from('users').upsert({
+            telegram_id: parseInt(chatId),
+            username: userInfo.username,
+            full_name: userInfo.fullName,
+            language_code: userInfo.language_code || 'ru',
+            referrer_id: referrer_id || undefined
+        }, { 
+            onConflict: 'telegram_id'
+        });
+
         const sessionId = (await findOrCreateSession(botId, chatId)).id;
 
         // 1. Save User Message
@@ -33,7 +55,6 @@ export async function handleMessage(
         });
 
         // 2. Build Context
-        const supabase = getServerClient();
         const rules = "Общайся вежливо, показывай максимум 1 вариант объекта зараз. Ты эксперт недвижимости.";
         
         const { data: faqRows } = await supabase.from('faq').select('question, answer, i18n').order('sort_order', { ascending: true });
