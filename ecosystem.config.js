@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: 'ai2b-app',
+      name: 'bot5',
       script: 'npm',
       args: 'start',
       env: {
