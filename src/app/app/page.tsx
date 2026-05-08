@@ -153,49 +153,53 @@ export default function MiniAppDispatcher() {
     // ==========================================
     // FETCH / CREATE USER
     // ==========================================
+    // ==========================================
+    // FETCH / CREATE USER (Upsert)
+    // ==========================================
     const fetchUserData = async (tgId: number, fullName?: string, username?: string) => {
         try {
             setLoading(true);
-            const { data: userData, error: fetchErr } = await supabase
+            
+            // 1. First, check if user exists to preserve role
+            const { data: existingUser } = await supabase
                 .from('users')
-                .select('*')
+                .select('role')
                 .eq('telegram_id', tgId)
                 .single();
 
-            let currentUser = userData;
+            const roleToSet = existingUser?.role || 'client';
 
-            // Self-registration: if user doesn't exist, create them
-            if (!userData && (fetchErr?.code === 'PGRST116' || !fetchErr)) {
-                const newUser = {
-                    telegram_id: tgId,
-                    username: username || fullName || `user_${tgId}`,
-                    full_name: fullName || username || '',
-                    role: 'client',
-                    balance: 0,
-                    lang_code: lang,
-                };
-                const { data: created, error: regError } = await supabase
-                    .from('users')
-                    .insert(newUser)
-                    .select()
-                    .single();
-                if (created) {
-                    currentUser = created;
-                    console.log('[AUTH] Self-registration for:', tgId);
-                } else {
-                    console.error('[AUTH] Registration failed:', regError);
-                }
+            // 2. Perform Upsert
+            const userData = {
+                telegram_id: tgId,
+                username: username || fullName || `user_${tgId}`,
+                full_name: fullName || username || '',
+                role: roleToSet,
+                lang_code: lang,
+                // created_at will be handled by DB default if new
+            };
+
+            const { data: currentUser, error: upsertError } = await supabase
+                .from('users')
+                .upsert(userData, { onConflict: 'telegram_id' })
+                .select()
+                .single();
+
+            if (upsertError) {
+                console.error('[AUTH] Upsert failed:', upsertError);
             }
 
             if (currentUser) {
                 setUser(currentUser);
+                console.log('[AUTH] User synced:', tgId, `(${currentUser.role})`);
+                
                 // Auto-navigate admins/managers to stats tab
                 if (currentUser.role === 'founder' || currentUser.role === 'admin' || currentUser.role === 'manager') {
                     setActiveTab('stats');
                 }
             }
         } catch (err) {
-            console.error('[AUTH] Error:', err);
+            console.error('[AUTH] Critical Error:', err);
         } finally {
             setLoading(false);
         }
