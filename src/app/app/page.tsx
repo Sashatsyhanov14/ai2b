@@ -155,6 +155,15 @@ export default function MiniAppDispatcher() {
                     tgUser.username
                 );
             } else {
+                // FALLBACK: Auto-login as Guest so the catalog opens immediately
+                setUser({
+                    id: 0,
+                    telegram_id: 0,
+                    role: 'guest',
+                    full_name: 'Гость',
+                    username: 'guest'
+                });
+                setActiveTab('catalog');
                 setLoading(false);
             }
         };
