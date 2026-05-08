@@ -4,7 +4,7 @@ type Message = {
 };
 
 /**
- * Ask LLM via Polza AI API
+ * Ask LLM via OpenRouter API
  */
 type ModelType = 'deepseek' | 'gpt-4o-mini' | 'gemini-1.5-flash' | 'gemini-2.0-flash-001';
 
@@ -15,13 +15,20 @@ export async function askLLM(
     jsonSchema?: any,
     modelType: ModelType = 'gpt-4o-mini'
 ): Promise<string> {
-    const apiKey = process.env.POLZA_API_KEY;
-    if (!apiKey) throw new Error("POLZA_API_KEY is not set.");
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set.");
 
-    const modelName = modelType === 'deepseek' ? 'deepseek/deepseek-chat-v3-0324' 
-        : modelType === 'gemini-1.5-flash' ? 'google/gemini-2.0-flash-001' 
-        : modelType === 'gemini-2.0-flash-001' ? 'google/gemini-2.0-flash-001'
-        : 'openai/gpt-4o-mini';
+    // Use specific models from OpenRouter or the default from env
+    let modelName = process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini';
+
+    // If specific model types are requested, we can map them to OpenRouter equivalents
+    if (modelType === 'deepseek') {
+        modelName = 'deepseek/deepseek-chat';
+    } else if (modelType === 'gemini-2.0-flash-001' || modelType === 'gemini-1.5-flash') {
+        modelName = 'google/gemini-2.0-flash-001';
+    } else if (modelType === 'gpt-4o-mini') {
+        modelName = 'openai/gpt-4o-mini';
+    }
 
     let messages: any[] = [];
 
@@ -29,7 +36,7 @@ export async function askLLM(
         if (system) {
             messages.push({ role: "system", content: system });
         } else {
-            messages.push({ role: "system", content: "Ты помощник." });
+            messages.push({ role: "system", content: "You are a helpful assistant." });
         }
         messages.push({ role: "user", content: promptOrMessages });
     } else {
@@ -61,20 +68,22 @@ export async function askLLM(
         }
     }
 
-    console.log(`[Polza AI] Requesting model: ${modelName}, messages: ${messages.length}`);
+    console.log(`[OpenRouter] Requesting model: ${modelName}, messages: ${messages.length}`);
 
-    const res = await fetch("https://polza.ai/api/v1/chat/completions", {
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
             "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json",
+            "HTTP-Referer": "https://estate.ticaretai.tr", // Recommended by OpenRouter
+            "X-Title": "Estate Bot",
         },
         body: JSON.stringify(requestBody),
     });
 
     if (!res.ok) {
         const text = await res.text().catch(() => "");
-        throw new Error(`Polza API error ${res.status}: ${text.substring(0, 500)}`);
+        throw new Error(`OpenRouter API error ${res.status}: ${text.substring(0, 500)}`);
     }
 
     const json = await res.json();
@@ -83,9 +92,10 @@ export async function askLLM(
     // Clean up if the model wrapped it in markdown anyway
     content = content.trim();
     if (!noJson) {
+        // Some models on OpenRouter might still include markdown blocks despite json_object format
         content = content.replace(/^```json/, "").replace(/```$/, "").trim();
     }
 
-    console.log("[Polza AI] Response content length:", content.length);
+    console.log("[OpenRouter] Response content length:", content.length);
     return content;
 }
