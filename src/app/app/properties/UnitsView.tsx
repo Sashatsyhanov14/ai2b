@@ -155,7 +155,6 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                         >
                             <option value="apartment" className="bg-[#121214]">Квартира</option>
                             <option value="land" className="bg-[#121214]">Участок</option>
-                            <option value="invest" className="bg-[#121214]">Проект</option>
                             <option value="villa" className="bg-[#121214]">Вилла</option>
                         </select>
                         <select

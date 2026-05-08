@@ -47,7 +47,7 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
     const tr = t[lang] || t['ru'];
     const [units, setUnits] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState<'apartment' | 'land' | 'invest'>('apartment');
+    const [filter, setFilter] = useState<'apartment' | 'land'>('apartment');
     const [intentFilter, setIntentFilter] = useState<'sale' | 'rent'>('sale');
 
     useEffect(() => {
@@ -58,46 +58,20 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
         setLoading(true);
         let allUnits: any[] = [];
 
-        // 1. Fetch from consolidated 'units' table
-        let query = supabase
+        // Fetch from consolidated 'units' table
+        const { data: dbUnits, error } = await supabase
             .from('units')
             .select('*')
             .eq('is_active', true)
-            .eq('unit_type', filter);
-
-        // Invest projects usually don't have intent separation in the same way, but let's allow it or fix to sale
-        if (filter !== 'invest') {
-            query = query.eq('intent', intentFilter);
-        }
-
-        const { data: dbUnits, error } = await query.order('created_at', { ascending: false });
+            .eq('unit_type', filter)
+            .eq('intent', intentFilter)
+            .order('created_at', { ascending: false });
         
         if (dbUnits) {
             allUnits = dbUnits;
         }
 
-        // 2. Fetch projects from local mock (only if filter is invest)
-        if (filter === 'invest') {
-            try {
-                const projects = listProjects();
-                const mappedProjects = projects.map(p => ({
-                    id: p.id,
-                    unit_type: 'invest',
-                    intent: 'sale',
-                    title: { ru: `ЖК ${p.name}` },
-                    city: p.city,
-                    address: p.developer,
-                    photos: p.media && p.media.length > 0 ? p.media : ['https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&q=80&w=800'],
-                    price: p.types && p.types[0] ? Math.round(p.types[0].price_from / 100) : 0, 
-                    created_at: p.created_at || new Date().toISOString(),
-                }));
-                allUnits = [...allUnits, ...mappedProjects];
-            } catch (e) {
-                console.error('Error loading projects', e);
-            }
-        }
-
-        setUnits(allUnits.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+        setUnits(allUnits);
         setLoading(false);
     };
 
@@ -130,8 +104,7 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
             <div className="flex gap-2 p-1 bg-white/[0.03] rounded-2xl border border-white/5">
                 {[
                     { id: 'apartment', label: 'Квартиры' },
-                    { id: 'land', label: 'Участки' },
-                    { id: 'invest', label: 'Проекты' }
+                    { id: 'land', label: 'Участки' }
                 ].map((f) => (
                     <button
                         key={f.id}
@@ -147,29 +120,27 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
                 ))}
             </div>
 
-            {/* Intent Filter (Sale/Rent) - only for apartments/land */}
-            {filter !== 'invest' && (
-                <div className="flex justify-center">
-                    <div className="inline-flex p-1 bg-white/[0.02] rounded-xl border border-white/5">
-                        {[
-                            { id: 'sale', label: tr.sale },
-                            { id: 'rent', label: tr.rent }
-                        ].map((i) => (
-                            <button
-                                key={i.id}
-                                onClick={() => setIntentFilter(i.id as any)}
-                                className={`px-6 py-1.5 text-[9px] font-bold uppercase tracking-wider rounded-lg transition-all ${
-                                    intentFilter === i.id 
-                                        ? 'bg-white/10 text-emerald-400' 
-                                        : 'text-zinc-600 hover:text-zinc-400'
-                                }`}
-                            >
-                                {i.label}
-                            </button>
-                        ))}
-                    </div>
+            {/* Intent Filter (Sale/Rent) */}
+            <div className="flex justify-center">
+                <div className="inline-flex p-1 bg-white/[0.02] rounded-xl border border-white/5">
+                    {[
+                        { id: 'sale', label: tr.sale },
+                        { id: 'rent', label: tr.rent }
+                    ].map((i) => (
+                        <button
+                            key={i.id}
+                            onClick={() => setIntentFilter(i.id as any)}
+                            className={`px-6 py-1.5 text-[9px] font-bold uppercase tracking-wider rounded-lg transition-all ${
+                                intentFilter === i.id 
+                                    ? 'bg-white/10 text-emerald-400' 
+                                    : 'text-zinc-600 hover:text-zinc-400'
+                            }`}
+                        >
+                            {i.label}
+                        </button>
+                    ))}
                 </div>
-            )}
+            </div>
 
             {/* Loading Skeletons */}
             {loading ? (
