@@ -1,4 +1,4 @@
--- Master Clean Schema for Estate Bot
+-- Master Clean Schema for Estate Bot (V2 - with Unit Types and Intents)
 -- Consolidates all properties into a single 'units' table
 
 -- 1. Cleanup
@@ -6,15 +6,17 @@ DROP TABLE IF EXISTS public.rental_units CASCADE;
 DROP TABLE IF EXISTS public.sale_properties CASCADE;
 DROP TABLE IF EXISTS public.rental_bookings CASCADE;
 DROP TABLE IF EXISTS public.unit_photos CASCADE;
+DROP TABLE IF EXISTS public.units CASCADE;
 
 -- 2. Consolidated Units Table
-CREATE TABLE IF NOT EXISTS public.units (
+CREATE TABLE public.units (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title JSONB DEFAULT '{"ru": "Новый объект"}'::jsonb,
   description JSONB DEFAULT '{"ru": ""}'::jsonb,
   city TEXT NOT NULL DEFAULT 'Alanya',
   address TEXT,
-  category TEXT NOT NULL DEFAULT 'sale' CHECK (category IN ('rent', 'sale', 'invest')),
+  unit_type TEXT NOT NULL DEFAULT 'apartment' CHECK (unit_type IN ('apartment', 'land', 'villa', 'commercial', 'invest')),
+  intent TEXT NOT NULL DEFAULT 'sale' CHECK (intent IN ('sale', 'rent')),
   price NUMERIC DEFAULT 0,
   price_period TEXT DEFAULT 'total' CHECK (price_period IN ('total', 'month', 'day')),
   bedrooms INT DEFAULT 1,

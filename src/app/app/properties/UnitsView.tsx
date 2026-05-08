@@ -58,7 +58,8 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
         city: 'Alanya',
         address: '',
         price: '',
-        type: 'sale',
+        unit_type: 'apartment',
+        intent: 'sale',
         description: '',
     });
 
@@ -83,9 +84,10 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
             city: formData.city,
             address: formData.address,
             description: { ru: formData.description },
-            category: formData.type,
+            unit_type: formData.unit_type,
+            intent: formData.intent,
             price: parseFloat(formData.price),
-            price_period: formData.type === 'rent' ? 'month' : 'total',
+            price_period: formData.intent === 'rent' ? 'month' : 'total',
             is_active: true,
         };
 
@@ -96,7 +98,15 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
             alert('Error: ' + error.message);
         } else {
             setIsAdding(false);
-            setFormData({ title: '', city: 'Alanya', address: '', price: '', type: 'sale', description: '' });
+            setFormData({ 
+                title: '', 
+                city: 'Alanya', 
+                address: '', 
+                price: '', 
+                unit_type: 'apartment', 
+                intent: 'sale', 
+                description: '' 
+            });
             fetchUnits();
         }
     };
@@ -137,24 +147,33 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                         value={formData.title}
                         onChange={e => setFormData({ ...formData, title: e.target.value })}
                     />
-                    <div className="flex gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                         <select
-                            className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-violet-500/50 appearance-none"
-                            value={formData.type}
-                            onChange={e => setFormData({ ...formData, type: e.target.value })}
+                            className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-violet-500/50 appearance-none"
+                            value={formData.unit_type}
+                            onChange={e => setFormData({ ...formData, unit_type: e.target.value })}
+                        >
+                            <option value="apartment" className="bg-[#121214]">Квартира</option>
+                            <option value="land" className="bg-[#121214]">Участок</option>
+                            <option value="invest" className="bg-[#121214]">Проект</option>
+                            <option value="villa" className="bg-[#121214]">Вилла</option>
+                        </select>
+                        <select
+                            className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-violet-500/50 appearance-none"
+                            value={formData.intent}
+                            onChange={e => setFormData({ ...formData, intent: e.target.value })}
                         >
                             <option value="sale" className="bg-[#121214]">{t.sale}</option>
                             <option value="rent" className="bg-[#121214]">{t.rent}</option>
-                            <option value="invest" className="bg-[#121214]">Новостройки</option>
                         </select>
-                        <input
-                            placeholder={t.price}
-                            type="number"
-                            className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-violet-500/50 placeholder:text-zinc-600"
-                            value={formData.price}
-                            onChange={e => setFormData({ ...formData, price: e.target.value })}
-                        />
                     </div>
+                    <input
+                        placeholder={t.price}
+                        type="number"
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-violet-500/50 placeholder:text-zinc-600"
+                        value={formData.price}
+                        onChange={e => setFormData({ ...formData, price: e.target.value })}
+                    />
                     <div className="flex gap-2">
                         <input
                             placeholder={t.city}
@@ -201,7 +220,7 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                                 </h3>
                                 <div className="flex items-center gap-2 mt-0.5">
                                     <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">
-                                        {unit.city} • {unit.category === 'rent' ? t.rent : unit.category === 'invest' ? 'Новостройки' : t.sale}
+                                        {unit.city} • {unit.unit_type === 'apartment' ? 'Квартира' : unit.unit_type === 'land' ? 'Участок' : unit.unit_type === 'invest' ? 'Проект' : 'Вилла'} ({unit.intent === 'rent' ? t.rent : t.sale})
                                     </span>
                                     <span className={`w-1.5 h-1.5 rounded-full ${unit.is_active ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
                                 </div>
