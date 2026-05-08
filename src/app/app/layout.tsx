@@ -1,22 +1,23 @@
-import Sidebar from '@/components/Sidebar';
 import '@/styles/globals.css';
-import Header from '@/components/Header';
-import ThemeProvider from '@/components/ThemeProvider';
 import { I18nProvider } from '@/i18n';
 
+export const metadata = { title: 'AI2B — Real Estate Mini App' };
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export default function MiniAppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ThemeProvider>
-      <I18nProvider>
-        <div className="min-h-screen bg-zinc-950 text-zinc-100 flex light:bg-zinc-50 light:text-zinc-900">
-          <Sidebar />
-          <div className="flex-1 flex flex-col min-w-0">
-            <Header />
-            <main className="relative z-0 flex-1 p-4 pb-24 md:p-6 md:pb-6">{children}</main>
-          </div>
-        </div>
-      </I18nProvider>
-    </ThemeProvider>
+    <I18nProvider>
+      <div className="min-h-screen bg-[#0a0a0c] text-zinc-100">
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+        />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        />
+        <script src="https://telegram.org/js/telegram-web-app.js" defer />
+        {children}
+      </div>
+    </I18nProvider>
   );
 }
