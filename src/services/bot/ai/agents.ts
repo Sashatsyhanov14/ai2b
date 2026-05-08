@@ -134,7 +134,7 @@ export async function runTranslationAgent(leadData: any): Promise<any> {
     console.log("[runTranslationAgent] Requesting AI translation...");
     const input = JSON.stringify(leadData);
     console.log(`[runTranslationAgent] Input leadData for translation: ${input.substring(0, 200)}...`); // Added log
-    const rawResult = await askLLM(input, TRANSLATION_SYSTEM_PROMPT, false, TranslationAgentSchema, 'gemini-1.5-flash');
+    const rawResult = await askLLM(input, TRANSLATION_SYSTEM_PROMPT, false, TranslationAgentSchema, 'gpt-4o-mini');
     console.log("[runTranslationAgent] AI Response length:", rawResult?.length || 0);
     try {
         return JSON.parse(rawResult);
@@ -207,7 +207,7 @@ const UNIT_TRANSLATION_SYSTEM_PROMPT = `
 export async function runUnitTranslationAgent(unitData: any): Promise<any> {
     console.log("[runUnitTranslationAgent] Requesting AI translation for unit...");
     const input = JSON.stringify(unitData);
-    const rawResult = await askLLM(input, UNIT_TRANSLATION_SYSTEM_PROMPT, false, UnitTranslationAgentSchema, 'gemini-1.5-flash');
+    const rawResult = await askLLM(input, UNIT_TRANSLATION_SYSTEM_PROMPT, false, UnitTranslationAgentSchema, 'gpt-4o-mini');
     try {
         return JSON.parse(rawResult);
     } catch (e) {
@@ -241,7 +241,7 @@ const ANALYZER_SYSTEM_PROMPT = `
 export async function runAnalyzerAgent(messages: RoleMessage[], companyKnowledge: string): Promise<any> {
     const todayStr = new Date().toISOString().substring(0, 10);
     const fullSystem = ANALYZER_SYSTEM_PROMPT + `\n\n[СИСТЕМНАЯ ДАТА: Сегодня ${todayStr}. При извлечении дат аренды (YYYY-MM-DD), используй текущий год, если клиент его не назвал.]\n\n[БАЗА ЗНАНИЙ И ПРАВИЛА КОМПАНИИ]:\n` + companyKnowledge;
-    const rawResult = await askLLM(messages, fullSystem, false, AnalyzerSchema, 'deepseek');
+    const rawResult = await askLLM(messages, fullSystem, false, AnalyzerSchema, 'gpt-4o-mini');
     if (!rawResult) {
         return { instructions_for_writer: "Извините, я временно недоступен. Попробуйте позже." };
     }
@@ -399,7 +399,7 @@ const RENTAL_TRANSLATION_SYSTEM_PROMPT = `
 export async function runRentalTranslationAgent(rentalData: any): Promise<any> {
     console.log("[runRentalTranslationAgent] Requesting AI translation for rental...");
     const input = JSON.stringify(rentalData);
-    const rawResult = await askLLM(input, RENTAL_TRANSLATION_SYSTEM_PROMPT, false, RentalTranslationAgentSchema, 'gemini-2.0-flash-001');
+    const rawResult = await askLLM(input, RENTAL_TRANSLATION_SYSTEM_PROMPT, false, RentalTranslationAgentSchema, 'gpt-4o-mini');
     try {
         return JSON.parse(rawResult);
     } catch (e) {
@@ -422,7 +422,7 @@ export async function runClientTranslatorAgent(baseText: string, targetLang: str
 Текст для перевода/коррекции:
 ${baseText}`;
     
-    return await askLLM(prompt, "Ты ассистент-переводчик.", true, undefined, 'gemini-2.0-flash-001');
+    return await askLLM(prompt, "Ты ассистент-переводчик.", true, undefined, 'gpt-4o-mini');
 }
 
 // ==========================================
@@ -436,7 +436,7 @@ export async function runRagAgent(query: string, companyKnowledge: string): Prom
 ${companyKnowledge}
 
 Если прямого ответа нет, так и скажи.`;
-    return await askLLM(prompt, "Ты аналитик базы знаний RAG.", true, undefined, 'gemini-1.5-flash');
+    return await askLLM(prompt, "Ты аналитик базы знаний RAG.", true, undefined, 'gpt-4o-mini');
 }
 
 // ==========================================
