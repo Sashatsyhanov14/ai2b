@@ -1,0 +1,17 @@
+-- Disable RLS for all tables to allow easy access from Mini App
+ALTER TABLE public.users DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.faq DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.leads DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.rental_units DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sale_properties DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sessions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.messages DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.session_scores DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.reactivation_queue DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.telegram_managers DISABLE ROW LEVEL SECURITY;
+
+-- Grant permissions to public/anon roles
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO authenticated;
