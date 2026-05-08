@@ -1,12 +1,12 @@
 module.exports = {
   apps: [
     {
-      name: 'bot5',
+      name: 'bot4',
       script: 'npm',
       args: 'start',
       env: {
         NODE_ENV: 'production',
-        PORT: 3005
+        PORT: 3004
       },
       instances: 'max',
       exec_mode: 'cluster',
