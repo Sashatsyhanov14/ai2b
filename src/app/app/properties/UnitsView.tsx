@@ -66,14 +66,12 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
 
     const fetchUnits = async () => {
         setLoading(true);
-        const { data: rentals } = await supabase.from('rental_units').select('*');
-        const { data: sales } = await supabase.from('sale_properties').select('*');
+        const { data, error } = await supabase
+            .from('units')
+            .select('*')
+            .order('created_at', { ascending: false });
 
-        let all: any[] = [];
-        if (rentals) all = [...all, ...rentals.map(r => ({ ...r, _category: 'rent' }))];
-        if (sales) all = [...all, ...sales.map(s => ({ ...s, _category: 'sale' }))];
-
-        setUnits(all.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+        if (data) setUnits(data);
         setLoading(false);
     };
 
@@ -84,38 +82,33 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
             title: { ru: formData.title },
             city: formData.city,
             address: formData.address,
-            description: formData.description,
+            description: { ru: formData.description },
+            category: formData.type,
+            price: parseFloat(formData.price),
+            price_period: formData.type === 'rent' ? 'month' : 'total',
             is_active: true,
         };
 
-        if (formData.type === 'rent') {
-            await supabase.from('rental_units').insert({
-                ...payload,
-                price_month_eur: parseFloat(formData.price),
-            });
+        const { error } = await supabase.from('units').insert(payload);
+        
+        if (error) {
+            console.error('Add failed:', error);
+            alert('Error: ' + error.message);
         } else {
-            await supabase.from('sale_properties').insert({
-                ...payload,
-                price_eur: parseFloat(formData.price),
-                slug: `unit-${Date.now()}`,
-            });
+            setIsAdding(false);
+            setFormData({ title: '', city: 'Alanya', address: '', price: '', type: 'sale', description: '' });
+            fetchUnits();
         }
-
-        setIsAdding(false);
-        setFormData({ title: '', city: 'Alanya', address: '', price: '', type: 'sale', description: '' });
-        fetchUnits();
     };
 
     const handleDelete = async (unit: any) => {
-        if (!window.confirm('Delete?')) return;
-        const table = unit._category === 'rent' ? 'rental_units' : 'sale_properties';
-        await supabase.from(table).delete().eq('id', unit.id);
+        if (!window.confirm('Delete object?')) return;
+        await supabase.from('units').delete().eq('id', unit.id);
         fetchUnits();
     };
 
     const toggleActive = async (unit: any) => {
-        const table = unit._category === 'rent' ? 'rental_units' : 'sale_properties';
-        await supabase.from(table).update({ is_active: !unit.is_active }).eq('id', unit.id);
+        await supabase.from('units').update({ is_active: !unit.is_active }).eq('id', unit.id);
         fetchUnits();
     };
 
@@ -152,6 +145,7 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                         >
                             <option value="sale" className="bg-[#121214]">{t.sale}</option>
                             <option value="rent" className="bg-[#121214]">{t.rent}</option>
+                            <option value="invest" className="bg-[#121214]">Новостройки</option>
                         </select>
                         <input
                             placeholder={t.price}
@@ -207,13 +201,13 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                                 </h3>
                                 <div className="flex items-center gap-2 mt-0.5">
                                     <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">
-                                        {unit.city} • {unit._category === 'rent' ? t.rent : t.sale}
+                                        {unit.city} • {unit.category === 'rent' ? t.rent : unit.category === 'invest' ? 'Новостройки' : t.sale}
                                     </span>
                                     <span className={`w-1.5 h-1.5 rounded-full ${unit.is_active ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
                                 </div>
                                 <p className="text-xs font-bold text-emerald-400 mt-1">
-                                    €{(unit.price_eur || unit.price_month_eur)?.toLocaleString()}
-                                    {unit._category === 'rent' && <span className="text-zinc-500 font-normal">/мес</span>}
+                                    €{unit.price?.toLocaleString()}
+                                    {unit.category === 'rent' && <span className="text-zinc-500 font-normal">/мес</span>}
                                 </p>
                             </div>
                             <div className="flex flex-col gap-1.5 flex-shrink-0">

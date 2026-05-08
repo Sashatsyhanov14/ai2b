@@ -57,40 +57,39 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
         setLoading(true);
         let allUnits: any[] = [];
 
-        if (filter === 'all' || filter === 'rent') {
-            const { data: rentals } = await supabase
-                .from('rental_units')
-                .select('*')
-                .eq('is_active', true)
-                .order('created_at', { ascending: false });
-            if (rentals) allUnits = [...allUnits, ...rentals.map(r => ({ ...r, _type: 'rent' }))];
+        // 1. Fetch from consolidated 'units' table
+        let query = supabase
+            .from('units')
+            .select('*')
+            .eq('is_active', true);
+
+        if (filter !== 'all') {
+            query = query.eq('category', filter);
         }
 
-        if (filter === 'all' || filter === 'sale') {
-            const { data: sales } = await supabase
-                .from('sale_properties')
-                .select('*')
-                .eq('is_active', true)
-                .order('created_at', { ascending: false });
-            if (sales) allUnits = [...allUnits, ...sales.map(s => ({ ...s, _type: 'sale' }))];
+        const { data: dbUnits, error } = await query.order('created_at', { ascending: false });
+        
+        if (dbUnits) {
+            allUnits = dbUnits.map(u => ({
+                ...u,
+                _type: u.category // Map for legacy compatibility if needed
+            }));
         }
 
+        // 2. Fetch projects from local mock (optional, keeping for now)
         if (filter === 'all' || filter === 'invest') {
             try {
-                // Fetch projects from local mock (investments/off-plan)
                 const projects = listProjects();
                 const mappedProjects = projects.map(p => ({
                     id: p.id,
                     _type: 'invest',
+                    category: 'invest',
                     title: { ru: `ЖК ${p.name}` },
                     city: p.city,
                     address: p.developer,
                     photos: p.media && p.media.length > 0 ? p.media : ['https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&q=80&w=800'],
-                    price_eur: p.types && p.types[0] ? Math.round(p.types[0].price_from / 100) : 0, // Mock converting RUB to EUR or similar
+                    price: p.types && p.types[0] ? Math.round(p.types[0].price_from / 100) : 0, 
                     created_at: p.created_at || new Date().toISOString(),
-                    bedrooms: null,
-                    rooms: null,
-                    bathrooms: null,
                 }));
                 allUnits = [...allUnits, ...mappedProjects];
             } catch (e) {
@@ -179,9 +178,11 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
 function PropertyCard({ unit, tr, lang, onAskBot }: any) {
     const photo = unit.photos?.[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=800';
     const city = unit.i18n?.[lang]?.city || unit.city || 'Alanya';
-    const price = unit._type === 'rent' ? unit.price_month_eur : unit.price_eur;
+    const price = unit.price;
     const title = unit.i18n?.[lang]?.title || unit.title?.ru || unit.title || 'Property';
-    const isRent = unit._type === 'rent';
+    const category = unit.category || unit._type;
+    const isRent = category === 'rent';
+    const isInvest = category === 'invest';
 
     return (
         <div className="group bg-[#121214] rounded-3xl overflow-hidden border border-white/[0.06] shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-all duration-500 hover:border-emerald-500/20 hover:shadow-[0_8px_40px_rgba(16,185,129,0.1)]">
@@ -203,11 +204,11 @@ function PropertyCard({ unit, tr, lang, onAskBot }: any) {
                     <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${
                         isRent
                             ? 'bg-blue-500/70 text-white border-blue-400/30'
-                            : unit._type === 'invest' 
+                            : isInvest 
                                 ? 'bg-amber-500/80 text-black border-amber-400/30' 
                                 : 'bg-emerald-500/80 text-black border-emerald-400/30'
                     }`}>
-                        {isRent ? tr.rent : unit._type === 'invest' ? tr.invest : tr.sale}
+                        {isRent ? tr.rent : isInvest ? tr.invest : tr.sale}
                     </span>
                 </div>
 
