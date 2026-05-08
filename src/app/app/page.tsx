@@ -99,10 +99,21 @@ export default function MiniAppDispatcher() {
     // ==========================================
     useEffect(() => {
         const init = async () => {
-            const tg = window.Telegram?.WebApp;
+            // Wait for window.Telegram to be available
+            let tg: any = window.Telegram?.WebApp;
+            if (!tg) {
+                for (let i = 0; i < 10; i++) {
+                    await new Promise(r => setTimeout(r, 100));
+                    tg = window.Telegram?.WebApp;
+                    if (tg) break;
+                }
+            }
+
             if (tg) {
-                tg.ready();
-                tg.expand();
+                try {
+                    tg.ready();
+                    tg.expand();
+                } catch (e) {}
             }
 
             let tgUser: any = null;

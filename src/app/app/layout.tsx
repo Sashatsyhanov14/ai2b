@@ -1,6 +1,8 @@
 import '@/styles/globals.css';
 import { I18nProvider } from '@/i18n';
 
+import Script from 'next/script';
+
 export const metadata = { title: 'AI2B — Real Estate Mini App' };
 
 export default function MiniAppLayout({ children }: { children: React.ReactNode }) {
@@ -15,7 +17,7 @@ export default function MiniAppLayout({ children }: { children: React.ReactNode 
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
         />
-        <script src="https://telegram.org/js/telegram-web-app.js" defer />
+        <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
         {children}
       </div>
     </I18nProvider>
