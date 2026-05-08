@@ -7,15 +7,15 @@ export async function handleSearchDatabase(args: SearchArgs & { id?: string; pri
 
     const tableName = "units";
 
-    // Query active units
+    // Query active units with the new consolidated schema
     let query = supabase
         .from(tableName)
         .select(`
-            id, city, address, rooms, floor, floors_total, area_m2, price, 
-            status, title, features, is_active, category,
-            price_per_day, price_per_month, bedrooms, bathrooms, max_guests, photos
+            id, city, address, area_m2, price, price_period,
+            title, is_active, unit_type, intent,
+            bedrooms, bathrooms, photos
         `)
-        .neq("is_active", false);
+        .eq("is_active", true);
 
     if (args.id) {
         query = query.eq("id", args.id);
@@ -23,73 +23,46 @@ export async function handleSearchDatabase(args: SearchArgs & { id?: string; pri
 
     if (args.intent) {
         if (args.intent === "rent" || args.intent === "sale") {
-            // intent 'rent' and 'sale' target Residential (apartment/villa) stored as 'residential' (and legacy 'sale', 'rent')
-            query = query.in("category", ["residential", "sale", "rent"]);
+            query = query.eq("intent", args.intent);
+            // Optionally default to apartment if not specified
+            if (args.category === "land") query = query.eq("unit_type", "land");
+            else if (args.category === "commercial") query = query.eq("unit_type", "commercial");
         } else {
-            // 'commercial' or 'land'
-            query = query.eq("category", args.intent);
+            // If intent is 'land' or 'commercial' directly (legacy parsing)
+            query = query.eq("unit_type", args.intent);
         }
     }
-    
-    // Explicit Transaction Type filters for Residential
-    if (args.intent === "rent") {
-        query = query.not("price_per_month", "is", null);
-    } else if (args.intent === "sale") {
-        query = query.not("price", "is", null);
-    }
-
-    // Date filtering (exclude booked units) - REMOVED BY USER REQUEST
-    /*
-    if (args.intent === "rent" && args.start_date && args.end_date) {
-        ...
-    }
-    */
 
     // AI Typos / Fuzzy Search: normalize Russian/Turkish city names to English first
     const normalizedKeywords = normalizeSearchKeywords(args.search_keywords);
     if (normalizedKeywords.length > 0) {
-        // Create an OR string like: 'city.ilike.%Istanbul%,address.ilike.%Istanbul%,title.ilike.%Istanbul%'
+        // Only search TEXT fields, title is JSONB now
         const orConditions = normalizedKeywords.map(kw => {
-            const safeKw = kw.trim().replace(/,/g, ''); // prevent SQL injection in OR syntax
-            return `city.ilike.%${safeKw}%,address.ilike.%${safeKw}%,title.ilike.%${safeKw}%`;
+            const safeKw = kw.trim().replace(/,/g, ''); 
+            return `city.ilike.%${safeKw}%,address.ilike.%${safeKw}%`;
         }).join(",");
         query = query.or(orConditions);
     }
 
     if (args.rooms) {
-        // e.g. "1+1" or "2" bedrooms. For rent, it's just a number. For now if sale, match exactly.
-        if (args.intent === "rent") {
-            const num = parseInt(args.rooms);
-            if (!isNaN(num)) query = query.eq("bedrooms", num);
-        } else if (args.intent !== "land") {
-            query = query.eq("rooms", args.rooms);
-        }
-    }
-    if (args.guests && args.intent === "rent") {
-        query = query.gte("max_guests", args.guests);
-    }
-    if (args.price) {
-        if (args.intent === "rent") {
-            // Check both per day and per month if appropriate, or just month as primary
-            query = query.or(`price_per_month.lte.${args.price},price_per_day.lte.${args.price}`);
-        } else {
-            query = query.lte("price", args.price);
-        }
-    }
-    if (args.price_min) {
-        query = query.gte(args.intent === "rent" ? "price_per_month" : "price", args.price_min);
-    }
-    if (args.area_min && args.intent === "land") {
-        query = query.gte("area_m2", args.area_min);
-    }
-    if (args.area_max && args.intent === "land") {
-        query = query.lte("area_m2", args.area_max);
-    }
-    if (args.project) {
-        query = query.ilike("title", `%${args.project}%`); // fallback checking title since project isn't exported in select
+        const num = parseInt(args.rooms);
+        if (!isNaN(num)) query = query.eq("bedrooms", num);
     }
 
-    console.log(`[Search] intent=${args.intent} table=${tableName} keywords=${JSON.stringify(args.search_keywords)} dates=${args.start_date}→${args.end_date} rooms=${args.rooms} guests=${args.guests}`);
+    if (args.price) {
+        query = query.lte("price", args.price);
+    }
+    if (args.price_min) {
+        query = query.gte("price", args.price_min);
+    }
+    if (args.area_min && (args.intent === "land" || args.category === "land")) {
+        query = query.gte("area_m2", args.area_min);
+    }
+    if (args.area_max && (args.intent === "land" || args.category === "land")) {
+        query = query.lte("area_m2", args.area_max);
+    }
+
+    console.log(`[Search] intent=${args.intent} table=${tableName} keywords=${JSON.stringify(args.search_keywords)} rooms=${args.rooms}`);
 
     const { data, error } = await query.order('created_at', { ascending: false }).limit(20);
 
