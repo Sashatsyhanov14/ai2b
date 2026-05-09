@@ -141,6 +141,8 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
         description: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' },
     });
 
+    const [translating, setTranslating] = useState(false);
+
     useEffect(() => { fetchUnits(); }, []);
 
     const fetchUnits = async () => {
@@ -154,14 +156,66 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
         setLoading(false);
     };
 
+    const handleAutoTranslate = async () => {
+        if (!formData.title.ru) return;
+        setTranslating(true);
+        try {
+            // Translate Title
+            const resTitle = await fetch('/api/translate', {
+                method: 'POST',
+                body: JSON.stringify({ text: formData.title.ru })
+            });
+            const translatedTitles = await resTitle.json();
+
+            // Translate Description
+            let translatedDescs = formData.description;
+            if (formData.description.ru) {
+                const resDesc = await fetch('/api/translate', {
+                    method: 'POST',
+                    body: JSON.stringify({ text: formData.description.ru })
+                });
+                translatedDescs = await resDesc.json();
+            }
+
+            setFormData({
+                ...formData,
+                title: { ...formData.title, ...translatedTitles },
+                description: { ...formData.description, ...translatedDescs }
+            });
+        } catch (err) {
+            console.error('Auto-translate failed:', err);
+            alert('AI Translation failed. Please try again.');
+        } finally {
+            setTranslating(false);
+        }
+    };
+
     const handleAdd = async () => {
         if (!formData.title.ru || !formData.price) return;
+        
+        let finalTitle = formData.title;
+        let finalDesc = formData.description;
+
+        // Auto-translate if only RU is filled
+        if (!formData.title.en || !formData.title.tr) {
+            setTranslating(true);
+            try {
+                const resT = await fetch('/api/translate', { method: 'POST', body: JSON.stringify({ text: formData.title.ru }) });
+                finalTitle = await resT.json();
+                
+                if (formData.description.ru) {
+                    const resD = await fetch('/api/translate', { method: 'POST', body: JSON.stringify({ text: formData.description.ru }) });
+                    finalDesc = await resD.json();
+                }
+            } catch (e) { console.error(e); }
+            setTranslating(false);
+        }
 
         const payload = {
-            title: formData.title,
+            title: finalTitle,
             city: formData.city,
             address: formData.address,
-            description: formData.description,
+            description: finalDesc,
             unit_type: formData.unit_type,
             intent: formData.intent,
             price: parseFloat(formData.price),
@@ -223,16 +277,28 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                 <div className="glass-card bg-[#121214] p-5 rounded-[32px] border border-primary/20 space-y-5 animate-in fade-in slide-in-from-top-4 duration-300">
                     <div className="space-y-4">
                         {/* Lang Tabs for Form */}
-                        <div className="flex gap-1 overflow-x-auto pb-2 scrollbar-hide">
-                            {['ru', 'en', 'tr', 'de', 'es', 'ar', 'fr'].map(l => (
-                                <button
-                                    key={l}
-                                    onClick={() => setLangTab(l)}
-                                    className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${langTab === l ? 'bg-primary text-black' : 'bg-white/5 text-zinc-500'}`}
-                                >
-                                    {l}
-                                </button>
-                            ))}
+                        <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                            <div className="flex gap-1 overflow-x-auto scrollbar-hide">
+                                {['ru', 'en', 'tr', 'de', 'es', 'ar', 'fr'].map(l => (
+                                    <button
+                                        key={l}
+                                        type="button"
+                                        onClick={() => setLangTab(l)}
+                                        className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${langTab === l ? 'bg-primary text-black' : 'bg-white/5 text-zinc-500'}`}
+                                    >
+                                        {l}
+                                    </button>
+                                ))}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleAutoTranslate}
+                                disabled={translating || !formData.title.ru}
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${translating ? 'bg-zinc-800 text-zinc-500' : 'bg-violet-500/20 text-violet-400 hover:bg-violet-500/30'}`}
+                            >
+                                <span className="material-symbols-outlined text-[14px]">{translating ? 'sync' : 'auto_fix_high'}</span>
+                                {translating ? '...' : 'AI'}
+                            </button>
                         </div>
 
                         <div className="space-y-1.5">

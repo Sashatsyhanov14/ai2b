@@ -25,6 +25,8 @@ export default function FaqView({ lang = 'ru' }: { lang?: string }) {
     });
     const [isFormOpen, setIsFormOpen] = useState(false);
 
+    const [translating, setTranslating] = useState(false);
+
     useEffect(() => { fetchFaqs(); }, []);
 
     const fetchFaqs = async () => {
@@ -34,15 +36,51 @@ export default function FaqView({ lang = 'ru' }: { lang?: string }) {
         setLoading(false);
     };
 
+    const handleAutoTranslate = async () => {
+        if (!form.question.ru) return;
+        setTranslating(true);
+        try {
+            const resQ = await fetch('/api/translate', { method: 'POST', body: JSON.stringify({ text: form.question.ru }) });
+            const translatedQs = await resQ.json();
+            
+            let translatedAs = form.answer;
+            if (form.answer.ru) {
+                const resA = await fetch('/api/translate', { method: 'POST', body: JSON.stringify({ text: form.answer.ru }) });
+                translatedAs = await resA.json();
+            }
+
+            setForm({
+                ...form,
+                question: { ...form.question, ...translatedQs },
+                answer: { ...form.answer, ...translatedAs }
+            });
+        } catch (e) { console.error(e); }
+        setTranslating(false);
+    };
+
     const handleSave = async () => {
         if (!form.question.ru || !form.answer.ru) return;
+        
+        let finalQ = form.question;
+        let finalA = form.answer;
+
+        if (!form.question.en || !form.question.tr) {
+            setTranslating(true);
+            try {
+                const resQ = await fetch('/api/translate', { method: 'POST', body: JSON.stringify({ text: form.question.ru }) });
+                finalQ = await resQ.json();
+                const resA = await fetch('/api/translate', { method: 'POST', body: JSON.stringify({ text: form.answer.ru }) });
+                finalA = await resA.json();
+            } catch (e) { console.error(e); }
+            setTranslating(false);
+        }
+
         const payload = {
-            question: form.question.ru,
-            answer: form.answer.ru,
+            question: finalQ.ru,
+            answer: finalA.ru,
             i18n: {
-                ...form.question, // This will have ru, en, etc keys
-                questions: form.question,
-                answers: form.answer
+                questions: finalQ,
+                answers: finalA
             }
         };
 
@@ -103,16 +141,28 @@ export default function FaqView({ lang = 'ru' }: { lang?: string }) {
             {isFormOpen && (
                 <div className="bg-[#121214] p-5 rounded-2xl border border-violet-500/20 space-y-4 animate-in slide-in-from-top duration-300">
                     {/* Lang Tabs for Form */}
-                    <div className="flex gap-1 overflow-x-auto pb-2 scrollbar-hide border-b border-white/5">
-                        {['ru', 'en', 'tr', 'de', 'es', 'ar', 'fr'].map(l => (
-                            <button
-                                key={l}
-                                onClick={() => setLangTab(l)}
-                                className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${langTab === l ? 'bg-violet-500 text-white' : 'bg-white/5 text-zinc-500'}`}
-                            >
-                                {l}
-                            </button>
-                        ))}
+                    <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                        <div className="flex gap-1 overflow-x-auto scrollbar-hide">
+                            {['ru', 'en', 'tr', 'de', 'es', 'ar', 'fr'].map(l => (
+                                <button
+                                    key={l}
+                                    type="button"
+                                    onClick={() => setLangTab(l)}
+                                    className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${langTab === l ? 'bg-violet-500 text-white' : 'bg-white/5 text-zinc-500'}`}
+                                >
+                                    {l}
+                                </button>
+                            ))}
+                        </div>
+                        <button
+                            type="button"
+                            onClick={handleAutoTranslate}
+                            disabled={translating || !form.question.ru}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${translating ? 'bg-zinc-800 text-zinc-500' : 'bg-violet-500/20 text-violet-400 hover:bg-violet-500/30'}`}
+                        >
+                            <span className="material-symbols-outlined text-[14px]">{translating ? 'sync' : 'auto_fix_high'}</span>
+                            {translating ? '...' : 'AI'}
+                        </button>
                     </div>
 
                     <div className="space-y-2">

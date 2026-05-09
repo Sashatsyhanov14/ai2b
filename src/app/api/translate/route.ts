@@ -1,47 +1,47 @@
-import { NextRequest, NextResponse } from "next/server";
-import { askLLM } from "@/lib/gemini";
+import { NextResponse } from 'next/server';
 
-/**
- * API to translate lead data on the fly based on current dashboard language.
- * POST /api/translate { text: string | string[], target: 'ru' | 'en' | 'tr' }
- */
-export async function POST(req: NextRequest) {
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const MODEL = process.env.OPENROUTER_MODEL || 'google/gemini-2.0-flash-001';
+
+export async function POST(req: Request) {
     try {
-        const { text, target } = await req.json();
+        const { text, targetLangs = ['en', 'tr', 'de', 'es', 'ar', 'fr'] } = await JSON.parse(await req.text());
 
-        if (!text || !target) {
-            return NextResponse.json({ ok: false, error: "Text and target language are required." }, { status: 400 });
+        if (!text) {
+            return NextResponse.json({ error: 'No text provided' }, { status: 400 });
         }
 
-        const targetNames: Record<string, string> = {
-            ru: "Russian",
-            en: "English",
-            tr: "Turkish"
-        };
+        const prompt = `Translate the following text from Russian into these languages: ${targetLangs.join(', ')}.
+Return ONLY a valid JSON object where keys are language codes and values are translated strings.
+Do not include any explanation or markdown.
 
-        const targetLang = targetNames[target] || "English";
+Text: "${text}"`;
 
-        const isArray = Array.isArray(text);
-        const input = isArray ? text.join("\n---\n") : text;
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+                'Content-Type': 'application/json',
+                'HTTP-Referer': 'https://estate.ticaretai.tr',
+                'X-Title': 'Estate Bot Translation',
+            },
+            body: JSON.stringify({
+                model: MODEL,
+                messages: [{ role: 'user', content: prompt }],
+                response_format: { type: 'json_object' }
+            }),
+        });
 
-        const system = `You are a professional translator for a real estate CRM. 
-Translate the provided text into ${targetLang}. 
-Maintain the tone (professional yet friendly). 
-Maintain all formatting like line breaks. 
-If input contains multiple blocks separated by '---', return them separated by '---' as well.`;
+        const data = await response.json();
+        const content = data.choices[0].message.content;
+        const translations = JSON.parse(content);
 
-        const translated = await askLLM(input, system, true); // noJson = true
+        // Include original RU
+        translations.ru = text;
 
-        let result;
-        if (isArray) {
-            result = translated.split("\n---\n").map(s => s.trim());
-        } else {
-            result = translated.trim();
-        }
-
-        return NextResponse.json({ ok: true, result });
+        return NextResponse.json(translations);
     } catch (error: any) {
-        console.error("Translation API error:", error);
-        return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+        console.error('Translation error:', error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
