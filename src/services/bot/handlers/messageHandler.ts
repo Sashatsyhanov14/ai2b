@@ -45,12 +45,27 @@ export async function handleMessage(
         // 0a. Check if user already exists to preserve role and referrer
         const { data: existingUser } = await supabase
             .from('users')
-            .select('role, referrer_id, lang_code')
+            .select('role, referrer_id, lang_code, manager_contact_id, is_support_mode')
             .eq('telegram_id', parseInt(chatId))
             .single();
 
         let referrer_id: number | null = existingUser?.referrer_id || null;
         let roleToSet = existingUser?.role || 'client';
+
+        // --- NEW: MANAGER SUPPORT MODE (FORWARDING) ---
+        if (existingUser && (existingUser.role === 'admin' || existingUser.role === 'founder' || existingUser.role === 'manager')) {
+            if (existingUser.manager_contact_id) {
+                const targetId = existingUser.manager_contact_id;
+                try {
+                    const prefix = `💬 <b>Сообщение от Администрации:</b>\n\n`;
+                    await sendMessage(token, String(targetId), prefix + text, { parse_mode: 'HTML' });
+                    await supabase.from('users').update({ manager_contact_id: null }).eq('telegram_id', parseInt(chatId));
+                    return sendMessage(token, chatId, `✅ Сообщение отправлено пользователю <code>${targetId}</code>. Режим чата выключен.`, { parse_mode: 'HTML' });
+                } catch (err: any) {
+                    return sendMessage(token, chatId, `❌ Ошибка отправки: ${err.message}`);
+                }
+            }
+        }
 
         if (!referrer_id && text.startsWith("/start ") && text.length > 7) {
             const refParam = text.split(" ")[1];
@@ -76,6 +91,39 @@ export async function handleMessage(
         });
 
         const sessionId = (await findOrCreateSession(botId, chatId)).id;
+
+        // --- NEW: CLIENT SUPPORT MODE (FORWARDING TO ADMINS) ---
+        if (existingUser && existingUser.role === 'client' && existingUser.is_support_mode) {
+            const { data: staffMembers } = await supabase
+                .from("users")
+                .select("telegram_id, role")
+                .in("role", ["founder", "admin", "manager"]);
+            
+            if (staffMembers && staffMembers.length > 0) {
+                const name = userInfo.fullName || userInfo.username || "Client";
+                const alertMsg = `📩 <b>СООБЩЕНИЕ ОТ КЛИЕНТА</b>\n\n👤 Юзер: @${userInfo.username || chatId}\n👤 Имя: ${escapeHtml(name)}\n🆔 ID: <code>${chatId}</code>\n\n📝 <b>Текст:</b> ${escapeHtml(text)}`;
+                
+                const recipients = staffMembers.filter(r => 
+                    r.role === 'founder' || 
+                    r.role === 'admin' || 
+                    (r.role === 'manager' && String(r.telegram_id) === String(referrer_id))
+                );
+
+                for (const recipient of recipients) {
+                    if (recipient.telegram_id) {
+                        sendMessage(token, String(recipient.telegram_id), alertMsg, { 
+                            parse_mode: 'HTML',
+                            reply_markup: {
+                                inline_keyboard: [[{ text: "✉️ Ответить", callback_data: `contactuser_${chatId}` }]]
+                            }
+                        }).catch(() => {});
+                    }
+                }
+                
+                await supabase.from('users').update({ is_support_mode: false }).eq('telegram_id', parseInt(chatId));
+                return sendMessage(token, chatId, "✅ Ваше сообщение передано менеджеру. Скоро мы свяжемся с вами!");
+            }
+        }
 
         // 1. Save User Message
         await appendMessage({
@@ -233,8 +281,11 @@ export async function handleMessage(
                 .in("role", ["founder", "admin", "manager"]);
             
             if (staffMembers && staffMembers.length > 0) {
+                // Activate Support Mode for client so their next messages are forwarded
+                await supabase.from('users').update({ is_support_mode: true }).eq('telegram_id', parseInt(chatId));
+
                 const name = userInfo.fullName || userInfo.username || "Client";
-                const alertMsg = `🔥 <b>ВНИМАНИЕ! (ИИ-БОТ)</b> 🔥\n\n👤 Пользователь: @${userInfo.username || chatId}\n👤 Имя: ${escapeHtml(name)}\n💬 Причина: ${escapeHtml(plan.notifier_agent.alert_reason || "Вызов менеджера")}`;
+                const alertMsg = `🔥 <b>ВНИМАНИЕ! (ИИ-БОТ)</b> 🔥\n\n👤 Пользователь: @${userInfo.username || chatId}\n👤 Имя: ${escapeHtml(name)}\n🆔 ID: <code>${chatId}</code>\n💬 Причина: ${escapeHtml(plan.notifier_agent.alert_reason || "Вызов менеджера")}`;
                 
                 // Filtering recipients based on role logic from eSIM bot
                 const recipients = staffMembers.filter(r => 
@@ -247,12 +298,20 @@ export async function handleMessage(
                     if (recipient.telegram_id) {
                         const { data: lastLead } = await supabase.from('leads').select('id').eq('user_id', parseInt(chatId)).order('created_at', { ascending: false }).limit(1).single();
                         
+                        const buttons: any = {
+                            inline_keyboard: [
+                                [{ text: "✉️ Написать клиенту", callback_data: `contactuser_${chatId}` }]
+                            ]
+                        };
+
+                        if (lastLead) {
+                            buttons.inline_keyboard.push([
+                                { text: "✅ Подтвердить сделку", callback_data: `deal_confirm_${lastLead.id}` },
+                                { text: "❌ Отмена", callback_data: `deal_cancel_${lastLead.id}` }
+                            ]);
+                        }
+
                         sendMessage(token, String(recipient.telegram_id), alertMsg, { 
-                            parse_mode: "HTML", 
-                            reply_markup: { 
-                                inline_keyboard: [
-                                    [{ text: "✅ Подтвердить сделку", callback_data: `deal_confirm_${lastLead?.id || 'none'}` }],
-                                    [{ text: "❌ Отклонить", callback_data: `deal_cancel_${lastLead?.id || 'none'}` }],
                                     [{ text: "В дашборд ↗️", url: "https://ai2b.app/app/stats" }]
                                 ] 
                             } 

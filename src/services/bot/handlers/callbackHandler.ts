@@ -69,4 +69,22 @@ export async function handleCallbackQuery(callbackQuery: any, token: string) {
         const updatedText = callbackQuery.message.text + `\n\n❌ <b>ОТКЛОНЕНО МЕНЕДЖЕРОМ</b>`;
         sendMessage(token, chatId, updatedText, { parse_mode: 'HTML' });
     }
+
+    if (data.startsWith('contactuser_')) {
+        const targetUserId = data.replace('contactuser_', '');
+        await supabase.from('users').update({ manager_contact_id: targetUserId }).eq('telegram_id', parseInt(chatId));
+        
+        const msg = `💬 <b>Режим чата ВКЛЮЧЕН!</b>\n\nВаше <u>следующее</u> сообщение будет отправлено пользователю <code>${targetUserId}</code>.\n\nПосле отправки режим автоматически выключится.`;
+        sendMessage(token, chatId, msg, { 
+            parse_mode: 'HTML',
+            reply_markup: {
+                inline_keyboard: [[{ text: "❌ Отмена", callback_data: "exit_contact" }]]
+            }
+        });
+    }
+
+    if (data === 'exit_contact') {
+        await supabase.from('users').update({ manager_contact_id: null }).eq('telegram_id', parseInt(chatId));
+        sendMessage(token, chatId, "✅ Режим чата выключен.");
+    }
 }
