@@ -143,7 +143,7 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
         <div className="space-y-5">
             {/* Search Bar - MD3 Style */}
             <div className="relative group">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-primary transition-colors">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors">
                     <span className="material-symbols-outlined text-[20px] font-black">search</span>
                 </div>
                 <input 
@@ -151,12 +151,12 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
                     placeholder={tr.searchPlaceholder}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-surface-container-lowest border border-white/5 rounded-3xl py-4 pl-12 pr-4 text-sm text-white placeholder:text-zinc-700 focus:outline-none focus:border-primary/30 focus:ring-4 focus:ring-primary/5 transition-all shadow-lg"
+                    className="input-field pl-12 shadow-lg"
                 />
             </div>
 
             {/* Type Filter Chips */}
-            <div className="flex gap-2 p-1 bg-surface-container-lowest rounded-2xl border border-white/5">
+            <div className="flex gap-2 p-1 bg-surface-container-high rounded-2xl border border-white/5">
                 {[
                     { id: 'apartment', label: 'Квартиры', icon: 'apartment' },
                     { id: 'land', label: 'Участки', icon: 'landscape' }
@@ -166,8 +166,8 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
                         onClick={() => setFilter(f.id as any)}
                         className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 rounded-xl transition-all duration-300 active:scale-95 ${
                             filter === f.id
-                                ? 'bg-primary text-black shadow-[0_0_20px_rgba(139,92,246,0.3)]'
-                                : 'text-zinc-600 hover:text-white'
+                                ? 'bg-primary text-on-primary shadow-[0_0_20px_rgba(208,188,255,0.3)]'
+                                : 'text-outline hover:text-on-background'
                         }`}
                     >
                         <span className="material-symbols-outlined text-[18px]">{f.icon}</span>
@@ -255,15 +255,15 @@ function PropertyCard({ unit, tr, lang, onAskBot }: any) {
         return '';
     };
 
-    const title = getLocalized(unit.title, lang) || 'Property';
-    const city = getLocalized(unit.city, lang) || 'Alanya';
-    const description = getLocalized(unit.description, lang);
+    const title = unit.i18n?.[lang]?.title || getLocalized(unit.title, lang) || 'Property';
+    const city = unit.i18n?.[lang]?.city || getLocalized(unit.city, lang) || 'Alanya';
+    const description = unit.i18n?.[lang]?.description || getLocalized(unit.description, lang);
     const price = unit.price;
     const isRent = unit.intent === 'rent';
     const isInvest = unit.unit_type === 'invest';
 
     return (
-        <div className="group bg-[#121214] rounded-[40px] overflow-hidden border border-white/[0.04] shadow-2xl transition-all duration-500 hover:border-primary/20">
+        <div className="group card-premium !p-0 overflow-hidden neon-glow animate-fade-in">
             {/* Image */}
             <div className="relative h-64 w-full overflow-hidden">
                 <img
@@ -272,7 +272,7 @@ function PropertyCard({ unit, tr, lang, onAskBot }: any) {
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 />
                 {/* Gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-[#121214] via-transparent to-transparent opacity-80" />
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-80" />
 
                 {/* Tags */}
                 <div className="absolute top-5 left-5 flex gap-2">
@@ -297,8 +297,8 @@ function PropertyCard({ unit, tr, lang, onAskBot }: any) {
             {/* Content */}
             <div className="p-6 space-y-5">
                 <div>
-                    <h3 className="text-xl font-black text-white leading-tight tracking-tight">{title}</h3>
-                    <p className="text-xs text-zinc-600 mt-2 font-bold uppercase tracking-wider line-clamp-1">
+                    <h3 className="text-xl font-black text-on-background leading-tight tracking-tight">{title}</h3>
+                    <p className="text-xs text-outline mt-2 font-bold uppercase tracking-wider line-clamp-1">
                         {unit.i18n?.[lang]?.address || unit.address || city}
                     </p>
                 </div>
@@ -308,27 +308,27 @@ function PropertyCard({ unit, tr, lang, onAskBot }: any) {
                     <div className="flex gap-4">
                         {unit.bedrooms != null && (
                             <div className="flex flex-col items-center">
-                                <span className="material-symbols-outlined text-[20px] text-zinc-500">bed</span>
-                                <span className="text-[10px] font-black text-zinc-600 mt-1">{unit.bedrooms}</span>
+                                <span className="material-symbols-outlined text-[20px] text-outline">bed</span>
+                                <span className="text-[10px] font-black text-outline-variant mt-1">{unit.bedrooms}</span>
                             </div>
                         )}
                         {(unit.bathrooms || unit.living_rooms) && (
                             <div className="flex flex-col items-center">
-                                <span className="material-symbols-outlined text-[20px] text-zinc-500">bathtub</span>
-                                <span className="text-[10px] font-black text-zinc-600 mt-1">{unit.bathrooms || unit.living_rooms || 1}</span>
+                                <span className="material-symbols-outlined text-[20px] text-outline">bathtub</span>
+                                <span className="text-[10px] font-black text-outline-variant mt-1">{unit.bathrooms || unit.living_rooms || 1}</span>
                             </div>
                         )}
                         {unit.rooms && (
                             <div className="flex flex-col items-center">
-                                <span className="material-symbols-outlined text-[20px] text-zinc-500">meeting_room</span>
-                                <span className="text-[10px] font-black text-zinc-600 mt-1">{unit.rooms}</span>
+                                <span className="material-symbols-outlined text-[20px] text-outline">meeting_room</span>
+                                <span className="text-[10px] font-black text-outline-variant mt-1">{unit.rooms}</span>
                             </div>
                         )}
                     </div>
 
                     <button
                         onClick={onAskBot}
-                        className="bg-primary text-black px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2 active:scale-95 transition-all shadow-[0_0_20px_rgba(139,92,246,0.3)]"
+                        className="btn-primary !py-3 !px-4"
                     >
                         <span className="material-symbols-outlined text-[16px]">smart_toy</span>
                         {tr.askBot}

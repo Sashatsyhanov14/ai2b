@@ -268,8 +268,8 @@ export default function LeadsView({ user, lang = 'ru' }: { user?: any; lang?: st
                         const isOpen = expandedId === lead.id;
                         const name = lead.name || lead.data?.client_name || t.anonymous;
                         const temp = lead.data?.lead_temperature || 'warm';
-                        const summary = lead.data?.ru?.client_summary || lead.data?.client_profile || lead.notes || '';
-                        const interest = lead.data?.ru?.interest || lead.data?.interest || '';
+                        const summary = lead.data?.i18n?.[lang]?.client_summary || lead.data?.[lang]?.client_summary || lead.data?.ru?.client_summary || lead.data?.client_profile || lead.notes || '';
+                        const interest = lead.data?.i18n?.[lang]?.interest || lead.data?.[lang]?.interest || lead.data?.ru?.interest || lead.data?.interest || '';
 
                         return (
                             <div

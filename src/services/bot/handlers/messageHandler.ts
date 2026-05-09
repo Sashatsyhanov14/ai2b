@@ -69,12 +69,37 @@ export async function handleMessage(
             payload: { update }
         });
 
+        // 1a. SPECIAL HANDLING FOR /START
+        if (text.startsWith("/start")) {
+            const initialLang = userInfo.language_code?.split('-')[0] || 'ru';
+            const greetings: Record<string, string> = {
+                ru: "👋 <b>Добро пожаловать!</b>\n\nЯ ваш интеллектуальный ассистент по недвижимости. Я помогу вам найти идеальный объект для жизни или инвестиций.\n\n<b>Что я умею:</b>\n— Поиск квартир, вилл и участков\n— Подбор вариантов по вашему бюджету\n— Ответы на вопросы о ВНЖ и налогах\n— Организация просмотров\n\nПросто напишите мне, что вы ищете (например: <i>\"Ищу квартиру 2+1 в Алании до 150к евро\"</i>) или откройте каталог ниже! 👇",
+                en: "👋 <b>Welcome!</b>\n\nI am your intelligent real estate assistant. I'll help you find the perfect property for living or investment.\n\n<b>What I can do:</b>\n— Search for apartments, villas, and land\n— Match properties to your budget\n— Answer questions about residency and taxes\n— Organize viewings\n\nJust tell me what you're looking for (e.g., <i>\"Looking for a 2+1 apartment in Alanya under 150k Euro\"</i>) or open the catalog below! 👇",
+                tr: "👋 <b>Hoş geldiniz!</b>\n\nBen sizin akıllı emlak asistanınızım. Yaşamak veya yatırım yapmak için mükemmel mülkü bulmanıza yardımcı olacağım.\n\n<b>Neler yapabilirim:</b>\n— Daire, villa ve arsa arama\n— Bütçenize uygun mülk eşleştirme\n— Oturma izni ve vergiler hakkındaki soruları yanıtlama\n— Görüntüleme organize etme\n\nSadece ne aradığınızı söyleyin (örneğin: <i>\"Alanya'da 150 bin Euro'nun altında 2+1 daire arıyorum\"</i>) veya aşağıdaki kataloğu açın! 👇",
+                de: "👋 <b>Willkommen!</b>\n\nIch bin Ihr intelligenter Immobilienassistent. Ich helfe Ihnen, die perfekte Immobilie zum Leben oder Investieren zu finden.\n\n<b>Was ich tun kann:</b>\n— Suche nach Wohnungen, Villen und Grundstücken\n— Passende Immobilien für Ihr Budget finden\n— Fragen zu Aufenthalt und Steuern beantworten\n— Besichtigungen organisieren\n\nSagen Sie mir einfach, was Sie suchen (z. B. <i>„Ich suche eine 2+1-Wohnung in Alanya unter 150.000 Euro“</i>) oder öffnen Sie den Katalog unten! 👇",
+                es: "👋 <b>¡Bienvenido!</b>\n\nSoy su asistente inteligente de bienes raíces. Le ayudaré a encontrar la propiedad perfecta para vivir o invertir.\n\n<b>Qué puedo hacer:</b>\n— Buscar apartamentos, villas y terrenos\n— Encontrar propiedades que se ajusten a su presupuesto\n— Responder preguntas sobre residencia e impuestos\n— Organizar visitas\n\nSimplemente dígame qué está buscando (por ejemplo: <i>\"Busco un apartamento 2+1 en Alanya por menos de 150.000 euros\"</i>) ¡o abra el catálogo a continuación! 👇",
+                ar: "👋 <b>أهلاً بك!</b>\n\nأنا مساعدك الذكي للعقارات. سأساعدك في العثور على العقار المثالي للعيش أو الاستثمار.\n\n<b>ماذا يمكنني أن أفعل:</b>\n— البحث عن شقق وفلل وأراضي\n— مطابقة العقارات لميزانيتك\n— الإجابة على الأسئلة المتعلقة بالإقامة والضرائب\n— تنظيم المعاينات\n\nفقط أخبرني عما تبحث عنه (على سبيل المثال: <i>\"أبحث عن شقة 2+1 في ألانيا بأقل من 150 ألف يورو\"</i>) أو افتح الكتالوج أدناه! 👇",
+                fr: "👋 <b>Bienvenue !</b>\n\nJe suis votre assistant immobilier intelligent. Je vous aiderai à trouver la propriété idéale pour vivre ou investir.\n\n<b>Ce que je peux faire :</b>\n— Rechercher des appartements, des villas et des terrains\n— Trouver des propriétés adaptées à votre budget\n— Répondre aux questions sur la résidence et les taxes\n— Organiser des visites\n\nDites-moi simplement ce que vous recherchez (par exemple : <i>\"Je cherche un appartement 2+1 à Alanya pour moins de 150 000 euros\"</i>) ou ouvrez le catalogue ci-dessous ! 👇"
+            };
+
+            const welcome = greetings[initialLang] || greetings['ru'];
+            await sendMessage(token, chatId, welcome, { parse_mode: 'HTML' });
+            await appendMessage({ session_id: sessionId, bot_id: botId, role: "assistant", content: welcome });
+            console.log(`[Bot] Sent localized greeting (${initialLang}) to ${chatId}`);
+            return; // STOP HERE for /start
+        }
+
         // 2. Build Context
         const rules = "Общайся вежливо, показывай максимум 1 вариант объекта зараз. Ты эксперт недвижимости.";
         
         const { data: faqRows } = await supabase.from('faq').select('question, answer, i18n').order('sort_order', { ascending: true });
-        const companyInfoStr = faqRows?.map(r => `Вопрос: ${r.i18n?.ru?.question || r.question}\nОтвет: ${r.i18n?.ru?.answer || r.answer}`).join("\n\n") || "";
-        const agencyFiles = await handleGetAgencyInfo(userInfo.language_code || "ru");
+        const currentLang = existingUser?.lang_code || userInfo.language_code || 'ru';
+        const companyInfoStr = faqRows?.map(r => {
+            const q = r.i18n?.questions?.[currentLang] || r.i18n?.[currentLang]?.question || r.i18n?.ru?.question || r.question;
+            const a = r.i18n?.answers?.[currentLang] || r.i18n?.[currentLang]?.answer || r.i18n?.ru?.answer || r.answer;
+            return `Вопрос: ${q}\nОтвет: ${a}`;
+        }).join("\n\n") || "";
+        const agencyFiles = await handleGetAgencyInfo(currentLang);
 
         const botKnowledge = `[ПРАВИЛА]:\n${rules}\n\n[О КОМПАНИИ]:\n${companyInfoStr}\n\n[ФАЙЛЫ]:\n${agencyFiles}`;
 
@@ -178,13 +203,32 @@ export async function handleMessage(
         // C. NOTIFIER AGENT
         if (plan.notifier_agent) {
             console.log("[Bot] 🚨 NOTIFIER AGENT TRIGGERED");
-            const { data: managers } = await supabase.from("telegram_managers").select("telegram_id").eq("is_active", true);
-            if (managers && managers.length > 0) {
+            
+            // Fetch all staff members (founder, admin, manager)
+            const { data: staffMembers } = await supabase
+                .from("users")
+                .select("telegram_id, role")
+                .in("role", ["founder", "admin", "manager"]);
+            
+            if (staffMembers && staffMembers.length > 0) {
                 const name = userInfo.fullName || userInfo.username || "Client";
-                const alertMsg = `🔥 <b>ВНИМАНИЕ МЕНЕДЖЕРАМ! (ИИ-БОТ)</b> 🔥\n\n👤 Пользователь: @${userInfo.username || chatId}\n👤 Имя: ${escapeHtml(name)}\n💬 Причина: ${escapeHtml(plan.notifier_agent.alert_reason || "Вызов менеджера")}`;
-                for (const m of managers) {
-                    if (m.telegram_id) {
-                        sendMessage(token, m.telegram_id, alertMsg, { parse_mode: "HTML", reply_markup: { inline_keyboard: [[{ text: "В дашборд ↗️", url: "https://ai2b.app/app/leads" }]] } }).catch(() => {});
+                const alertMsg = `🔥 <b>ВНИМАНИЕ! (ИИ-БОТ)</b> 🔥\n\n👤 Пользователь: @${userInfo.username || chatId}\n👤 Имя: ${escapeHtml(name)}\n💬 Причина: ${escapeHtml(plan.notifier_agent.alert_reason || "Вызов менеджера")}`;
+                
+                // Filtering recipients based on role logic from eSIM bot
+                const recipients = staffMembers.filter(r => 
+                    r.role === 'founder' || 
+                    r.role === 'admin' || 
+                    (r.role === 'manager' && String(r.telegram_id) === String(referrer_id))
+                );
+
+                for (const recipient of recipients) {
+                    if (recipient.telegram_id) {
+                        sendMessage(token, String(recipient.telegram_id), alertMsg, { 
+                            parse_mode: "HTML", 
+                            reply_markup: { 
+                                inline_keyboard: [[{ text: "В дашборд ↗️", url: "https://ai2b.app/app/leads" }]] 
+                            } 
+                        }).catch(() => {});
                     }
                 }
             }
@@ -220,15 +264,21 @@ export async function handleMessage(
             finalReplyText = await runSaleWriterAgent(messages, combinedInstruction, propertyContext);
         } else {
             // Orchestrator fallback
-            finalReplyText = "Секунду, я проверяю информацию...";
+            finalReplyText = "One second, I am checking the information...";
         }
 
         // F. TRANSLATOR AGENT
         if (finalReplyText) {
             console.log("[Bot] 🌍 TRANSLATOR AGENT TRIGGERED");
-            const targetLang = userInfo.language_code || "ru"; 
+            const detectedLang = plan.language || userInfo.language_code || "ru"; 
+            
+            // Update user language in DB if it changed
+            if (plan.language && plan.language !== existingUser?.lang_code) {
+                supabase.from('users').update({ lang_code: plan.language }).eq('telegram_id', parseInt(chatId)).catch(() => {});
+            }
+
             try {
-                finalReplyText = await runClientTranslatorAgent(finalReplyText, targetLang, messages);
+                finalReplyText = await runClientTranslatorAgent(finalReplyText, detectedLang, messages);
             } catch (translError) {
                 console.error("[Bot] Translation error, running fallback base text.", translError);
             }
@@ -255,6 +305,8 @@ export async function handleMessage(
     } catch (globalErr: any) {
         console.error("CRITICAL MESSAGE HANDLER ERROR:", globalErr);
         const errorDetail = globalErr.message ? `: ${globalErr.message}` : "";
-        await sendMessage(token, chatId, `Произошла системная ошибка${errorDetail}. Мы уже чиним!`).catch(() => { });
+        const errorMsg = `A system error occurred${errorDetail}. We are already fixing it!`;
+        const translatedError = await runClientTranslatorAgent(errorMsg, userInfo.language_code || "ru", []);
+        await sendMessage(token, chatId, translatedError).catch(() => { });
     }
 }

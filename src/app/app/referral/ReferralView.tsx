@@ -182,61 +182,61 @@ export default function ReferralView({ user, lang = 'ru' }: { user: any; lang?: 
     return (
         <div className="space-y-6 max-w-md mx-auto">
             {/* Hero */}
-            <div className="text-center space-y-3 py-4">
-                <div className="inline-flex p-4 bg-amber-500/10 rounded-3xl border border-amber-500/20 shadow-[0_0_30px_rgba(245,158,11,0.1)]">
-                    <span className="material-symbols-outlined text-amber-400 text-[48px]" style={{ fontVariationSettings: "'FILL' 1" }}>celebration</span>
+            <div className="text-center space-y-3 py-4 animate-fade-in">
+                <div className="inline-flex p-4 bg-primary/10 rounded-3xl border border-primary/20 neon-glow">
+                    <span className="material-symbols-outlined text-primary text-[48px]" style={{ fontVariationSettings: "'FILL' 1" }}>celebration</span>
                 </div>
-                <h1 className="text-2xl font-extrabold text-white tracking-tight">{t.title}</h1>
-                <p className="text-zinc-500 text-sm font-medium leading-relaxed max-w-[300px] mx-auto">{t.desc}</p>
+                <h1 className="text-2xl font-black text-on-background tracking-tight">{t.title}</h1>
+                <p className="text-outline text-sm font-medium leading-relaxed max-w-[300px] mx-auto">{t.desc}</p>
             </div>
 
             {/* Stats */}
             <div className="grid grid-cols-2 gap-3">
-                <div className="bg-[#121214] p-5 rounded-3xl border border-white/5 flex flex-col items-center text-center space-y-1">
-                    <div className="bg-amber-500/10 p-2 rounded-xl mb-2">
-                        <span className="material-symbols-outlined text-amber-400 text-[20px]">group_add</span>
+                <div className="card-premium flex flex-col items-center text-center space-y-1">
+                    <div className="bg-primary/10 p-2 rounded-xl mb-2">
+                        <span className="material-symbols-outlined text-primary text-[20px]">group_add</span>
                     </div>
-                    <p className="text-2xl font-extrabold text-white">{stats.invited}</p>
-                    <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">{t.invited}</p>
+                    <p className="text-2xl font-black text-on-background">{stats.invited}</p>
+                    <p className="text-[10px] text-outline font-bold uppercase tracking-widest">{t.invited}</p>
                 </div>
-                <div className="bg-[#121214] p-5 rounded-3xl border border-white/5 flex flex-col items-center text-center space-y-1">
-                    <div className="bg-emerald-500/10 p-2 rounded-xl mb-2">
-                        <span className="material-symbols-outlined text-emerald-400 text-[20px]">account_balance_wallet</span>
+                <div className="card-premium flex flex-col items-center text-center space-y-1">
+                    <div className="bg-secondary-container/10 p-2 rounded-xl mb-2">
+                        <span className="material-symbols-outlined text-secondary-container text-[20px]">account_balance_wallet</span>
                     </div>
-                    <p className="text-2xl font-extrabold text-white">€{user?.balance?.toFixed(2) || '0.00'}</p>
-                    <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">{t.balance}</p>
+                    <p className="text-2xl font-black text-on-background">€{user?.balance?.toFixed(2) || '0.00'}</p>
+                    <p className="text-[10px] text-outline font-bold uppercase tracking-widest">{t.balance}</p>
                 </div>
             </div>
 
             {/* Referral Link Card */}
-            <div className="bg-[#121214] p-6 rounded-3xl border border-amber-500/10 space-y-5 relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-amber-500/10 transition-all duration-700" />
+            <div className="card-premium space-y-5 relative overflow-hidden group neon-glow">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-primary/10 transition-all duration-700" />
 
                 <div className="space-y-4 relative">
                     <div className="flex items-center gap-3">
-                        <div className="bg-amber-500/15 p-2 rounded-xl">
-                            <span className="material-symbols-outlined text-amber-400 text-[20px]">link</span>
+                        <div className="bg-primary/15 p-2 rounded-xl">
+                            <span className="material-symbols-outlined text-primary text-[20px]">link</span>
                         </div>
-                        <h3 className="font-bold text-white uppercase tracking-widest text-xs">{t.yourLink}</h3>
+                        <h3 className="font-bold text-on-background uppercase tracking-widest text-xs">{t.yourLink}</h3>
                     </div>
 
                     {/* Link */}
                     <div
                         onClick={() => copyToClipboard(refLink)}
-                        className="flex items-center gap-2 bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3 cursor-pointer hover:bg-white/5 transition-all"
+                        className="flex items-center gap-2 bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3 cursor-pointer hover:bg-white/5 transition-all group/link"
                     >
-                        <span className="flex-1 text-sm text-zinc-400 font-mono truncate">{refLink}</span>
-                        <span className="material-symbols-outlined text-amber-400 text-[18px]">content_copy</span>
+                        <span className="flex-1 text-sm text-outline font-mono truncate">{refLink}</span>
+                        <span className="material-symbols-outlined text-primary text-[18px] group-hover/link:scale-110 transition-transform">content_copy</span>
                     </div>
 
                     {/* Promo */}
                     <div
                         onClick={() => copyToClipboard(String(user?.telegram_id))}
-                        className="flex items-center gap-2 bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3 cursor-pointer hover:bg-white/5 transition-all"
+                        className="flex items-center gap-2 bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3 cursor-pointer hover:bg-white/5 transition-all group/promo"
                     >
-                        <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-wider pr-3 border-r border-white/5">{t.promoLabel}</span>
-                        <span className="flex-1 font-bold text-amber-400 font-mono text-[15px]">{user?.telegram_id || ''}</span>
-                        <span className="material-symbols-outlined text-zinc-600 text-[18px]">content_copy</span>
+                        <span className="text-[10px] font-bold text-outline-variant uppercase tracking-wider pr-3 border-r border-white/5">{t.promoLabel}</span>
+                        <span className="flex-1 font-bold text-primary font-mono text-[15px]">{user?.telegram_id || ''}</span>
+                        <span className="material-symbols-outlined text-outline-variant text-[18px] group-hover/promo:scale-110 transition-transform">content_copy</span>
                     </div>
 
                     {/* QR Code */}
@@ -252,7 +252,7 @@ export default function ReferralView({ user, lang = 'ru' }: { user: any; lang?: 
                         </div>
                         <button
                             onClick={handleSendQr}
-                            className="w-full bg-white/5 text-zinc-300 border border-white/10 py-3.5 rounded-xl font-bold active:scale-95 transition-transform flex items-center justify-center gap-2 text-sm"
+                            className="btn-secondary w-full"
                         >
                             <span className="material-symbols-outlined text-[18px]">send_to_mobile</span>
                             {t.getQrChat}
@@ -262,7 +262,7 @@ export default function ReferralView({ user, lang = 'ru' }: { user: any; lang?: 
                     {/* Share Button */}
                     <button
                         onClick={shareLink}
-                        className="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold py-4 rounded-2xl flex items-center justify-center gap-3 shadow-[0_10px_25px_rgba(245,158,11,0.15)] transition-all active:scale-[0.98] uppercase tracking-widest text-sm"
+                        className="btn-primary w-full"
                     >
                         <span className="material-symbols-outlined">share</span>
                         {t.inviteBtn}
@@ -272,13 +272,13 @@ export default function ReferralView({ user, lang = 'ru' }: { user: any; lang?: 
 
             {/* How It Works */}
             <div className="space-y-3">
-                <h3 className="text-[10px] font-bold text-zinc-600 uppercase tracking-[0.2em] px-1">{t.howItWorks}</h3>
+                <h3 className="text-[10px] font-black text-outline uppercase tracking-[0.2em] px-1">{t.howItWorks}</h3>
                 {[t.step1, t.step2, t.step3].map((text, i) => (
-                    <div key={i} className="flex items-center gap-4 bg-white/[0.03] p-4 rounded-2xl border border-white/5">
-                        <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center text-[10px] font-bold text-amber-400 border border-amber-500/20 flex-shrink-0">
+                    <div key={i} className="flex items-center gap-4 bg-white/[0.03] p-4 rounded-2xl border border-white/5 transition-all hover:bg-white/[0.05]">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-black text-primary border border-primary/20 flex-shrink-0">
                             {i + 1}
                         </div>
-                        <p className="text-xs text-zinc-400 font-medium leading-relaxed">{text}</p>
+                        <p className="text-xs text-outline font-medium leading-relaxed">{text}</p>
                     </div>
                 ))}
             </div>

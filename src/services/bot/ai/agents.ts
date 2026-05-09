@@ -58,9 +58,13 @@ export const AnalyzerSchema = {
             properties: {
                 target_unit_uuid: { type: "string", description: "Точный 36-символьный UUID объекта." }
             }
+        },
+        language: {
+            type: "string",
+            description: "ОБЯЗАТЕЛЬНО: Название или код языка пользователя (например: Russian, English, Turkish, Chinese, и т.д.). Определи по последнему сообщению."
         }
-   },
-    required: ["writer_agent"]
+    },
+    required: ["writer_agent", "language"]
 };
 
 // ==========================================
@@ -109,23 +113,75 @@ export const TranslationAgentSchema = {
                 ai_summary: { type: "string" },
                 interested_units: { type: "array", items: { type: "string" } }
             }
+        },
+        de: {
+            type: "object",
+            properties: {
+                client_summary: { type: "string" },
+                manager_hints: { type: "string" },
+                interest: { type: "string" },
+                urgency: { type: "string" },
+                purpose: { type: "string" },
+                unit_type: { type: "string" },
+                ai_summary: { type: "string" },
+                interested_units: { type: "array", items: { type: "string" } }
+            }
+        },
+        es: {
+            type: "object",
+            properties: {
+                client_summary: { type: "string" },
+                manager_hints: { type: "string" },
+                interest: { type: "string" },
+                urgency: { type: "string" },
+                purpose: { type: "string" },
+                unit_type: { type: "string" },
+                ai_summary: { type: "string" },
+                interested_units: { type: "array", items: { type: "string" } }
+            }
+        },
+        ar: {
+            type: "object",
+            properties: {
+                client_summary: { type: "string" },
+                manager_hints: { type: "string" },
+                interest: { type: "string" },
+                urgency: { type: "string" },
+                purpose: { type: "string" },
+                unit_type: { type: "string" },
+                ai_summary: { type: "string" },
+                interested_units: { type: "array", items: { type: "string" } }
+            }
+        },
+        fr: {
+            type: "object",
+            properties: {
+                client_summary: { type: "string" },
+                manager_hints: { type: "string" },
+                interest: { type: "string" },
+                urgency: { type: "string" },
+                purpose: { type: "string" },
+                unit_type: { type: "string" },
+                ai_summary: { type: "string" },
+                interested_units: { type: "array", items: { type: "string" } }
+            }
         }
     }
 };
 
 const TRANSLATION_SYSTEM_PROMPT = `
 ТЫ — ПРОФЕССИОНАЛЬНЫЙ ПЕРЕВОДЧИК И ЛОКАЛИЗАТОР ДЛЯ REAL ESTATE CRM.
-Твоя задача — обработать предоставленные данные лида и выдать качественный перевод/локализацию на 3 языка: Русский (RU), Английский (EN) и Турецкий (TR).
+Твоя задача — обработать предоставленные данные лида и выдать качественный перевод/локализацию на 7 языков: Русский (RU), Английский (EN), Турецкий (TR), Немецкий (DE), Испанский (ES), Арабский (AR) и Французский (FR).
 
 ПРАВИЛА:
 1. Сохраняй профессиональный, но дружелюбный тон.
 2. Используй правильную терминологию недвижимости (апартаменты, вилла, ВНЖ, инвестиции и т.д.).
-3. ОБЯЗАТЕЛЬНО переводи географические названия, города и районы (Например: 'Кадыкёй, Стамбул' -> 'Kadikoy, Istanbul' для EN, 'Kadıköy, İstanbul' для TR).
+3. ОБЯЗАТЕЛЬНО переводи географические названия, города и районы.
 4. Если поле пустое в оригинале — постарайся вывести смысл из контекста других полей или оставь пустым если совсем нет инфы.
-5. client_summary должен быть информативным, в стиле "Клиент ищет квартиру в Стамбуле для переезда, бюджет $200к". 
-6. manager_hints должны быть четкими указаниями (например: "Предложить проекты в районе Кадыкёй").
-7. Для поля RU: не просто скопируй, а причеши и улучши текст, чтобы он выглядел профессионально в CRM.
-8. В поле interested_units используй только понятные названия (Город, Адрес или Название ЖК). Если приходят технические UUID — заменяй их на понятное описание из контекста (например: 'Квартира в Алании'), не свети UUID в интерфейсе CRM.
+5. client_summary должен быть информативным.
+6. manager_hints должны быть четкими указаниями.
+7. Для поля RU: не просто скопируй, а причеши и улучши текст.
+8. В поле interested_units используй только понятные названия (Город, Адрес или Название ЖК). Не свети UUID.
 
 Выдай результат СТРОГО в формате JSON по схеме.
 `;
@@ -140,7 +196,7 @@ export async function runTranslationAgent(leadData: any): Promise<any> {
         return JSON.parse(rawResult);
     } catch (e) {
         console.error("Translation Agent JSON Parse Error:", e, rawResult);
-        return { ru: {}, en: {}, tr: {} };
+        return { ru: {}, en: {}, tr: {}, de: {}, es: {}, ar: {}, fr: {} };
     }
 }
 
@@ -166,24 +222,12 @@ export const UnitTranslationAgentSchema = {
             type: "object",
             description: "Переводы для отображения в дашборде на разных языках.",
             properties: {
-                ru: {
-                    type: "object",
-                    properties: {
-                        title: { type: "string" },
-                        city: { type: "string" },
-                        address: { type: "string" },
-                        description: { type: "string" }
-                    }
-                },
-                tr: {
-                    type: "object",
-                    properties: {
-                        title: { type: "string" },
-                        city: { type: "string" },
-                        address: { type: "string" },
-                        description: { type: "string" }
-                    }
-                }
+                ru: { type: "object", properties: { title: { type: "string" }, city: { type: "string" }, address: { type: "string" }, description: { type: "string" } } },
+                tr: { type: "object", properties: { title: { type: "string" }, city: { type: "string" }, address: { type: "string" }, description: { type: "string" } } },
+                de: { type: "object", properties: { title: { type: "string" }, city: { type: "string" }, address: { type: "string" }, description: { type: "string" } } },
+                es: { type: "object", properties: { title: { type: "string" }, city: { type: "string" }, address: { type: "string" }, description: { type: "string" } } },
+                ar: { type: "object", properties: { title: { type: "string" }, city: { type: "string" }, address: { type: "string" }, description: { type: "string" } } },
+                fr: { type: "object", properties: { title: { type: "string" }, city: { type: "string" }, address: { type: "string" }, description: { type: "string" } } }
             }
         }
     }
@@ -194,12 +238,7 @@ const UNIT_TRANSLATION_SYSTEM_PROMPT = `
 Твоя задача — принять сырые данные об объекте недвижимости (на любом языке) и стандартизировать их.
 
 ПРАВИЛО 1: BASE_EN ДОЛЖЕН БЫТЬ НА ИДЕАЛЬНОМ АНГЛИЙСКОМ.
-Данные из блока \`base_en\` пойдут в основные колонки базы данных, по которым работает поиск. 
-- Географические названия должны быть в транслите/английском (Kadikoy, Alanya, Istanbul).
-- Описание должно быть привлекательным и профессиональным.
-
-ПРАВИЛО 2: I18N ДЛЯ ДАШБОРДА
-- Переведи всё на качественный Русский (RU) и Турецкий (TR).
+ПРАВИЛО 2: I18N ДОЛЖЕН ВКЛЮЧАТЬ ВСЕ 6 ДОПОЛНИТЕЛЬНЫХ ЯЗЫКОВ (RU, TR, DE, ES, AR, FR).
 
 Выдай результат СТРОГО в формате JSON по схеме.
 `;
@@ -215,7 +254,7 @@ export async function runUnitTranslationAgent(unitData: any): Promise<any> {
         // Fallback: don't break the save process, just return empty translations and use original as English
         return {
             base_en: { title: unitData.title, city: unitData.city, address: unitData.address, description: unitData.description },
-            i18n: { ru: {}, tr: {} }
+            i18n: { ru: {}, tr: {}, de: {}, es: {}, ar: {}, fr: {} }
         };
     }
 }
@@ -232,6 +271,8 @@ const ANALYZER_SYSTEM_PROMPT = `
 3. lead_extractor_agent - Запускай, если клиент пишет контактные данные, бюджет, возраст, профессию, цели или семейное положение.
 4. notifier_agent - Запускай ТОЛЬКО если клиент горячий лид, оставил номер или требует менеджера.
 5. photo_agent - Запускай, если клиент явно просит скинуть фото, видео или планировки объекта (нужно указать UUID объекта).
+
+ЯЗЫК: Обязательно определи язык общения клиента (любой язык мира) и верни его название в поле 'language'.
 
 ПОИСК: Мы ищем варианты "широко". Если идеального совпадения не будет, база подкинет похожие.
 
@@ -358,24 +399,12 @@ export const RentalTranslationAgentSchema = {
             type: "object",
             description: "Переводы для отображения в дашборде на разных языках.",
             properties: {
-                ru: {
-                    type: "object",
-                    properties: {
-                        title: { type: "string" },
-                        city: { type: "string" },
-                        address: { type: "string" },
-                        description: { type: "string" }
-                    }
-                },
-                tr: {
-                    type: "object",
-                    properties: {
-                        title: { type: "string" },
-                        city: { type: "string" },
-                        address: { type: "string" },
-                        description: { type: "string" }
-                    }
-                }
+                ru: { type: "object", properties: { title: { type: "string" }, city: { type: "string" }, address: { type: "string" }, description: { type: "string" } } },
+                tr: { type: "object", properties: { title: { type: "string" }, city: { type: "string" }, address: { type: "string" }, description: { type: "string" } } },
+                de: { type: "object", properties: { title: { type: "string" }, city: { type: "string" }, address: { type: "string" }, description: { type: "string" } } },
+                es: { type: "object", properties: { title: { type: "string" }, city: { type: "string" }, address: { type: "string" }, description: { type: "string" } } },
+                ar: { type: "object", properties: { title: { type: "string" }, city: { type: "string" }, address: { type: "string" }, description: { type: "string" } } },
+                fr: { type: "object", properties: { title: { type: "string" }, city: { type: "string" }, address: { type: "string" }, description: { type: "string" } } }
             }
         }
     }
@@ -386,12 +415,7 @@ const RENTAL_TRANSLATION_SYSTEM_PROMPT = `
 Твоя задача — принять сырые данные об арендном объекте (на любом языке) и стандартизировать их.
 
 ПРАВИЛО 1: BASE_EN ДОЛЖЕН БЫТЬ НА ИДЕАЛЬНОМ АНГЛИЙСКОМ.
-Данные из блока \`base_en\` пойдут в основные колонки базы данных, по которым работает поиск. 
-- Географические названия должны быть в транслите/английском (Kadikoy, Alanya, Istanbul).
-- Описание должно быть привлекательным и описывать удобства для проживания/отдыха.
-
-ПРАВИЛО 2: I18N ДЛЯ ДАШБОРДА
-- Переведи всё на качественный Русский (RU) и Турецкий (TR).
+ПРАВИЛО 2: I18N ДОЛЖЕН ВКЛЮЧАТЬ ВСЕ 6 ДОПОЛНИТЕЛЬНЫХ ЯЗЫКОВ (RU, TR, DE, ES, AR, FR).
 
 Выдай результат СТРОГО в формате JSON по схеме.
 `;
@@ -407,7 +431,7 @@ export async function runRentalTranslationAgent(rentalData: any): Promise<any> {
         // Fallback
         return {
             base_en: { title: rentalData.title, city: rentalData.city, address: rentalData.address, description: rentalData.description },
-            i18n: { ru: {}, tr: {} }
+            i18n: { ru: {}, tr: {}, de: {}, es: {}, ar: {}, fr: {} }
         };
     }
 }

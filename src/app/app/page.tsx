@@ -43,7 +43,7 @@ const translations: Record<string, any> = {
         loginBtn: 'Login',
         tabCatalog: 'Catalog',
         tabBonuses: 'Bonuses',
-        tabStats: 'Stats',
+        tabStats: 'Statistics',
         tabLeads: 'Leads',
         tabUnits: 'Units',
         tabFaq: 'FAQ',
@@ -60,8 +60,8 @@ const translations: Record<string, any> = {
         tabCatalog: 'Katalog',
         tabBonuses: 'Bonuslar',
         tabStats: 'İstatistik',
-        tabLeads: 'Müşteriler',
-        tabUnits: 'Objeler',
+        tabLeads: 'Başvurular',
+        tabUnits: 'Mülkler',
         tabFaq: 'SSS',
         adminMode: 'Admin Mode',
         managerMode: 'Manager Mode',
@@ -123,7 +123,7 @@ const translations: Record<string, any> = {
         loginBtn: 'Connexion',
         tabCatalog: 'Catalogue',
         tabBonuses: 'Bonus',
-        tabStats: 'Stats',
+        tabStats: 'Statistiques',
         tabLeads: 'Prospects',
         tabUnits: 'Unités',
         tabFaq: 'FAQ',
@@ -334,28 +334,28 @@ export default function MiniAppDispatcher() {
 
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen bg-[#0a0a0c]">
+            <div className="flex flex-col items-center justify-center min-h-screen bg-background">
                 <div className="w-16 h-16 relative">
                     <div className="absolute inset-0 border-4 border-primary/20 rounded-full" />
                     <div className="absolute inset-0 border-4 border-primary rounded-full border-t-transparent animate-spin" />
                 </div>
-                <p className="mt-6 text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] animate-pulse">{t.loading}</p>
-                <p className="mt-2 text-[8px] text-zinc-700 uppercase font-mono">{debugInfo}</p>
+                <p className="mt-6 text-[10px] font-black text-outline uppercase tracking-[0.3em] animate-pulse">{t.loading}</p>
+                <p className="mt-2 text-[8px] text-outline-variant uppercase font-mono">{debugInfo}</p>
             </div>
         );
     }
 
     if (!user) {
         return (
-            <div className="bg-[#0a0a0c] min-h-screen flex items-center justify-center p-6">
-                <div className="glass-card bg-[#121214] p-10 rounded-[40px] w-full max-w-sm space-y-8 border border-white/5 shadow-2xl relative overflow-hidden">
+            <div className="bg-background min-h-screen flex items-center justify-center p-6">
+                <div className="card-premium p-10 w-full max-w-sm space-y-8 relative overflow-hidden neon-glow">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-[60px]" />
                     <div className="text-center space-y-4">
                         <div className="w-20 h-20 bg-primary/10 rounded-3xl mx-auto flex items-center justify-center border border-primary/20">
                             <span className="material-symbols-outlined text-primary text-[40px] font-thin">lock_open</span>
                         </div>
-                        <h1 className="text-2xl font-black text-white tracking-tight">{t.loginTitle}</h1>
-                        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">{t.loginDesc}</p>
+                        <h1 className="text-2xl font-black text-on-background tracking-tight">{t.loginTitle}</h1>
+                        <p className="text-[10px] text-outline font-bold uppercase tracking-widest">{t.loginDesc}</p>
                     </div>
                     <div className="space-y-4">
                         <input
@@ -363,17 +363,17 @@ export default function MiniAppDispatcher() {
                             value={loginInputId}
                             onChange={(e) => setLoginInputId(e.target.value)}
                             placeholder={t.loginPlaceholder}
-                            className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-5 text-white outline-none focus:border-primary/50 text-center font-black tracking-widest text-xl placeholder:text-zinc-800"
+                            className="input-field text-center font-black tracking-widest text-xl"
                         />
                         <button
                             onClick={() => fetchUserData(parseInt(loginInputId))}
-                            className="w-full bg-primary text-black py-5 rounded-2xl font-black uppercase tracking-[0.2em] shadow-[0_0_30px_rgba(139,92,246,0.3)] active:scale-95 transition-all text-xs"
+                            className="btn-primary w-full"
                         >
                             {t.loginBtn}
                         </button>
                     </div>
                     <div className="text-center">
-                        <p className="text-[8px] text-zinc-800 font-mono uppercase tracking-widest">{debugInfo}</p>
+                        <p className="text-[8px] text-outline-variant font-mono uppercase tracking-widest">{debugInfo}</p>
                     </div>
                 </div>
             </div>
@@ -384,18 +384,18 @@ export default function MiniAppDispatcher() {
     const isStaff = isAdmin || user?.role === 'manager';
 
     return (
-        <div className="min-h-screen pb-32 bg-[#0a0a0c]">
+        <div className="min-h-screen pb-32 bg-background">
             {/* MD3 Header */}
             <header className="px-6 pt-10 pb-4 flex justify-between items-center relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[100px] -z-10" />
                 <div>
                     <div className="flex items-center gap-2 mb-1">
-                        <div className={`w-2 h-2 rounded-full ${isStaff ? 'bg-primary shadow-[0_0_8px_rgba(139,92,246,0.8)]' : 'bg-emerald-400'}`} />
-                        <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">
+                        <div className={`w-2 h-2 rounded-full ${isStaff ? 'bg-primary shadow-[0_0_8px_rgba(208,188,255,0.8)]' : 'bg-emerald-400'}`} />
+                        <span className="text-[9px] font-black text-outline uppercase tracking-widest">
                             {isAdmin ? t.adminMode : isStaff ? t.managerMode : t.clientMode}
                         </span>
                     </div>
-                    <h1 className="text-3xl font-black text-white tracking-tighter uppercase">
+                    <h1 className="text-3xl font-black text-on-background tracking-tighter uppercase">
                         {isStaff ? 'Terminal' : 'Real Estate'}
                     </h1>
                 </div>
@@ -403,13 +403,13 @@ export default function MiniAppDispatcher() {
                 {/* Lang Switcher */}
                 <button
                     onClick={() => setShowLangDropdown(!showLangDropdown)}
-                    className="w-10 h-10 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 active:scale-90 transition-all"
+                    className="w-10 h-10 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 active:scale-90 transition-all hover:bg-white/10"
                 >
                     <span className="material-symbols-outlined text-[20px] text-zinc-400 font-black">translate</span>
                 </button>
 
                 {showLangDropdown && (
-                    <div className="absolute top-24 right-6 w-48 bg-[#1a1a1f] border border-white/10 rounded-3xl shadow-2xl z-[100] overflow-hidden py-2 animate-in fade-in zoom-in duration-200">
+                    <div className="absolute top-24 right-6 w-48 bg-surface-container-high border border-white/10 rounded-3xl shadow-2xl z-[100] overflow-hidden py-2 animate-in fade-in zoom-in duration-200">
                         {['ru', 'en', 'tr', 'de', 'es', 'ar', 'fr'].map((l) => (
                             <button
                                 key={l}
@@ -442,7 +442,7 @@ export default function MiniAppDispatcher() {
 
             {/* Premium Nav Bar */}
             <nav className="fixed bottom-0 inset-x-0 z-[100] px-4 pb-8 pt-4">
-                <div className="max-w-md mx-auto glass-card bg-[#121214]/80 backdrop-blur-3xl border border-white/5 rounded-[32px] p-2 flex justify-around items-center shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+                <div className="max-w-md mx-auto glass-card border border-white/5 rounded-[32px] p-2 flex justify-around items-center shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
                     <NavTab icon="explore" label={t.tabCatalog} active={activeTab === 'catalog'} onClick={() => setActiveTab('catalog')} color={isStaff ? 'zinc' : 'primary'} />
                     <NavTab icon="redeem" label={t.tabBonuses} active={activeTab === 'bonuses'} onClick={() => setActiveTab('bonuses')} color={isStaff ? 'zinc' : 'primary'} />
                     
@@ -453,8 +453,11 @@ export default function MiniAppDispatcher() {
                     {isAdmin && (
                         <NavTab icon="analytics" label={t.tabStats} active={activeTab === 'stats'} onClick={() => setActiveTab('stats')} color="primary" />
                     )}
+                    {isAdmin && (
+                        <NavTab icon="person_search" label={t.tabLeads} active={activeTab === 'leads'} onClick={() => setActiveTab('leads')} color="primary" />
+                    )}
                     {user?.role === 'manager' && (
-                        <NavTab icon="person_search" label={t.tabStats} active={activeTab === 'leads'} onClick={() => setActiveTab('leads')} color="primary" />
+                        <NavTab icon="analytics" label={t.tabStats} active={activeTab === 'leads'} onClick={() => setActiveTab('leads')} color="primary" />
                     )}
                     {isAdmin && (
                         <NavTab icon="apartment" label={t.tabUnits} active={activeTab === 'units'} onClick={() => setActiveTab('units')} color="primary" />
@@ -473,12 +476,12 @@ function NavTab({ icon, label, active, onClick, color = 'primary' }: any) {
             onClick={onClick}
             className={`flex flex-col items-center gap-1.5 p-2 rounded-2xl transition-all duration-300 flex-1 ${active ? 'scale-110' : 'opacity-40 hover:opacity-100'}`}
         >
-            <div className={`w-12 h-8 rounded-2xl flex items-center justify-center transition-all ${active ? (color === 'primary' ? 'bg-primary/20 text-primary' : 'bg-white/10 text-white') : 'text-zinc-500'}`}>
+            <div className={`w-12 h-8 rounded-2xl flex items-center justify-center transition-all ${active ? (color === 'primary' ? 'bg-primary/20 text-primary' : 'bg-white/10 text-white') : 'text-outline-variant'}`}>
                 <span className="material-symbols-outlined text-[24px] font-black" style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}>
                     {icon}
                 </span>
             </div>
-            <span className={`text-[8px] font-black uppercase tracking-widest ${active ? 'text-white' : 'text-zinc-600'}`}>{label}</span>
+            <span className={`text-[8px] font-black uppercase tracking-widest ${active ? 'text-on-background' : 'text-outline-variant'}`}>{label}</span>
         </button>
     );
 }

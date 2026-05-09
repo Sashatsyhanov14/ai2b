@@ -47,7 +47,7 @@ export async function POST(req: Request) {
     });
 
     const baseEn = translationResult?.base_en || {};
-    const i18nData = translationResult?.i18n || { ru: {}, tr: {} };
+    const i18nData = translationResult?.i18n || { ru: {}, en: {}, tr: {}, de: {}, es: {}, ar: {}, fr: {} };
 
     // 2. Prepare Payload
     const payload = {
