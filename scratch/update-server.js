@@ -9,7 +9,8 @@ conn.on('ready', () => {
     git pull origin main &&
     npm install &&
     npm run build &&
-    pm2 restart bot4
+    pm2 delete bot4 || true &&
+    pm2 start ecosystem.config.js
   `;
 
   conn.exec(updateCmd, (err, stream) => {
