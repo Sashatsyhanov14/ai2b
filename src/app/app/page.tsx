@@ -82,13 +82,22 @@ export default function MiniAppDispatcher() {
 
     useEffect(() => {
         const init = async () => {
-            let tg: any = window.Telegram?.WebApp || (window as any).parent?.Telegram?.WebApp;
+            setDebugInfo('Checking SDK...');
             
-            setDebugInfo('Initializing SDK...');
+            // Force inject if missing
+            if (!window.Telegram) {
+                console.log('[AUTH] Script missing, injecting...');
+                const s = document.createElement('script');
+                s.src = 'https://telegram.org/js/telegram-web-app.js';
+                s.async = false;
+                document.head.appendChild(s);
+            }
+
+            let tg: any = window.Telegram?.WebApp || (window as any).parent?.Telegram?.WebApp;
             
             // 1. Wait for SDK
             if (!tg) {
-                for (let i = 0; i < 50; i++) {
+                for (let i = 0; i < 60; i++) {
                     await new Promise(r => setTimeout(r, 100));
                     tg = window.Telegram?.WebApp || (window as any).parent?.Telegram?.WebApp;
                     if (tg) break;
@@ -96,6 +105,7 @@ export default function MiniAppDispatcher() {
             }
 
             if (tg) {
+                setDebugInfo('SDK Found, readying...');
                 try {
                     tg.ready();
                     tg.expand();
@@ -103,7 +113,7 @@ export default function MiniAppDispatcher() {
                     tg.headerColor = '#0a0a0c';
                 } catch (e) {}
             } else {
-                setDebugInfo(`SDK Not Found. Window: ${!!window.Telegram} Parent: ${!!(window as any).parent?.Telegram}`);
+                setDebugInfo(`SDK Missing. W:${!!window.Telegram} P:${!!(window as any).parent?.Telegram}`);
             }
 
             let tgUser: any = null;
