@@ -132,18 +132,28 @@ export default function MiniAppDispatcher() {
                 }
             }
 
-            // 3. Fallback to URL params (?uid=)
+            let referrerId: number | null = null;
+            if (tg?.initDataUnsafe?.start_param) {
+                const ref = parseInt(tg.initDataUnsafe.start_param);
+                if (!isNaN(ref)) referrerId = ref;
+            }
+
+            // 3. Fallback to URL params (?uid= and ?ref=)
             if (!tgUser?.id) {
                 const params = new URLSearchParams(window.location.search);
                 const uid = params.get('uid');
+                const ref = params.get('ref');
+                if (ref && !isNaN(parseInt(ref))) referrerId = parseInt(ref);
+
                 if (uid && !isNaN(parseInt(uid))) {
-                    await fetchUserData(parseInt(uid));
+                    await fetchUserData(parseInt(uid), undefined, undefined, referrerId);
                     return;
                 }
             }
 
             // 4. If we have Telegram user, fetch data
             if (tgUser?.id) {
+                console.log('[AUTH] Telegram User found:', tgUser.id);
                 const supportedLangs = ['ru', 'en', 'tr'];
                 const userLang = tgUser.language_code?.toLowerCase();
                 if (userLang && supportedLangs.includes(userLang)) {
@@ -152,9 +162,11 @@ export default function MiniAppDispatcher() {
                 await fetchUserData(
                     tgUser.id,
                     `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim(),
-                    tgUser.username
+                    tgUser.username,
+                    referrerId
                 );
             } else {
+                console.warn('[AUTH] No Telegram User detected. Using guest fallback.');
                 // FALLBACK: Auto-login as Guest so the catalog opens immediately
                 setUser({
                     id: 0,
@@ -176,27 +188,29 @@ export default function MiniAppDispatcher() {
     // ==========================================
     // FETCH / CREATE USER (Upsert)
     // ==========================================
-    const fetchUserData = async (tgId: number, fullName?: string, username?: string) => {
+    const fetchUserData = async (tgId: number, fullName?: string, username?: string, referrerId?: number | null) => {
         try {
             setLoading(true);
             
-            // 1. First, check if user exists to preserve role
+            // 1. First, check if user exists to preserve role and referrer
             const { data: existingUser } = await supabase
                 .from('users')
-                .select('role')
+                .select('role, referrer_id')
                 .eq('telegram_id', tgId)
                 .single();
 
             const roleToSet = existingUser?.role || 'client';
+            // Only set referrer if it's a new user and we have a referrerId
+            const finalReferrer = existingUser ? existingUser.referrer_id : (referrerId || null);
 
             // 2. Perform Upsert
-            const userData = {
+            const userData: any = {
                 telegram_id: tgId,
                 username: username || fullName || `user_${tgId}`,
                 full_name: fullName || username || '',
                 role: roleToSet,
                 lang_code: lang,
-                // created_at will be handled by DB default if new
+                referrer_id: finalReferrer,
             };
 
             const { data: currentUser, error: upsertError } = await supabase
@@ -211,12 +225,14 @@ export default function MiniAppDispatcher() {
 
             if (currentUser) {
                 setUser(currentUser);
-                console.log('[AUTH] User synced:', tgId, `(${currentUser.role})`);
+                console.log('[AUTH] User successfully recorded/synced:', tgId, `(${currentUser.role})`);
                 
                 // Auto-navigate admins/managers to stats tab
                 if (currentUser.role === 'founder' || currentUser.role === 'admin' || currentUser.role === 'manager') {
                     setActiveTab('stats');
                 }
+            } else {
+                console.error('[AUTH] Upsert returned no data for user:', tgId);
             }
         } catch (err) {
             console.error('[AUTH] Critical Error:', err);

@@ -24,12 +24,26 @@ export async function handleMessage(
 
         // 0. REGISTER / UPDATE USER in Supabase (with Referral support)
         const supabase = getServerClient();
-        let referrer_id: number | null = null;
-        if (text.startsWith("/start ") && text.length > 7) {
+        
+        // 0a. Check if user already exists to preserve role and referrer
+        const { data: existingUser } = await supabase
+            .from('users')
+            .select('role, referrer_id, lang_code')
+            .eq('telegram_id', parseInt(chatId))
+            .single();
+
+        let referrer_id: number | null = existingUser?.referrer_id || null;
+        let roleToSet = existingUser?.role || 'client';
+
+        if (!referrer_id && text.startsWith("/start ") && text.length > 7) {
             const refParam = text.split(" ")[1];
-            if (!isNaN(parseInt(refParam)) && refParam !== chatId) {
-                referrer_id = parseInt(refParam);
+            const refId = parseInt(refParam);
+            if (!isNaN(refId) && refId !== parseInt(chatId)) {
+                referrer_id = refId;
                 console.log(`[Bot] Referral detected! Referrer: ${referrer_id} for User: ${chatId}`);
+                
+                // Optional: Notify referrer
+                sendMessage(token, String(referrer_id), `🎁 <b>Новый реферал!</b>\nПользователь @${userInfo.username || chatId} присоединился по вашей ссылке.`, { parse_mode: 'HTML' }).catch(() => {});
             }
         }
 
@@ -37,7 +51,8 @@ export async function handleMessage(
             telegram_id: parseInt(chatId),
             username: userInfo.username,
             full_name: userInfo.fullName,
-            language_code: userInfo.language_code || 'ru',
+            lang_code: existingUser?.lang_code || userInfo.language_code || 'ru',
+            role: roleToSet,
             referrer_id: referrer_id || undefined
         }, { 
             onConflict: 'telegram_id'
