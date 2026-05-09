@@ -82,11 +82,13 @@ export default function MiniAppDispatcher() {
     useEffect(() => {
         const init = async () => {
             let tg: any = window.Telegram?.WebApp;
-            if (!tg) {
-                for (let i = 0; i < 10; i++) {
+            
+            // Wait for SDK to be ready
+            if (!tg || !tg.initDataUnsafe) {
+                for (let i = 0; i < 20; i++) {
                     await new Promise(r => setTimeout(r, 100));
                     tg = window.Telegram?.WebApp;
-                    if (tg) break;
+                    if (tg && tg.initDataUnsafe) break;
                 }
             }
 
@@ -101,8 +103,14 @@ export default function MiniAppDispatcher() {
             }
 
             let tgUser: any = null;
-            if (tg?.initDataUnsafe?.user?.id) {
-                tgUser = tg.initDataUnsafe.user;
+            
+            // Attempt to get user from initDataUnsafe with retries
+            for (let i = 0; i < 10; i++) {
+                if (tg?.initDataUnsafe?.user?.id) {
+                    tgUser = tg.initDataUnsafe.user;
+                    break;
+                }
+                await new Promise(r => setTimeout(r, 200));
             }
 
             let referrerId: number | null = null;
@@ -112,6 +120,7 @@ export default function MiniAppDispatcher() {
             }
 
             if (tgUser?.id) {
+                console.log('[AUTH] Auto-login Telegram ID:', tgUser.id);
                 const supportedLangs = ['ru', 'en', 'tr'];
                 const userLang = tgUser.language_code?.toLowerCase();
                 if (userLang && supportedLangs.includes(userLang)) {
@@ -119,11 +128,16 @@ export default function MiniAppDispatcher() {
                 }
                 await fetchUserData(tgUser.id, `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim(), tgUser.username, referrerId);
             } else {
+                console.warn('[AUTH] No Telegram user in initDataUnsafe, checking URL params');
                 const params = new URLSearchParams(window.location.search);
                 const uid = params.get('uid');
+                const ref = params.get('ref');
+                if (ref && !isNaN(parseInt(ref))) referrerId = parseInt(ref);
+
                 if (uid && !isNaN(parseInt(uid))) {
-                    await fetchUserData(parseInt(uid));
+                    await fetchUserData(parseInt(uid), undefined, undefined, referrerId);
                 } else {
+                    console.error('[AUTH] All login attempts failed. Showing manual login.');
                     setLoading(false);
                 }
             }
