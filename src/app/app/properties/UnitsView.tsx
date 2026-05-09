@@ -129,6 +129,7 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
     const t = i18n[lang] || i18n['ru'];
     const [units, setUnits] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isAdding, setIsAdding] = useState(false);
     const [langTab, setLangTab] = useState('ru');
     const [formData, setFormData] = useState<any>({
         title: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' },
