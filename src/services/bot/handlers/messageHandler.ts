@@ -150,7 +150,6 @@ export async function handleMessage(
                 fr: "👋 <b>Bienvenue !</b>\n\nJe suis votre assistant immobilier intelligent. Je vous aiderai à trouver la propriété idéale pour vivre ou investir.\n\n<b>Ce que je peux faire :</b>\n— Rechercher des appartements et des terrains\n— Trouver des propriétés adaptées à votre budget\n— Répondre aux questions sur la résidence et les taxes\n— Organiser des visites\n\nDites-moi simplement ce que vous recherchez (par exemple : <i>\"Je cherche un appartement 2+1 à Alanya pour moins de 150 000 euros\"</i>) ou ouvrez le catalogue ci-dessous ! 👇"
             };
 
-            const initialLang = userInfo.language_code?.split('-')[0] || 'ru';
             const welcome = greetings[initialLang] || greetings['ru'];
             await sendMessage(token, chatId, welcome, { parse_mode: 'HTML' });
             await appendMessage({ session_id: sessionId, bot_id: botId, role: "assistant", content: welcome });
