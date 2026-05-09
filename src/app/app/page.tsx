@@ -409,7 +409,7 @@ export default function MiniAppDispatcher() {
 
                 {/* Bonuses — always visible */}
                 <NavTab
-                    icon="featured_seasonal"
+                    icon="redeem"
                     label={t.tabBonuses}
                     active={activeTab === 'bonuses'}
                     onClick={() => setActiveTab('bonuses')}
