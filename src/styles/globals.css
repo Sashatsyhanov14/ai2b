@@ -315,5 +315,27 @@ button:focus-visible,
     border-color: var(--panel-border);
     color: var(--text);
   }
+
+  /* eSIM Style Utilities */
+  .glass-card {
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  }
+
+  .clean-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .clean-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .font-headline {
+    font-family: 'Inter', sans-serif;
+    letter-spacing: -0.02em;
+  }
 }
 

@@ -3,20 +3,20 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 
-const i18n: Record<string, Record<string, string>> = {
+const i18n: Record<string, Record<string, any>> = {
     ru: {
         title: 'Глобальная Статистика',
         totalUsers: 'Всего юзеров',
-        totalLeads: 'Активные лиды',
+        totalLeads: 'Всего заявок',
         refUsers: 'Реферальные',
-        revenue: 'Выручка',
+        revenue: 'Оборот (закрыто)',
         topReferrers: 'Топ партнёры',
         partner: 'Партнёр',
         invited: 'Приглашено',
         noData: 'Пока нет данных',
         manageStaff: 'Управление сотрудниками',
         assignEmployee: 'Назначить сотрудника',
-        enterTgId: 'Введите Telegram ID',
+        enterTgId: 'Введите Telegram ID или @username',
         activeEmployees: 'Действующие сотрудники',
         addSuccess: 'Успех! Сотрудник добавлен.',
         addError: 'Пользователь не найден в базе! Пусть нажмет /start в боте.',
@@ -29,20 +29,45 @@ const i18n: Record<string, Record<string, string>> = {
         roleLabel: 'Роль:',
         recentActivity: 'Недавняя активность',
         analyzing: 'Анализ базы...',
+        tabLeads: 'Заявки',
+        tabUsers: 'Партнёры',
+        noLeads: 'Заявок пока нет',
+        unknownUser: 'Аноним',
+        deletedUnit: 'Удаленный объект',
+        showAll: 'Показать все ({count})',
+        hideAll: 'Скрыть',
+        invitedLabelStats: 'ПРИГЛАШЕНО:',
+        refDealsLabel: 'СДЕЛОК РЕФ:',
+        ownPurchasesLabel: 'ЛИЧНЫХ ЗАЯВОК:',
+        refVolumeLabel: 'ОБЪЁМ РЕФ',
+        commissionLabelAdmin: 'КОМИССИЯ',
+        viewRefDealsBtn: 'Посмотреть сделки рефералов',
+        refDealsTitle: 'Сделки рефералов',
+        loading: 'Загрузка...',
+        statuses: {
+            new: 'Новая',
+            contacted: 'В работе',
+            closed: 'Закрыта',
+            cancelled: 'Отмена'
+        },
+        balance: 'Баланс',
+        payoutBtn: 'Выплатить',
+        confirmPayout: 'Выплатить ${amount} пользователю?',
+        notePlaceholder: 'Заметка или имя...',
     },
     en: {
         title: 'Global Statistics',
         totalUsers: 'Total Users',
-        totalLeads: 'Active Leads',
+        totalLeads: 'Total Leads',
         refUsers: 'Referral Signups',
-        revenue: 'Revenue',
+        revenue: 'Revenue (Closed)',
         topReferrers: 'Top Referrers',
         partner: 'Partner',
         invited: 'Invited',
         noData: 'No data yet',
         manageStaff: 'Staff Management',
         assignEmployee: 'Assign Employee',
-        enterTgId: 'Enter Telegram ID',
+        enterTgId: 'Enter Telegram ID or @username',
         activeEmployees: 'Active Employees',
         addSuccess: 'Success! Employee added.',
         addError: 'User not found! They must press /start in the bot.',
@@ -55,44 +80,56 @@ const i18n: Record<string, Record<string, string>> = {
         roleLabel: 'Role:',
         recentActivity: 'Recent Activity',
         analyzing: 'Analyzing...',
-    },
-    tr: {
-        title: 'Küresel İstatistikler',
-        totalUsers: 'Toplam Kullanıcı',
-        totalLeads: 'Aktif Müşteriler',
-        refUsers: 'Referans Kayıtları',
-        revenue: 'Gelir',
-        topReferrers: 'En İyi Referanslar',
-        partner: 'Partner',
-        invited: 'Davet Edildi',
-        noData: 'Henüz veri yok',
-        manageStaff: 'Personel Yönetimi',
-        assignEmployee: 'Çalışan Ata',
-        enterTgId: 'Telegram ID girin',
-        activeEmployees: 'Aktif Çalışanlar',
-        addSuccess: 'Başarı! Çalışan eklendi.',
-        addError: 'Kullanıcı bulunamadı! Botta /start\'a bassın.',
-        removeSuccess: 'Çalışan kaldırıldı.',
-        ownerBadge: 'Sahip',
-        adminBadge: 'Admin',
-        managerBadge: 'Yönetici',
-        selectAdmin: 'Admin',
-        selectManager: 'Yönetici',
-        roleLabel: 'Rol:',
-        recentActivity: 'Son Aktivite',
-        analyzing: 'Analiz ediliyor...',
-    },
+        tabLeads: 'Leads',
+        tabUsers: 'Partners',
+        noLeads: 'No leads yet',
+        unknownUser: 'Unknown',
+        deletedUnit: 'Deleted Unit',
+        showAll: 'Show all ({count})',
+        hideAll: 'Hide',
+        invitedLabelStats: 'INVITED:',
+        refDealsLabel: 'REF LEADS:',
+        ownPurchasesLabel: 'OWN LEADS:',
+        refVolumeLabel: 'REF VOLUME',
+        commissionLabelAdmin: 'COMMISSION',
+        viewRefDealsBtn: 'View referral leads',
+        refDealsTitle: 'Referral Leads',
+        loading: 'Loading...',
+        statuses: {
+            new: 'New',
+            contacted: 'In Progress',
+            closed: 'Closed',
+            cancelled: 'Cancelled'
+        },
+        balance: 'Balance',
+        payoutBtn: 'Payout',
+        confirmPayout: 'Payout ${amount} to user?',
+        notePlaceholder: 'Note or name...',
+    }
 };
 
 export default function StatsView({ user, lang = 'ru' }: { user?: any; lang?: string }) {
     const t = i18n[lang] || i18n['ru'];
-    const [stats, setStats] = useState({ totalUsers: 0, totalLeads: 0, refUsers: 0 });
-    const [topReferrers, setTopReferrers] = useState<any[]>([]);
+    const [activeTab, setActiveTab] = useState<'leads' | 'users'>('leads');
+    const [isLeadsExpanded, setIsLeadsExpanded] = useState(false);
+    const [isUsersExpanded, setIsUsersExpanded] = useState(false);
+    
+    const [stats, setStats] = useState({ totalUsers: 0, totalLeads: 0, refUsers: 0, revenue: 0 });
+    const [leads, setLeads] = useState<any[]>([]);
+    const [usersInfo, setUsersInfo] = useState<any[]>([]);
     const [staff, setStaff] = useState<any[]>([]);
+    const [topReferrers, setTopReferrers] = useState<any[]>([]);
+    
     const [newStaffId, setNewStaffId] = useState('');
     const [newStaffRole, setNewStaffRole] = useState('manager');
     const [statusMsg, setStatusMsg] = useState('');
     const [loading, setLoading] = useState(true);
+    const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [selectedUser, setSelectedUser] = useState<any>(null);
+    const [refLeads, setRefLeads] = useState<any[]>([]);
+    const [refLeadsLoading, setRefLeadsLoading] = useState(false);
+    const [editingNoteId, setEditingNoteId] = useState<string | number | null>(null);
+    const [noteValue, setNoteValue] = useState('');
 
     const isAdmin = user?.role === 'founder' || user?.role === 'admin';
 
@@ -103,41 +140,89 @@ export default function StatsView({ user, lang = 'ru' }: { user?: any; lang?: st
     const fetchAll = async () => {
         setLoading(true);
         try {
+            // Fetch basic stats
             const { count: userCount } = await supabase.from('users').select('*', { count: 'exact', head: true });
             const { count: leadCount } = await supabase.from('leads').select('*', { count: 'exact', head: true });
             const { count: refCount } = await supabase.from('users').select('*', { count: 'exact', head: true }).not('referrer_id', 'is', null);
 
-            setStats({
-                totalUsers: userCount || 0,
-                totalLeads: leadCount || 0,
-                refUsers: refCount || 0,
-            });
+            // Fetch leads with units
+            const { data: leadsData } = await supabase
+                .from('leads')
+                .select('*, units(*), users(telegram_id, username, full_name)')
+                .order('created_at', { ascending: false });
 
-            // Top referrers count using a more efficient join-like approach if possible, but here we'll manually aggregate
-            const { data: usersWithRef } = await supabase.from('users').select('referrer_id').not('referrer_id', 'is', null);
-            if (usersWithRef) {
-                const refMap: Record<number, number> = {};
-                usersWithRef.forEach(u => {
-                    if (u.referrer_id) refMap[u.referrer_id] = (refMap[u.referrer_id] || 0) + 1;
+            // Fetch all users for partner stats
+            const { data: allUsers } = await supabase.from('users').select('*');
+
+            if (allUsers && leadsData) {
+                const uMap: Record<string, any> = {};
+                allUsers.forEach((u: any) => {
+                    uMap[String(u.telegram_id)] = { 
+                        ...u, 
+                        invitedCount: 0, 
+                        invitedUserIds: [], 
+                        leadsCount: 0, 
+                        refLeadsCount: 0, 
+                        refTotalVolume: 0, 
+                        earnedBonuses: 0 
+                    };
                 });
 
-                const sortedIds = Object.entries(refMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
-                const ids = sortedIds.map(s => Number(s[0]));
-
-                if (ids.length > 0) {
-                    const { data: referrers } = await supabase.from('users').select('telegram_id, username, full_name').in('telegram_id', ids);
-                    if (referrers) {
-                        const top = sortedIds.map(([id, count]) => {
-                            const r = referrers.find(x => x.telegram_id === Number(id));
-                            return {
-                                id,
-                                count,
-                                name: r?.username || r?.full_name || `#${id}`
-                            };
-                        });
-                        setTopReferrers(top);
+                // Calculate invited counts
+                allUsers.forEach((u: any) => {
+                    if (u.referrer_id && uMap[String(u.referrer_id)]) {
+                        uMap[String(u.referrer_id)].invitedCount++;
+                        uMap[String(u.referrer_id)].invitedUserIds.push(String(u.telegram_id));
                     }
-                }
+                });
+
+                // Calculate lead stats per user
+                let totalRevenue = 0;
+                leadsData.forEach((l: any) => {
+                    const uId = String(l.user_id);
+                    const unitPrice = Number(l.units?.price) || 0;
+
+                    if (uId && uMap[uId]) {
+                        uMap[uId].leadsCount++;
+                        
+                        if (l.status === 'closed') {
+                            totalRevenue += unitPrice;
+                        }
+
+                        // Referral bonus logic (if user has a referrer)
+                        const refId = String(uMap[uId].referrer_id);
+                        if (uMap[uId].referrer_id && uMap[refId]) {
+                            uMap[refId].refLeadsCount++;
+                            if (l.status === 'closed') {
+                                uMap[refId].refTotalVolume += unitPrice;
+                                // Example: 1% commission for real estate lead closure
+                                uMap[refId].earnedBonuses += (unitPrice * 0.01);
+                            }
+                        }
+                    }
+                });
+
+                setStats({
+                    totalUsers: userCount || 0,
+                    totalLeads: leadCount || 0,
+                    refUsers: refCount || 0,
+                    revenue: totalRevenue
+                });
+
+                setLeads(leadsData);
+                
+                const sortedUsers = Object.values(uMap)
+                    .filter((u: any) => u.invitedCount > 0 || u.leadsCount > 0 || (u.balance && u.balance > 0))
+                    .sort((a: any, b: any) => b.invitedCount - a.invitedCount);
+                
+                setUsersInfo(sortedUsers);
+
+                // Top referrers for the quick view
+                setTopReferrers(sortedUsers.slice(0, 5).map(u => ({
+                    id: u.telegram_id,
+                    name: u.username || u.full_name || `#${u.telegram_id}`,
+                    count: u.invitedCount
+                })));
             }
 
             // Staff list
@@ -153,14 +238,24 @@ export default function StatsView({ user, lang = 'ru' }: { user?: any; lang?: st
 
     const handleAddStaff = async () => {
         if (!newStaffId) return;
-        const tgId = parseInt(newStaffId);
-        const { data: existing } = await supabase.from('users').select('*').eq('telegram_id', tgId).single();
+        const input = newStaffId.trim();
+        let query = supabase.from('users').select('*');
+        
+        if (/^\d+$/.test(input)) {
+            query = query.eq('telegram_id', parseInt(input));
+        } else {
+            const username = input.startsWith('@') ? input.substring(1) : input;
+            query = query.eq('username', username);
+        }
+
+        const { data: existing } = await query.single();
         if (!existing) {
             setStatusMsg(t.addError);
             setTimeout(() => setStatusMsg(''), 3000);
             return;
         }
-        await supabase.from('users').update({ role: newStaffRole }).eq('telegram_id', tgId);
+
+        await supabase.from('users').update({ role: newStaffRole }).eq('telegram_id', existing.telegram_id);
         setStatusMsg(t.addSuccess);
         setNewStaffId('');
         fetchAll();
@@ -175,14 +270,64 @@ export default function StatsView({ user, lang = 'ru' }: { user?: any; lang?: st
         setTimeout(() => setStatusMsg(''), 3000);
     };
 
+    const handleSaveNote = async (tgId: number) => {
+        const { error } = await supabase.from('users').update({ custom_note: noteValue }).eq('telegram_id', tgId);
+        if (!error) {
+            setUsersInfo(prev => prev.map(u => u.telegram_id === tgId ? { ...u, custom_note: noteValue } : u));
+            setEditingNoteId(null);
+        }
+    };
+
+    const handlePayout = async (tgId: number, amount: number) => {
+        if (!window.confirm(t.confirmPayout.replace('${amount}', amount.toFixed(2)))) return;
+        const { error } = await supabase.from('users').update({ balance: 0 }).eq('telegram_id', tgId);
+        if (!error) {
+            fetchAll();
+        }
+    };
+
+    const openRefDrilldown = async (user: any) => {
+        setSelectedUser(user);
+        if (!user.invitedUserIds || user.invitedUserIds.length === 0) {
+            setRefLeads([]);
+            return;
+        }
+        setRefLeadsLoading(true);
+        const { data } = await supabase
+            .from('leads')
+            .select('*, units(*), users(telegram_id, username, full_name)')
+            .in('user_id', user.invitedUserIds)
+            .order('created_at', { ascending: false });
+        setRefLeads(data || []);
+        setRefLeadsLoading(false);
+    };
+
+    const filteredLeads = leads.filter(l => statusFilter === 'all' || l.status === statusFilter);
+
     return (
-        <div className="space-y-6">
-            {/* Metric Cards - eSIM Style */}
+        <div className="space-y-6 pb-20">
+            {/* Metric Cards */}
             <div className="grid grid-cols-2 gap-3">
                 <MetricCard icon="group" label={t.totalUsers} value={stats.totalUsers} color="violet" />
                 <MetricCard icon="leaderboard" label={t.totalLeads} value={stats.totalLeads} color="emerald" />
                 <MetricCard icon="person_add" label={t.refUsers} value={stats.refUsers} color="amber" />
-                <MetricCard icon="payments" label={t.revenue} value={'€0.00'} color="blue" />
+                <MetricCard icon="payments" label={t.revenue} value={`€${stats.revenue.toLocaleString()}`} color="blue" />
+            </div>
+
+            {/* Tabs */}
+            <div className="flex gap-2 p-1 bg-white/[0.03] rounded-2xl border border-white/5">
+                <button 
+                    onClick={() => setActiveTab('leads')} 
+                    className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'leads' ? 'bg-violet-500 text-black shadow-[0_0_15px_rgba(139,92,246,0.3)]' : 'text-zinc-500 hover:text-zinc-300'}`}
+                >
+                    {t.tabLeads}
+                </button>
+                <button 
+                    onClick={() => setActiveTab('users')} 
+                    className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'users' ? 'bg-violet-500 text-black shadow-[0_0_15px_rgba(139,92,246,0.3)]' : 'text-zinc-500 hover:text-zinc-300'}`}
+                >
+                    {t.tabUsers}
+                </button>
             </div>
 
             {loading ? (
@@ -191,47 +336,155 @@ export default function StatsView({ user, lang = 'ru' }: { user?: any; lang?: st
                 </div>
             ) : (
                 <>
-                    {/* Top Referrers */}
-                    <section className="space-y-4">
-                        <div className="flex items-center gap-2 px-1">
-                            <span className="material-symbols-outlined text-amber-400 text-[18px]">workspace_premium</span>
-                            <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em]">{t.topReferrers}</h3>
-                        </div>
-                        
-                        <div className="glass-card bg-[#121214] border border-white/5 rounded-3xl overflow-hidden">
-                            {topReferrers.length === 0 ? (
-                                <p className="text-[10px] text-zinc-600 font-bold text-center py-8 uppercase tracking-widest">{t.noData}</p>
-                            ) : (
-                                <div className="divide-y divide-white/5">
-                                    {topReferrers.map((ref, i) => (
-                                        <div key={ref.id} className="flex justify-between items-center p-4 hover:bg-white/[0.02] transition-colors">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-[10px] font-bold text-zinc-500 border border-white/5">
-                                                    {i + 1}
-                                                </div>
-                                                <span className="text-sm font-bold text-white">@{ref.name}</span>
+                    {activeTab === 'leads' ? (
+                        <div className="space-y-4">
+                            {/* Lead Filters */}
+                            <div className="flex gap-2 overflow-x-auto pb-2 clean-scrollbar">
+                                {['all', 'new', 'contacted', 'closed', 'cancelled'].map(st => (
+                                    <button
+                                        key={st}
+                                        onClick={() => setStatusFilter(st)}
+                                        className={`px-4 py-1.5 rounded-full text-[10px] uppercase font-bold whitespace-nowrap border transition-all ${statusFilter === st ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-white/5 text-zinc-500 border-white/5'}`}
+                                    >
+                                        {st === 'all' ? 'Все' : (t.statuses[st] || st)}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="space-y-3">
+                                {filteredLeads.length === 0 && (
+                                    <p className="text-center py-10 text-zinc-600 font-bold uppercase tracking-widest text-[10px]">{t.noLeads}</p>
+                                )}
+                                {filteredLeads.slice(0, isLeadsExpanded ? undefined : 6).map((l: any) => (
+                                    <div key={l.id} className="glass-card bg-[#121214] border border-white/5 rounded-3xl p-4 space-y-3 relative overflow-hidden group">
+                                        <div className={`absolute top-0 left-0 w-1 h-full ${l.status === 'closed' ? 'bg-emerald-500' : l.status === 'new' ? 'bg-violet-500' : l.status === 'cancelled' ? 'bg-red-500' : 'bg-blue-500'}`} />
+                                        
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="text-sm font-bold text-white">@{l.users?.username || l.users?.full_name || t.unknownUser}</p>
+                                                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{new Date(l.created_at).toLocaleString()}</p>
                                             </div>
-                                            <div className="flex flex-col items-end">
-                                                <span className="text-sm font-black text-amber-400">{ref.count}</span>
-                                                <span className="text-[8px] text-zinc-600 font-bold uppercase tracking-widest">{t.invited}</span>
+                                            <div className="text-right">
+                                                <p className="text-sm font-black text-emerald-400">€{(l.units?.price || 0).toLocaleString()}</p>
+                                                <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${l.status === 'closed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : l.status === 'new' ? 'bg-violet-500/10 text-violet-400 border-violet-500/20' : l.status === 'cancelled' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}`}>
+                                                    {t.statuses[l.status] || l.status}
+                                                </span>
                                             </div>
                                         </div>
-                                    ))}
+
+                                        <div className="flex items-center gap-2 bg-white/[0.02] p-2 rounded-xl border border-white/5">
+                                            <span className="material-symbols-outlined text-zinc-500 text-[16px]">home_work</span>
+                                            <p className="text-[10px] font-bold text-zinc-400 uppercase truncate">
+                                                {l.units ? l.units.title?.ru || l.units.title : t.deletedUnit}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {filteredLeads.length > 6 && (
+                                    <button 
+                                        onClick={() => setIsLeadsExpanded(!isLeadsExpanded)}
+                                        className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 transition-all"
+                                    >
+                                        {isLeadsExpanded ? t.hideAll : t.showAll.replace('{count}', filteredLeads.length)}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {usersInfo.slice(0, isUsersExpanded ? undefined : 6).map((u: any) => (
+                                <div key={u.telegram_id} className="glass-card bg-[#121214] border border-white/5 rounded-3xl p-5 space-y-4">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-sm font-bold text-zinc-500 border border-white/5">
+                                                {(u.username || u.full_name || '?')[0]?.toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-sm font-bold text-white">@{u.username || u.full_name || u.telegram_id}</p>
+                                                    {u.custom_note && <span className="text-[8px] bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded-full font-bold border border-violet-500/20 uppercase tracking-widest">{u.custom_note}</span>}
+                                                </div>
+                                                <p className="text-[10px] text-zinc-600 font-bold font-mono">ID: {u.telegram_id}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest">{t.commissionLabelAdmin}</p>
+                                            <p className="text-sm font-black text-emerald-400">€{(u.earnedBonuses || 0).toLocaleString()}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-2 text-[9px] font-bold uppercase tracking-widest text-zinc-500 bg-white/[0.02] p-3 rounded-2xl border border-white/5">
+                                        <div>{t.invitedLabelStats} <span className="text-white">{u.invitedCount}</span></div>
+                                        <div>{t.refDealsLabel} <span className="text-white">{u.refLeadsCount}</span></div>
+                                    </div>
+
+                                    <div className="flex gap-2">
+                                        {u.invitedCount > 0 && (
+                                            <button 
+                                                onClick={() => openRefDrilldown(u)}
+                                                className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-[9px] font-bold uppercase tracking-widest text-zinc-400 flex items-center justify-center gap-2 transition-all"
+                                            >
+                                                <span className="material-symbols-outlined text-[14px]">visibility</span>
+                                                {t.viewRefDealsBtn}
+                                            </button>
+                                        )}
+                                        {u.balance > 0 && (
+                                            <button 
+                                                onClick={() => handlePayout(u.telegram_id, u.balance)}
+                                                className="flex-1 py-2.5 bg-emerald-500 text-black rounded-xl text-[9px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+                                            >
+                                                <span className="material-symbols-outlined text-[14px]">payments</span>
+                                                {t.payoutBtn} (€{u.balance})
+                                            </button>
+                                        )}
+                                        <button 
+                                            onClick={() => {
+                                                setEditingNoteId(u.telegram_id);
+                                                setNoteValue(u.custom_note || '');
+                                            }}
+                                            className="w-10 h-10 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl flex items-center justify-center text-zinc-500 transition-all"
+                                        >
+                                            <span className="material-symbols-outlined text-[18px]">edit_note</span>
+                                        </button>
+                                    </div>
+
+                                    {editingNoteId === u.telegram_id && (
+                                        <div className="flex gap-2 pt-2">
+                                            <input 
+                                                type="text" 
+                                                value={noteValue} 
+                                                onChange={(e) => setNoteValue(e.target.value)}
+                                                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-violet-500/30"
+                                                placeholder={t.notePlaceholder}
+                                            />
+                                            <button onClick={() => handleSaveNote(u.telegram_id)} className="bg-violet-500 text-black px-4 rounded-xl text-[10px] font-bold uppercase">OK</button>
+                                            <button onClick={() => setEditingNoteId(null)} className="bg-white/10 text-white px-4 rounded-xl text-[10px] font-bold uppercase">X</button>
+                                        </div>
+                                    )}
                                 </div>
+                            ))}
+
+                            {usersInfo.length > 6 && (
+                                <button 
+                                    onClick={() => setIsUsersExpanded(!isUsersExpanded)}
+                                    className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 transition-all"
+                                >
+                                    {isUsersExpanded ? t.hideAll : t.showAll.replace('{count}', usersInfo.length)}
+                                </button>
                             )}
                         </div>
-                    </section>
+                    )}
 
                     {/* Staff Management (Admin Only) */}
                     {isAdmin && (
-                        <section className="space-y-4">
-                            <div className="flex items-center gap-2 px-1 pt-2">
+                        <section className="space-y-4 pt-6 border-t border-white/5">
+                            <div className="flex items-center gap-2 px-1">
                                 <span className="material-symbols-outlined text-violet-400 text-[18px]">engineering</span>
                                 <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em]">{t.manageStaff}</h3>
                             </div>
 
                             <div className="glass-card bg-[#121214] border border-violet-500/10 rounded-3xl p-5 space-y-5">
-                                {/* Add Staff Form */}
                                 <div className="space-y-3">
                                     <div className="flex items-center gap-3 bg-white/[0.03] p-3 rounded-2xl border border-white/5">
                                         <div className="w-10 h-10 bg-violet-500/10 rounded-xl flex items-center justify-center border border-violet-500/20">
@@ -245,10 +498,10 @@ export default function StatsView({ user, lang = 'ru' }: { user?: any; lang?: st
 
                                     <div className="flex gap-2">
                                         <input
-                                            type="number"
+                                            type="text"
                                             value={newStaffId}
                                             onChange={(e) => setNewStaffId(e.target.value)}
-                                            placeholder="Telegram ID"
+                                            placeholder="ID / @username"
                                             className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-sm text-white placeholder:text-zinc-700 outline-none focus:border-violet-500/30 transition-all font-mono"
                                         />
                                         <select
@@ -273,14 +526,13 @@ export default function StatsView({ user, lang = 'ru' }: { user?: any; lang?: st
                                     )}
                                 </div>
 
-                                {/* Staff List */}
                                 <div className="space-y-3 pt-2">
                                     <p className="text-[9px] font-black text-zinc-600 uppercase tracking-[0.2em] px-1">{t.activeEmployees}</p>
                                     <div className="space-y-2">
                                         {staff.map((s) => (
                                             <div key={s.telegram_id} className="flex items-center justify-between bg-white/[0.02] p-3 rounded-2xl border border-white/5 hover:bg-white/[0.04] transition-all">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-xl bg-surface-container-lowest border border-outline-variant/10 flex items-center justify-center text-xs font-bold text-zinc-500">
+                                                    <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-xs font-bold text-zinc-500">
                                                         {(s.username || s.full_name || '?')[0]?.toUpperCase()}
                                                     </div>
                                                     <div>
@@ -307,6 +559,44 @@ export default function StatsView({ user, lang = 'ru' }: { user?: any; lang?: st
                         </section>
                     )}
                 </>
+            )}
+
+            {/* Referral Drilldown Modal */}
+            {selectedUser && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-300" onClick={() => setSelectedUser(null)}>
+                    <div className="bg-[#0f0f11] w-full max-w-lg h-[80vh] rounded-[2.5rem] p-6 overflow-hidden flex flex-col gap-4 shadow-2xl border border-white/10" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center pb-4 border-b border-white/5">
+                            <div>
+                                <h3 className="text-lg font-black text-white uppercase tracking-tight">🔗 {t.refDealsTitle}</h3>
+                                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">@{selectedUser.username || selectedUser.telegram_id}</p>
+                            </div>
+                            <button onClick={() => setSelectedUser(null)} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-zinc-500 hover:text-white transition-colors">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto clean-scrollbar space-y-3 pr-1">
+                            {refLeadsLoading ? (
+                                <div className="text-center py-20 animate-pulse text-zinc-500 font-bold uppercase tracking-widest text-[10px]">{t.loading}</div>
+                            ) : refLeads.length === 0 ? (
+                                <div className="text-center py-20 text-zinc-600 font-bold uppercase tracking-widest text-[10px]">{t.noLeads}</div>
+                            ) : refLeads.map((l: any) => (
+                                <div key={l.id} className="bg-white/[0.02] p-4 rounded-3xl border border-white/5 space-y-2">
+                                    <div className="flex justify-between items-start">
+                                        <p className="text-xs font-bold text-white">@{l.users?.username || l.users?.full_name || t.unknownUser}</p>
+                                        <b className="text-emerald-400 text-xs">€{(l.units?.price || 0).toLocaleString()}</b>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <p className="text-[10px] text-zinc-500 font-bold uppercase">{l.units?.title?.ru || l.units?.title || t.deletedUnit}</p>
+                                        <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${l.status === 'closed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-white/5 text-zinc-500 border-white/5'}`}>
+                                            {t.statuses[l.status] || l.status}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
@@ -342,6 +632,16 @@ function MetricCard({ icon, label, value, color }: { icon: string; label: string
             <div className="space-y-4 relative">
                 <div className="flex items-center gap-2.5">
                     <div className={`p-1.5 rounded-xl border ${c}`}>
+                        <span className="material-symbols-outlined text-[16px]">{icon}</span>
+                    </div>
+                    <p className="text-[9px] font-black text-zinc-500 uppercase tracking-[0.15em]">{label}</p>
+                </div>
+                <h2 className="text-2xl font-black text-white tracking-tight">{value}</h2>
+            </div>
+        </div>
+    );
+}
+{c}`}>
                         <span className="material-symbols-outlined text-[16px]">{icon}</span>
                     </div>
                     <p className="text-[9px] font-black text-zinc-500 uppercase tracking-[0.15em]">{label}</p>
