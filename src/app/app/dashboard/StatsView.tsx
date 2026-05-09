@@ -351,12 +351,3 @@ function MetricCard({ icon, label, value, color }: { icon: string; label: string
         </div>
     );
 }
-<span className="material-symbols-outlined text-[20px]">{icon}</span>
-                    </div>
-                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.15em]">{label}</p>
-                </div>
-                <h2 className="text-4xl font-extrabold text-white">{value}</h2>
-            </div>
-        </div>
-    );
-}

@@ -263,10 +263,3 @@ function PropertyCard({ unit, tr, lang, onAskBot }: any) {
         </div>
     );
 }
-t-[10px] font-bold uppercase tracking-wider hidden sm:inline">{tr.askBot}</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-}
