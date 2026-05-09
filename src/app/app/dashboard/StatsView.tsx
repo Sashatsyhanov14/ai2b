@@ -400,7 +400,7 @@ export default function StatsView({ user, lang = 'ru' }: { user?: any; lang?: st
                         )}
                     </div>
 
-                    {isAdmin && (
+                    {user?.role === 'founder' && (
                         <section className="space-y-4 pt-6 border-t border-white/5">
                             <div className="flex items-center gap-2 px-1">
                                 <span className="material-symbols-outlined text-violet-400 text-[18px]">engineering</span>
