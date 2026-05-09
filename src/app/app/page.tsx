@@ -18,68 +18,54 @@ declare global {
 
 const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || 'ai2b_app_bot';
 
-// ==========================================
-// TRANSLATIONS
-// ==========================================
 const translations: Record<string, any> = {
     ru: {
-        loading: 'Загрузка данных...',
-        loginTitle: 'Вход в панель',
-        loginDesc: 'Открыто вне Telegram. Введите свой Telegram ID для доступа.',
-        loginPlaceholder: 'Введите ID (например, 12345678)',
+        loading: 'Загрузка системы...',
+        loginTitle: 'Auth Terminal',
+        loginDesc: 'Авторизация в системе управления',
+        loginPlaceholder: 'Telegram ID',
         loginBtn: 'Войти',
-        // Tabs
-        tabCatalog: 'Поиск',
+        tabCatalog: 'Каталог',
         tabBonuses: 'Бонусы',
         tabStats: 'Статистика',
         tabLeads: 'Лиды',
         tabUnits: 'Объекты',
         tabFaq: 'FAQ',
-        // Headers
-        clientTitle: 'Real Estate',
-        clientSubtitle: 'Ваш персональный консультант',
-        adminTitle: 'Панель Управления',
-        adminSubtitle: 'Глобальная статистика',
-        managerTitle: 'Менеджер',
-        managerSubtitle: 'Мониторинг и управление',
+        adminMode: 'Admin Mode',
+        managerMode: 'Manager Mode',
+        clientMode: 'Client Access',
     },
     en: {
-        loading: 'Loading data...',
-        loginTitle: 'Panel Login',
-        loginDesc: 'Opened outside of Telegram. Enter your Telegram ID for access.',
-        loginPlaceholder: 'Enter ID (e.g., 12345678)',
+        loading: 'Initializing...',
+        loginTitle: 'Auth Terminal',
+        loginDesc: 'Management system authorization',
+        loginPlaceholder: 'Telegram ID',
         loginBtn: 'Login',
-        tabCatalog: 'Search',
+        tabCatalog: 'Catalog',
         tabBonuses: 'Bonuses',
         tabStats: 'Stats',
         tabLeads: 'Leads',
         tabUnits: 'Units',
         tabFaq: 'FAQ',
-        clientTitle: 'Real Estate',
-        clientSubtitle: 'Your personal assistant',
-        adminTitle: 'Control Panel',
-        adminSubtitle: 'Global Statistics',
-        managerTitle: 'Manager',
-        managerSubtitle: 'Monitoring & management',
+        adminMode: 'Admin Mode',
+        managerMode: 'Manager Mode',
+        clientMode: 'Client Access',
     },
     tr: {
-        loading: 'Veriler yükleniyor...',
-        loginTitle: 'Panel Girişi',
-        loginDesc: 'Telegram dışında açıldı. Erişim için Telegram ID girin.',
-        loginPlaceholder: 'ID girin (örn. 12345678)',
-        loginBtn: 'Giriş Yap',
-        tabCatalog: 'Arama',
+        loading: 'Başlatılıyor...',
+        loginTitle: 'Auth Terminal',
+        loginDesc: 'Yönetim sistemi yetkilendirmesi',
+        loginPlaceholder: 'Telegram ID',
+        loginBtn: 'Giriş',
+        tabCatalog: 'Katalog',
         tabBonuses: 'Bonuslar',
         tabStats: 'İstatistik',
         tabLeads: 'Müşteriler',
         tabUnits: 'Objeler',
         tabFaq: 'SSS',
-        clientTitle: 'Emlak',
-        clientSubtitle: 'Kişisel danışmanınız',
-        adminTitle: 'Kontrol Paneli',
-        adminSubtitle: 'Küresel İstatistikler',
-        managerTitle: 'Yönetici',
-        managerSubtitle: 'İzleme ve yönetim',
+        adminMode: 'Admin Mode',
+        managerMode: 'Manager Mode',
+        clientMode: 'Client Access',
     },
 };
 
@@ -91,15 +77,10 @@ export default function MiniAppDispatcher() {
     const [activeTab, setActiveTab] = useState<string>('catalog');
     const [showLangDropdown, setShowLangDropdown] = useState(false);
 
-    const tg = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
     const t = translations[lang] || translations['ru'];
 
-    // ==========================================
-    // AUTH FLOW (esimbot pattern)
-    // ==========================================
     useEffect(() => {
         const init = async () => {
-            // Wait for window.Telegram to be available
             let tg: any = window.Telegram?.WebApp;
             if (!tg) {
                 for (let i = 0; i < 10; i++) {
@@ -113,23 +94,15 @@ export default function MiniAppDispatcher() {
                 try {
                     tg.ready();
                     tg.expand();
+                    tg.enableClosingConfirmation();
+                    tg.backgroundColor = '#0a0a0c';
+                    tg.headerColor = '#0a0a0c';
                 } catch (e) {}
             }
 
             let tgUser: any = null;
-
-            // 1. Try Telegram initDataUnsafe (priority in mini app)
             if (tg?.initDataUnsafe?.user?.id) {
                 tgUser = tg.initDataUnsafe.user;
-            }
-
-            // 2. Retry a few times if SDK not ready
-            if (!tgUser?.id && tg) {
-                for (let i = 0; i < 5; i++) {
-                    tgUser = tg?.initDataUnsafe?.user;
-                    if (tgUser?.id) break;
-                    await new Promise(r => setTimeout(r, 200));
-                }
             }
 
             let referrerId: number | null = null;
@@ -138,72 +111,33 @@ export default function MiniAppDispatcher() {
                 if (!isNaN(ref)) referrerId = ref;
             }
 
-            // 3. Fallback to URL params (?uid= and ?ref=)
-            if (!tgUser?.id) {
-                const params = new URLSearchParams(window.location.search);
-                const uid = params.get('uid');
-                const ref = params.get('ref');
-                if (ref && !isNaN(parseInt(ref))) referrerId = parseInt(ref);
-
-                if (uid && !isNaN(parseInt(uid))) {
-                    await fetchUserData(parseInt(uid), undefined, undefined, referrerId);
-                    return;
-                }
-            }
-
-            // 4. If we have Telegram user, fetch data
             if (tgUser?.id) {
-                console.log('[AUTH] Telegram User found:', tgUser.id);
                 const supportedLangs = ['ru', 'en', 'tr'];
                 const userLang = tgUser.language_code?.toLowerCase();
                 if (userLang && supportedLangs.includes(userLang)) {
                     setLang(userLang);
                 }
-                await fetchUserData(
-                    tgUser.id,
-                    `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim(),
-                    tgUser.username,
-                    referrerId
-                );
+                await fetchUserData(tgUser.id, `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim(), tgUser.username, referrerId);
             } else {
-                console.warn('[AUTH] No Telegram User detected. Using guest fallback.');
-                // FALLBACK: Auto-login as Guest so the catalog opens immediately
-                setUser({
-                    id: 0,
-                    telegram_id: 0,
-                    role: 'guest',
-                    full_name: 'Гость',
-                    username: 'guest'
-                });
-                setActiveTab('catalog');
-                setLoading(false);
+                const params = new URLSearchParams(window.location.search);
+                const uid = params.get('uid');
+                if (uid && !isNaN(parseInt(uid))) {
+                    await fetchUserData(parseInt(uid));
+                } else {
+                    setLoading(false);
+                }
             }
         };
         init();
     }, []);
 
-    // ==========================================
-    // FETCH / CREATE USER
-    // ==========================================
-    // ==========================================
-    // FETCH / CREATE USER (Upsert)
-    // ==========================================
     const fetchUserData = async (tgId: number, fullName?: string, username?: string, referrerId?: number | null) => {
         try {
             setLoading(true);
-            
-            // 1. First, check if user exists to preserve role and referrer
-            const { data: existingUser } = await supabase
-                .from('users')
-                .select('role, referrer_id')
-                .eq('telegram_id', tgId)
-                .single();
-
+            const { data: existingUser } = await supabase.from('users').select('role, referrer_id').eq('telegram_id', tgId).single();
             const roleToSet = existingUser?.role || 'client';
-            // Only set referrer if it's a new user and we have a referrerId
             const finalReferrer = existingUser ? existingUser.referrer_id : (referrerId || null);
 
-            // 2. Perform Upsert
             const userData: any = {
                 telegram_id: tgId,
                 username: username || fullName || `user_${tgId}`,
@@ -213,26 +147,12 @@ export default function MiniAppDispatcher() {
                 referrer_id: finalReferrer,
             };
 
-            const { data: currentUser, error: upsertError } = await supabase
-                .from('users')
-                .upsert(userData, { onConflict: 'telegram_id' })
-                .select()
-                .single();
-
-            if (upsertError) {
-                console.error('[AUTH] Upsert failed:', upsertError);
-            }
-
+            const { data: currentUser } = await supabase.from('users').upsert(userData, { onConflict: 'telegram_id' }).select().single();
             if (currentUser) {
                 setUser(currentUser);
-                console.log('[AUTH] User successfully recorded/synced:', tgId, `(${currentUser.role})`);
-                
-                // Auto-navigate admins/managers to stats tab
-                if (currentUser.role === 'founder' || currentUser.role === 'admin' || currentUser.role === 'manager') {
+                if (currentUser.role !== 'client') {
                     setActiveTab('stats');
                 }
-            } else {
-                console.error('[AUTH] Upsert returned no data for user:', tgId);
             }
         } catch (err) {
             console.error('[AUTH] Critical Error:', err);
@@ -241,55 +161,41 @@ export default function MiniAppDispatcher() {
         }
     };
 
-    const handleManualLogin = async () => {
-        if (!loginInputId) return;
-        setLoading(true);
-        await fetchUserData(parseInt(loginInputId));
-    };
-
-    // ==========================================
-    // LOADING STATE
-    // ==========================================
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen bg-[#0a0a0c] gap-4">
-                <div className="relative">
-                    <div className="w-12 h-12 border-2 border-violet-500/20 rounded-full animate-spin border-t-violet-500" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-4 h-4 bg-violet-500/40 rounded-full animate-pulse" />
-                    </div>
+            <div className="flex flex-col items-center justify-center min-h-screen bg-[#0a0a0c]">
+                <div className="w-16 h-16 relative">
+                    <div className="absolute inset-0 border-4 border-primary/20 rounded-full" />
+                    <div className="absolute inset-0 border-4 border-primary rounded-full border-t-transparent animate-spin" />
                 </div>
-                <p className="text-sm text-zinc-500 font-bold uppercase tracking-widest animate-pulse">{t.loading}</p>
+                <p className="mt-6 text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] animate-pulse">{t.loading}</p>
             </div>
         );
     }
 
-    // ==========================================
-    // LOGIN SCREEN (outside Telegram)
-    // ==========================================
     if (!user) {
         return (
             <div className="bg-[#0a0a0c] min-h-screen flex items-center justify-center p-6">
-                <div className="bg-[#121214] p-8 rounded-3xl w-full max-w-sm space-y-6 shadow-[0_20px_60px_rgba(0,0,0,0.6)] border border-white/5">
-                    <div className="text-center space-y-3">
-                        <div className="w-20 h-20 bg-violet-500/10 border border-violet-500/20 rounded-2xl mx-auto flex items-center justify-center shadow-[0_0_40px_rgba(139,92,246,0.15)]">
-                            <span className="material-symbols-outlined text-violet-400 text-4xl">apartment</span>
+                <div className="glass-card bg-[#121214] p-10 rounded-[40px] w-full max-w-sm space-y-8 border border-white/5 shadow-2xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-[60px]" />
+                    <div className="text-center space-y-4">
+                        <div className="w-20 h-20 bg-primary/10 rounded-3xl mx-auto flex items-center justify-center border border-primary/20">
+                            <span className="material-symbols-outlined text-primary text-[40px] font-thin">lock_open</span>
                         </div>
-                        <h1 className="text-2xl font-extrabold text-white tracking-tight">{t.loginTitle}</h1>
-                        <p className="text-sm text-zinc-500 leading-relaxed">{t.loginDesc}</p>
+                        <h1 className="text-2xl font-black text-white tracking-tight">{t.loginTitle}</h1>
+                        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">{t.loginDesc}</p>
                     </div>
                     <div className="space-y-4">
                         <input
                             type="number"
                             value={loginInputId}
                             onChange={(e) => setLoginInputId(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleManualLogin()}
                             placeholder={t.loginPlaceholder}
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white focus:outline-none focus:border-violet-500/50 text-center font-mono text-lg placeholder:text-zinc-600"
+                            className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-5 text-white outline-none focus:border-primary/50 text-center font-black tracking-widest text-xl placeholder:text-zinc-800"
                         />
                         <button
-                            onClick={handleManualLogin}
-                            className="w-full bg-violet-500/20 text-violet-400 border border-violet-500/30 py-4 rounded-2xl font-bold shadow-[0_0_20px_rgba(139,92,246,0.1)] hover:bg-violet-500/30 transition-all active:scale-[0.98] uppercase tracking-widest text-sm"
+                            onClick={() => fetchUserData(parseInt(loginInputId))}
+                            className="w-full bg-primary text-black py-5 rounded-2xl font-black uppercase tracking-[0.2em] shadow-[0_0_30px_rgba(139,92,246,0.3)] active:scale-95 transition-all text-xs"
                         >
                             {t.loginBtn}
                         </button>
@@ -299,219 +205,99 @@ export default function MiniAppDispatcher() {
         );
     }
 
-    // ==========================================
-    // ROLE DETECTION
-    // ==========================================
     const isAdmin = user?.role === 'founder' || user?.role === 'admin';
-    const isManager = user?.role === 'manager';
-    const isStaff = isAdmin || isManager;
-    const isStaffTab = ['stats', 'leads', 'units', 'faq'].includes(activeTab);
+    const isStaff = isAdmin || user?.role === 'manager';
 
-    // ==========================================
-    // LANGUAGE SWITCHER
-    // ==========================================
-    const renderLangSwitcher = () => (
-        <div className="relative">
-            <button
-                onClick={() => setShowLangDropdown(!showLangDropdown)}
-                className="bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-full text-[10px] font-extrabold text-zinc-300 flex items-center gap-1.5 transition-all border border-white/10 active:scale-95"
-            >
-                <span className="material-symbols-outlined text-[14px] text-violet-400">language</span>
-                {lang.toUpperCase()}
-            </button>
-            {showLangDropdown && (
-                <>
-                    <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-[2px]" onClick={() => setShowLangDropdown(false)} />
-                    <div className="fixed top-12 right-6 w-40 bg-[#1a1a1f] border border-white/10 rounded-2xl shadow-2xl z-[101] overflow-hidden py-1.5">
-                        <div className="px-4 py-2 border-b border-white/5 mb-1">
-                            <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Language</p>
-                        </div>
-                        {[
-                            { code: 'ru', flag: '🇷🇺', name: 'Русский' },
-                            { code: 'en', flag: '🇺🇸', name: 'English' },
-                            { code: 'tr', flag: '🇹🇷', name: 'Türkçe' },
-                        ].map((l) => (
+    return (
+        <div className="min-h-screen pb-32 bg-[#0a0a0c]">
+            {/* MD3 Header */}
+            <header className="px-6 pt-10 pb-4 flex justify-between items-center relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[100px] -z-10" />
+                <div>
+                    <div className="flex items-center gap-2 mb-1">
+                        <div className={`w-2 h-2 rounded-full ${isStaff ? 'bg-primary shadow-[0_0_8px_rgba(139,92,246,0.8)]' : 'bg-emerald-400'}`} />
+                        <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">
+                            {isAdmin ? t.adminMode : isStaff ? t.managerMode : t.clientMode}
+                        </span>
+                    </div>
+                    <h1 className="text-3xl font-black text-white tracking-tighter uppercase">
+                        {isStaff ? 'Terminal' : 'Real Estate'}
+                    </h1>
+                </div>
+                
+                {/* Lang Switcher */}
+                <button
+                    onClick={() => setShowLangDropdown(!showLangDropdown)}
+                    className="w-10 h-10 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 active:scale-90 transition-all"
+                >
+                    <span className="material-symbols-outlined text-[20px] text-zinc-400 font-black">translate</span>
+                </button>
+
+                {showLangDropdown && (
+                    <div className="absolute top-24 right-6 w-48 bg-[#1a1a1f] border border-white/10 rounded-3xl shadow-2xl z-[100] overflow-hidden py-2 animate-in fade-in zoom-in duration-200">
+                        {['ru', 'en', 'tr'].map((l) => (
                             <button
-                                key={l.code}
-                                onClick={() => { setLang(l.code); setShowLangDropdown(false); }}
-                                className={`w-full text-left px-4 py-3 text-xs font-bold transition-all flex items-center justify-between border-l-4 ${lang === l.code ? 'text-violet-400 bg-violet-500/10 border-violet-500' : 'text-zinc-300 border-transparent hover:bg-white/5'}`}
+                                key={l}
+                                onClick={() => { setLang(l); setShowLangDropdown(false); }}
+                                className={`w-full text-left px-5 py-4 text-xs font-black uppercase tracking-widest flex items-center justify-between ${lang === l ? 'text-primary bg-primary/5' : 'text-zinc-500 hover:bg-white/5'}`}
                             >
-                                <div className="flex items-center gap-2">
-                                    <span className="text-base leading-none">{l.flag}</span>
-                                    <span>{l.name}</span>
-                                </div>
-                                {lang === l.code && <span className="material-symbols-outlined text-[16px]">check_circle</span>}
+                                {l === 'ru' ? 'Русский' : l === 'en' ? 'English' : 'Türkçe'}
+                                {lang === l && <span className="material-symbols-outlined text-[16px]">check_circle</span>}
                             </button>
                         ))}
                     </div>
-                </>
-            )}
-        </div>
-    );
-
-    // ==========================================
-    // HEADER
-    // ==========================================
-    const renderHeader = () => {
-        const isStaffMode = isStaff && isStaffTab;
-        const title = isStaffMode
-            ? (isAdmin ? t.adminTitle : t.managerTitle)
-            : t.clientTitle;
-        const subtitle = isStaffMode
-            ? (isAdmin ? t.adminSubtitle : t.managerSubtitle)
-            : t.clientSubtitle;
-        const accentColor = isStaffMode ? 'text-violet-400' : 'text-emerald-400';
-
-        return (
-            <header className="px-6 pt-10 pb-6 relative overflow-hidden">
-                {/* Background blobs */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-violet-500/15 rounded-full blur-[80px] -z-10 translate-x-1/3 -translate-y-1/3 pointer-events-none" />
-                <div className="absolute top-0 left-0 w-48 h-48 bg-emerald-500/8 rounded-full blur-[60px] -z-10 -translate-x-1/2 translate-y-1/4 pointer-events-none" />
-
-                <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                        <p className={`text-[11px] font-extrabold ${accentColor} tracking-[0.2em] uppercase`}>{subtitle}</p>
-                        <h1 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
-                            {title}
-                        </h1>
-                    </div>
-                    {renderLangSwitcher()}
-                </div>
+                )}
             </header>
-        );
-    };
 
-    // ==========================================
-    // VIEW ROUTER
-    // ==========================================
-    const renderView = () => {
-        switch (activeTab) {
-            case 'catalog':
-                return <CatalogView lang={lang} />;
-            case 'bonuses':
-                return <ReferralView user={user} lang={lang} />;
-            case 'stats':
-                return isStaff ? <StatsView user={user} lang={lang} /> : <CatalogView lang={lang} />;
-            case 'leads':
-                return isStaff ? <LeadsView lang={lang} /> : <CatalogView lang={lang} />;
-            case 'units':
-                return isStaff ? <UnitsView lang={lang} /> : <CatalogView lang={lang} />;
-            case 'faq':
-                return isAdmin ? <FaqView lang={lang} /> : <ClientFaqView lang={lang} />;
-            default:
-                return <CatalogView lang={lang} />;
-        }
-    };
-
-    // ==========================================
-    // BOTTOM NAVIGATION
-    // ==========================================
-    return (
-        <div className="min-h-screen pb-28 bg-[#0a0a0c]">
-            {renderHeader()}
-            <main className="px-4 pt-2 space-y-6 max-w-2xl mx-auto">
-                {renderView()}
+            <main className="px-5 pt-4 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {activeTab === 'catalog' && <CatalogView lang={lang} />}
+                {activeTab === 'bonuses' && <ReferralView user={user} lang={lang} />}
+                {activeTab === 'stats' && <StatsView user={user} lang={lang} />}
+                {activeTab === 'leads' && <LeadsView lang={lang} />}
+                {activeTab === 'units' && <UnitsView lang={lang} />}
+                {activeTab === 'faq' && (isAdmin ? <FaqView lang={lang} /> : <ClientFaqView lang={lang} />)}
             </main>
 
-            <nav className="fixed bottom-0 w-full z-50 flex justify-around items-center px-2 pb-6 pt-3 bg-[#0a0a0c]/80 backdrop-blur-2xl rounded-t-[1.5rem] shadow-[0_-10px_30px_rgba(0,0,0,0.5)] border-t border-white/5">
-                {/* Catalog — always visible */}
-                <NavTab
-                    icon="search"
-                    label={t.tabCatalog}
-                    active={activeTab === 'catalog'}
-                    onClick={() => setActiveTab('catalog')}
-                    color="emerald"
-                />
+            {/* Premium Nav Bar */}
+            <nav className="fixed bottom-0 inset-x-0 z-[100] px-4 pb-8 pt-4">
+                <div className="max-w-md mx-auto glass-card bg-[#121214]/80 backdrop-blur-3xl border border-white/5 rounded-[32px] p-2 flex justify-around items-center shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+                    <NavTab icon="explore" label={t.tabCatalog} active={activeTab === 'catalog'} onClick={() => setActiveTab('catalog')} color={isStaff ? 'zinc' : 'primary'} />
+                    <NavTab icon="redeem" label={t.tabBonuses} active={activeTab === 'bonuses'} onClick={() => setActiveTab('bonuses')} color={isStaff ? 'zinc' : 'primary'} />
+                    
+                    {isStaff && (
+                        <div className="w-[1px] h-8 bg-white/5 mx-1" />
+                    )}
 
-                {/* Bonuses — always visible */}
-                <NavTab
-                    icon="redeem"
-                    label={t.tabBonuses}
-                    active={activeTab === 'bonuses'}
-                    onClick={() => setActiveTab('bonuses')}
-                    color="amber"
-                />
-
-                {/* Stats — staff only */}
-                {isStaff && (
-                    <NavTab
-                        icon="analytics"
-                        label={t.tabStats}
-                        active={activeTab === 'stats'}
-                        onClick={() => setActiveTab('stats')}
-                        color="violet"
-                    />
-                )}
-
-                {/* Leads — staff only */}
-                {isStaff && (
-                    <NavTab
-                        icon="person_search"
-                        label={t.tabLeads}
-                        active={activeTab === 'leads'}
-                        onClick={() => setActiveTab('leads')}
-                        color="violet"
-                    />
-                )}
-
-                {/* Units — admin only */}
-                {isAdmin && (
-                    <NavTab
-                        icon="apartment"
-                        label={t.tabUnits}
-                        active={activeTab === 'units'}
-                        onClick={() => setActiveTab('units')}
-                        color="violet"
-                    />
-                )}
-
-                {/* FAQ — always visible */}
-                <NavTab
-                    icon="help"
-                    label={t.tabFaq}
-                    active={activeTab === 'faq'}
-                    onClick={() => setActiveTab('faq')}
-                    color={isStaff && activeTab === 'faq' ? 'violet' : 'emerald'}
-                />
+                    {isStaff && (
+                        <NavTab icon="analytics" label={t.tabStats} active={activeTab === 'stats'} onClick={() => setActiveTab('stats')} color="primary" />
+                    )}
+                    {isStaff && (
+                        <NavTab icon="person_search" label={t.tabLeads} active={activeTab === 'leads'} onClick={() => setActiveTab('leads')} color="primary" />
+                    )}
+                    {isAdmin && (
+                        <NavTab icon="apartment" label={t.tabUnits} active={activeTab === 'units'} onClick={() => setActiveTab('units')} color="primary" />
+                    )}
+                    
+                    <NavTab icon="help" label={t.tabFaq} active={activeTab === 'faq'} onClick={() => setActiveTab('faq')} color={isStaff ? 'primary' : 'zinc'} />
+                </div>
             </nav>
         </div>
     );
 }
 
-// ==========================================
-// NAV TAB COMPONENT
-// ==========================================
-function NavTab({ icon, label, active, onClick, color = 'violet' }: any) {
-    const colorMap: Record<string, string> = {
-        violet: 'text-violet-400',
-        emerald: 'text-emerald-400',
-        amber: 'text-amber-400',
-    };
-    const activeColor = colorMap[color] || colorMap.violet;
-    const glowMap: Record<string, string> = {
-        violet: 'shadow-[0_0_8px_rgba(139,92,246,0.6)]',
-        emerald: 'shadow-[0_0_8px_rgba(16,185,129,0.6)]',
-        amber: 'shadow-[0_0_8px_rgba(245,158,11,0.6)]',
-    };
-    const bgMap: Record<string, string> = {
-        violet: 'bg-violet-400',
-        emerald: 'bg-emerald-400',
-        amber: 'bg-amber-400',
-    };
-
+function NavTab({ icon, label, active, onClick, color = 'primary' }: any) {
     return (
         <button
             onClick={onClick}
-            className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-300 w-full max-w-[72px] ${active ? `${activeColor} scale-110` : 'text-zinc-600 hover:text-zinc-400'}`}
+            className={`flex flex-col items-center gap-1.5 p-2 rounded-2xl transition-all duration-300 flex-1 ${active ? 'scale-110' : 'opacity-40 hover:opacity-100'}`}
         >
-            <span
-                className="material-symbols-outlined text-[24px]"
-                style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}
-            >
-                {icon}
-            </span>
-            <span className="text-[9px] font-extrabold uppercase tracking-widest mt-0.5">{label}</span>
-            {active && <div className={`w-1 h-1 rounded-full ${bgMap[color]} ${glowMap[color]}`} />}
+            <div className={`w-12 h-8 rounded-2xl flex items-center justify-center transition-all ${active ? (color === 'primary' ? 'bg-primary/20 text-primary' : 'bg-white/10 text-white') : 'text-zinc-500'}`}>
+                <span className="material-symbols-outlined text-[24px] font-black" style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}>
+                    {icon}
+                </span>
+            </div>
+            <span className={`text-[8px] font-black uppercase tracking-widest ${active ? 'text-white' : 'text-zinc-600'}`}>{label}</span>
         </button>
     );
 }
+
