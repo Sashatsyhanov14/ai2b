@@ -16,6 +16,8 @@ const t: Record<string, Record<string, string>> = {
         rooms: 'комн.',
         askBot: 'Спросить бота',
         searchPlaceholder: 'Поиск по городу или адресу...',
+        apartments: 'Квартиры',
+        land: 'Участки',
     },
     en: {
         title: 'Catalog',
@@ -29,6 +31,8 @@ const t: Record<string, Record<string, string>> = {
         rooms: 'rooms',
         askBot: 'Ask bot',
         searchPlaceholder: 'Search city or address...',
+        apartments: 'Apartments',
+        land: 'Land',
     },
     tr: {
         title: 'Katalog',
@@ -42,6 +46,8 @@ const t: Record<string, Record<string, string>> = {
         rooms: 'oda',
         askBot: 'Bota sor',
         searchPlaceholder: 'Şehir veya adres ara...',
+        apartments: 'Daireler',
+        land: 'Arsalar',
     },
     de: {
         title: 'Katalog',
@@ -55,6 +61,8 @@ const t: Record<string, Record<string, string>> = {
         rooms: 'Zi.',
         askBot: 'Bot fragen',
         searchPlaceholder: 'Stadt oder Adresse suchen...',
+        apartments: 'Wohnungen',
+        land: 'Grundstücke',
     },
     es: {
         title: 'Catálogo',
@@ -68,6 +76,8 @@ const t: Record<string, Record<string, string>> = {
         rooms: 'hab.',
         askBot: 'Preguntar al bot',
         searchPlaceholder: 'Buscar ciudad o dirección...',
+        apartments: 'Apartamentos',
+        land: 'Terrenos',
     },
     ar: {
         title: 'الكتالوج',
@@ -81,6 +91,8 @@ const t: Record<string, Record<string, string>> = {
         rooms: 'غرف',
         askBot: 'اسأل البوت',
         searchPlaceholder: 'البحث حسب المدينة أو العنوان...',
+        apartments: 'شقق',
+        land: 'أراضي',
     },
     fr: {
         title: 'Catalogue',
@@ -94,6 +106,8 @@ const t: Record<string, Record<string, string>> = {
         rooms: 'pces',
         askBot: 'Demander au bot',
         searchPlaceholder: 'Rechercher ville ou adresse...',
+        apartments: 'Appartements',
+        land: 'Terrains',
     },
 };
 
@@ -182,8 +196,8 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
             {/* Type Filter Chips */}
             <div className="flex gap-2 p-1 bg-surface-container-high rounded-2xl border border-white/5">
                 {[
-                    { id: 'apartment', label: 'Квартиры', icon: 'apartment' },
-                    { id: 'land', label: 'Участки', icon: 'landscape' }
+                    { id: 'apartment', label: tr.apartments, icon: 'apartment' },
+                    { id: 'land', label: tr.land, icon: 'landscape' }
                 ].map((f) => (
                     <button
                         key={f.id}
@@ -354,14 +368,27 @@ function PropertyCard({ unit, tr, lang, onAskBot, onBookNow }: any) {
                 </div>
 
                 {/* Price Badge */}
-                <div className="absolute bottom-6 left-6 flex flex-col">
-                    <p className="text-primary text-[10px] font-black uppercase tracking-[0.2em] mb-1 opacity-80">
-                        {isRent && isSale ? `${tr.rent} & ${tr.sale}` : isRent ? tr.rent : tr.sale}
-                    </p>
-                    <p className="text-white text-3xl font-black tracking-tighter">
-                        €{price?.toLocaleString()}
-                        {isRent && !isSale && <span className="text-sm text-zinc-500 font-bold ml-1">{tr.perMonth}</span>}
-                    </p>
+                <div className="absolute bottom-6 left-6 flex flex-col gap-1">
+                    {unit.price_sale && (
+                        <div className="flex items-baseline gap-2">
+                            <span className="text-white text-3xl font-black tracking-tighter">€{unit.price_sale.toLocaleString()}</span>
+                            <span className="text-[10px] text-emerald-400 font-black uppercase tracking-widest bg-emerald-400/10 px-2 py-0.5 rounded-md border border-emerald-400/20">{tr.sale}</span>
+                        </div>
+                    )}
+                    <div className="flex gap-4">
+                        {unit.price_month && (
+                            <div className="flex flex-col">
+                                <span className="text-zinc-500 text-[9px] font-black uppercase tracking-widest">{tr.rent} ({lang === 'ru' ? 'мес' : 'mo'})</span>
+                                <span className="text-white text-xl font-black tracking-tighter">€{unit.price_month.toLocaleString()}</span>
+                            </div>
+                        )}
+                        {unit.price_day && (
+                            <div className="flex flex-col">
+                                <span className="text-zinc-500 text-[9px] font-black uppercase tracking-widest">{tr.rent} ({lang === 'ru' ? 'сут' : 'day'})</span>
+                                <span className="text-white text-xl font-black tracking-tighter">€{unit.price_day.toLocaleString()}</span>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 

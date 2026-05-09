@@ -438,9 +438,7 @@ export default function MiniAppDispatcher() {
                     <NavTab icon="explore" label={t.tabCatalog} active={activeTab === 'catalog'} onClick={() => setActiveTab('catalog')} color={isStaff ? 'zinc' : 'primary'} />
                     <NavTab icon="redeem" label={t.tabBonuses} active={activeTab === 'bonuses'} onClick={() => setActiveTab('bonuses')} color={isStaff ? 'zinc' : 'primary'} />
                     
-                    {isStaff && (
-                        <div className="w-[1px] h-8 bg-white/5 mx-1" />
-                    )}
+
 
                     {isStaff && (
                         <NavTab icon="analytics" label={t.tabStats} active={activeTab === 'stats'} onClick={() => setActiveTab('stats')} color="primary" />
@@ -461,14 +459,14 @@ function NavTab({ icon, label, active, onClick, color = 'primary' }: any) {
     return (
         <button
             onClick={onClick}
-            className={`flex flex-col items-center gap-1.5 p-2 rounded-2xl transition-all duration-300 flex-1 ${active ? 'scale-110' : 'opacity-40 hover:opacity-100'}`}
+            className={`flex flex-col items-center gap-1 py-1 rounded-2xl transition-all duration-300 flex-1 ${active ? '' : 'opacity-40 hover:opacity-100'}`}
         >
-            <div className={`w-12 h-8 rounded-2xl flex items-center justify-center transition-all ${active ? (color === 'primary' ? 'bg-primary/20 text-primary' : 'bg-white/10 text-white') : 'text-outline-variant'}`}>
-                <span className="material-symbols-outlined text-[24px] font-black" style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}>
+            <div className={`w-full max-w-[56px] h-8 rounded-full flex items-center justify-center transition-all ${active ? (color === 'primary' ? 'bg-primary text-black shadow-[0_0_15px_rgba(208,188,255,0.4)]' : 'bg-white text-black') : 'text-zinc-500'}`}>
+                <span className="material-symbols-outlined text-[20px] font-black" style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}>
                     {icon}
                 </span>
             </div>
-            <span className={`text-[8px] font-black uppercase tracking-widest ${active ? 'text-on-background' : 'text-outline-variant'}`}>{label}</span>
+            <span className={`text-[9px] font-black uppercase tracking-[0.1em] mt-1 ${active ? 'text-white' : 'text-zinc-600'}`}>{label}</span>
         </button>
     );
 }

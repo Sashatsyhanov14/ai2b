@@ -135,7 +135,9 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
         title: '',
         city: 'Alanya',
         address: '',
-        price: '',
+        price_sale: '',
+        price_month: '',
+        price_day: '',
         unit_type: 'apartment',
         is_sale: true,
         is_rent: false,
@@ -212,7 +214,10 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                 description: transDesc.ru || formData.description,
                 unit_type: formData.unit_type,
                 intent: [formData.is_sale && 'sale', formData.is_rent && 'rent'].filter(Boolean).join(','),
-                price: parseFloat(formData.price),
+                price: parseFloat(formData.price_sale || formData.price_month || formData.price_day || '0'),
+                price_sale: formData.price_sale ? parseFloat(formData.price_sale) : null,
+                price_month: formData.price_month ? parseFloat(formData.price_month) : null,
+                price_day: formData.price_day ? parseFloat(formData.price_day) : null,
                 price_period: formData.is_rent && !formData.is_sale ? 'month' : 'total',
                 photos: formData.photos,
                 is_active: true,
@@ -236,7 +241,9 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                     title: '',
                     city: 'Alanya', 
                     address: '', 
-                    price: '', 
+                    price_sale: '',
+                    price_month: '',
+                    price_day: '',
                     unit_type: 'apartment', 
                     is_sale: true, 
                     is_rent: false, 
@@ -370,29 +377,64 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                             </div>
                         </div>
 
-                        <div className="space-y-1.5">
-                            <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">{t.location} & {t.price}</p>
-                            <div className="flex gap-2">
+                        <div className="space-y-4">
+                            <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">{t.location}</p>
+                            <div className="grid grid-cols-2 gap-2">
                                 <input
                                     placeholder={t.city}
-                                    className="flex-1 bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-primary/30 transition-all font-medium"
+                                    className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-primary/30 transition-all font-medium"
                                     value={formData.city}
                                     onChange={e => setFormData({ ...formData, city: e.target.value })}
                                 />
                                 <input
-                                    placeholder={t.price}
-                                    type="number"
-                                    className="flex-1 bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm text-emerald-400 font-black outline-none focus:border-primary/30 transition-all"
-                                    value={formData.price}
-                                    onChange={e => setFormData({ ...formData, price: e.target.value })}
+                                    placeholder={t.address}
+                                    className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-primary/30 transition-all font-medium"
+                                    value={formData.address}
+                                    onChange={e => setFormData({ ...formData, address: e.target.value })}
                                 />
                             </div>
-                            <input
-                                placeholder={t.address}
-                                className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-primary/30 transition-all font-medium"
-                                value={formData.address}
-                                onChange={e => setFormData({ ...formData, address: e.target.value })}
-                            />
+                        </div>
+
+                        <div className="space-y-4">
+                            <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">Стоимость (€)</p>
+                            <div className="space-y-2">
+                                {formData.is_sale && (
+                                    <div className="relative">
+                                        <input
+                                            placeholder="Цена продажи"
+                                            type="number"
+                                            className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm text-emerald-400 font-black outline-none focus:border-primary/30 transition-all pl-12"
+                                            value={formData.price_sale}
+                                            onChange={e => setFormData({ ...formData, price_sale: e.target.value })}
+                                        />
+                                        <span className="material-symbols-outlined absolute left-4 top-3 text-zinc-600 text-[18px]">sell</span>
+                                    </div>
+                                )}
+                                {formData.is_rent && (
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div className="relative">
+                                            <input
+                                                placeholder="Цена / мес"
+                                                type="number"
+                                                className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm text-amber-400 font-black outline-none focus:border-primary/30 transition-all pl-12"
+                                                value={formData.price_month}
+                                                onChange={e => setFormData({ ...formData, price_month: e.target.value })}
+                                            />
+                                            <span className="material-symbols-outlined absolute left-4 top-3 text-zinc-600 text-[18px]">calendar_month</span>
+                                        </div>
+                                        <div className="relative">
+                                            <input
+                                                placeholder="Цена / сут"
+                                                type="number"
+                                                className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm text-amber-400 font-black outline-none focus:border-primary/30 transition-all pl-12"
+                                                value={formData.price_day}
+                                                onChange={e => setFormData({ ...formData, price_day: e.target.value })}
+                                            />
+                                            <span className="material-symbols-outlined absolute left-4 top-3 text-zinc-600 text-[18px]">today</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* Photo Upload Section */}
@@ -466,10 +508,28 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                                             {unit.intent?.includes('rent') && unit.intent?.includes('sale') ? `${t.rent} & ${t.sale}` : unit.intent?.includes('rent') ? t.rent : t.sale}
                                         </span>
                                     </div>
-                                    <p className="text-xs font-black text-emerald-400 mt-1">
-                                        €{unit.price?.toLocaleString()}
-                                        {unit.intent?.includes('rent') && !unit.intent?.includes('sale') && <span className="text-[10px] text-zinc-600 font-bold ml-1 uppercase">/мес</span>}
-                                    </p>
+                                    <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
+                                        {unit.price_sale && (
+                                            <div className="flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-[12px] text-emerald-500">sell</span>
+                                                <span className="text-[11px] font-black text-emerald-400">€{unit.price_sale.toLocaleString()}</span>
+                                            </div>
+                                        )}
+                                        {unit.price_month && (
+                                            <div className="flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-[12px] text-amber-500">calendar_month</span>
+                                                <span className="text-[11px] font-black text-amber-400">€{unit.price_month.toLocaleString()}</span>
+                                                <span className="text-[8px] text-zinc-600 font-bold uppercase">/мес</span>
+                                            </div>
+                                        )}
+                                        {unit.price_day && (
+                                            <div className="flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-[12px] text-amber-500">today</span>
+                                                <span className="text-[11px] font-black text-amber-400">€{unit.price_day.toLocaleString()}</span>
+                                                <span className="text-[8px] text-zinc-600 font-bold uppercase">/сут</span>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                             
