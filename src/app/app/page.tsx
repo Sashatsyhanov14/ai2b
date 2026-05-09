@@ -76,6 +76,7 @@ export default function MiniAppDispatcher() {
     const [lang, setLang] = useState('ru');
     const [activeTab, setActiveTab] = useState<string>('catalog');
     const [showLangDropdown, setShowLangDropdown] = useState(false);
+    const [debugInfo, setDebugInfo] = useState<string>('');
 
     const t = translations[lang] || translations['ru'];
 
@@ -83,9 +84,11 @@ export default function MiniAppDispatcher() {
         const init = async () => {
             let tg: any = window.Telegram?.WebApp;
             
-            // Wait for SDK to be ready
+            setDebugInfo('Initializing SDK...');
+            
+            // 1. Wait for SDK
             if (!tg || !tg.initDataUnsafe) {
-                for (let i = 0; i < 20; i++) {
+                for (let i = 0; i < 30; i++) {
                     await new Promise(r => setTimeout(r, 100));
                     tg = window.Telegram?.WebApp;
                     if (tg && tg.initDataUnsafe) break;
@@ -100,17 +103,32 @@ export default function MiniAppDispatcher() {
                     tg.backgroundColor = '#0a0a0c';
                     tg.headerColor = '#0a0a0c';
                 } catch (e) {}
+            } else {
+                setDebugInfo('SDK Not Found after 3s');
             }
 
             let tgUser: any = null;
             
-            // Attempt to get user from initDataUnsafe with retries
-            for (let i = 0; i < 10; i++) {
+            // 2. Try initDataUnsafe.user
+            for (let i = 0; i < 15; i++) {
                 if (tg?.initDataUnsafe?.user?.id) {
                     tgUser = tg.initDataUnsafe.user;
                     break;
                 }
                 await new Promise(r => setTimeout(r, 200));
+            }
+
+            // 3. Fallback: Parse from raw initData string
+            if (!tgUser?.id && tg?.initData) {
+                try {
+                    const searchParams = new URLSearchParams(tg.initData);
+                    const userStr = searchParams.get('user');
+                    if (userStr) {
+                        tgUser = JSON.parse(decodeURIComponent(userStr));
+                    }
+                } catch (e) {
+                    console.error('Failed to parse initData user', e);
+                }
             }
 
             let referrerId: number | null = null;
@@ -120,7 +138,7 @@ export default function MiniAppDispatcher() {
             }
 
             if (tgUser?.id) {
-                console.log('[AUTH] Auto-login Telegram ID:', tgUser.id);
+                setDebugInfo(`User Found: ${tgUser.id}`);
                 const supportedLangs = ['ru', 'en', 'tr'];
                 const userLang = tgUser.language_code?.toLowerCase();
                 if (userLang && supportedLangs.includes(userLang)) {
@@ -128,7 +146,7 @@ export default function MiniAppDispatcher() {
                 }
                 await fetchUserData(tgUser.id, `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim(), tgUser.username, referrerId);
             } else {
-                console.warn('[AUTH] No Telegram user in initDataUnsafe, checking URL params');
+                setDebugInfo(`No User. TG: ${!!tg} Unsafe: ${!!tg?.initDataUnsafe} Data: ${!!tg?.initData}`);
                 const params = new URLSearchParams(window.location.search);
                 const uid = params.get('uid');
                 const ref = params.get('ref');
@@ -137,7 +155,6 @@ export default function MiniAppDispatcher() {
                 if (uid && !isNaN(parseInt(uid))) {
                     await fetchUserData(parseInt(uid), undefined, undefined, referrerId);
                 } else {
-                    console.error('[AUTH] All login attempts failed. Showing manual login.');
                     setLoading(false);
                 }
             }
@@ -228,6 +245,7 @@ export default function MiniAppDispatcher() {
                     <div className="absolute inset-0 border-4 border-primary rounded-full border-t-transparent animate-spin" />
                 </div>
                 <p className="mt-6 text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] animate-pulse">{t.loading}</p>
+                <p className="mt-2 text-[8px] text-zinc-700 uppercase font-mono">{debugInfo}</p>
             </div>
         );
     }
@@ -258,6 +276,9 @@ export default function MiniAppDispatcher() {
                         >
                             {t.loginBtn}
                         </button>
+                    </div>
+                    <div className="text-center">
+                        <p className="text-[8px] text-zinc-800 font-mono uppercase tracking-widest">{debugInfo}</p>
                     </div>
                 </div>
             </div>
