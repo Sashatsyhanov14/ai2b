@@ -8,7 +8,6 @@ import StatsView from './dashboard/StatsView';
 import FaqView from './faq/FaqView';
 import ClientFaqView from './faq/ClientFaqView';
 import UnitsView from './properties/UnitsView';
-import LeadsView from './leads/LeadsView';
 
 declare global {
     interface Window {
@@ -435,7 +434,6 @@ export default function MiniAppDispatcher() {
                 {activeTab === 'catalog' && <CatalogView lang={lang} />}
                 {activeTab === 'bonuses' && <ReferralView user={user} lang={lang} />}
                 {activeTab === 'stats' && <StatsView user={user} lang={lang} />}
-                {activeTab === 'leads' && <LeadsView user={user} lang={lang} />}
                 {activeTab === 'units' && <UnitsView lang={lang} />}
                 {activeTab === 'faq' && (isAdmin ? <FaqView lang={lang} /> : <ClientFaqView lang={lang} />)}
             </main>
@@ -453,9 +451,7 @@ export default function MiniAppDispatcher() {
                     {isStaff && (
                         <NavTab icon="analytics" label={t.tabStats} active={activeTab === 'stats'} onClick={() => setActiveTab('stats')} color="primary" />
                     )}
-                    {isStaff && (
-                        <NavTab icon="person_search" label={t.tabLeads} active={activeTab === 'leads'} onClick={() => setActiveTab('leads')} color="primary" />
-                    )}
+
                     {isAdmin && (
                         <NavTab icon="apartment" label={t.tabUnits} active={activeTab === 'units'} onClick={() => setActiveTab('units')} color="primary" />
                     )}
