@@ -147,10 +147,34 @@ export default function MiniAppDispatcher() {
 
     const fetchUserData = async (tgId: number, fullName?: string, username?: string, referrerId?: number | null) => {
         try {
+            console.log('[AUTH] Fetching/Syncing user:', tgId);
             setLoading(true);
-            const { data: existingUser } = await supabase.from('users').select('role, referrer_id').eq('telegram_id', tgId).single();
+            
+            // 1. Check if user exists
+            const { data: existingUser, error: fetchError } = await supabase
+                .from('users')
+                .select('role, referrer_id')
+                .eq('telegram_id', tgId)
+                .maybeSingle();
+
+            if (fetchError) console.error('[AUTH] Fetch error:', fetchError);
+
             const roleToSet = existingUser?.role || 'client';
-            const finalReferrer = existingUser ? existingUser.referrer_id : (referrerId || null);
+            let finalReferrer = existingUser ? existingUser.referrer_id : (referrerId || null);
+
+            // 2. Validate Referrer exists (FK constraint)
+            if (finalReferrer && !existingUser) {
+                const { data: refExists } = await supabase
+                    .from('users')
+                    .select('telegram_id')
+                    .eq('telegram_id', finalReferrer)
+                    .maybeSingle();
+                
+                if (!refExists) {
+                    console.warn('[AUTH] Referrer ID not found in DB, setting to null:', finalReferrer);
+                    finalReferrer = null;
+                }
+            }
 
             const userData: any = {
                 telegram_id: tgId,
@@ -161,15 +185,36 @@ export default function MiniAppDispatcher() {
                 referrer_id: finalReferrer,
             };
 
-            const { data: currentUser } = await supabase.from('users').upsert(userData, { onConflict: 'telegram_id' }).select().single();
-            if (currentUser) {
+            console.log('[AUTH] Upserting user data:', userData);
+            const { data: currentUser, error: upsertError } = await supabase
+                .from('users')
+                .upsert(userData, { onConflict: 'telegram_id' })
+                .select()
+                .maybeSingle();
+
+            if (upsertError) {
+                console.error('[AUTH] Upsert failed:', upsertError);
+                // Fallback: if upsert fails (e.g. database error), at least set basic user state to allow entry
+                setUser({
+                    telegram_id: tgId,
+                    role: roleToSet,
+                    full_name: fullName || username || 'User',
+                    username: username || 'user'
+                });
+            } else if (currentUser) {
+                console.log('[AUTH] Current user state:', currentUser);
                 setUser(currentUser);
                 if (currentUser.role !== 'client') {
                     setActiveTab('stats');
                 }
+            } else {
+                console.warn('[AUTH] No user returned from upsert, using fallback state');
+                setUser({ telegram_id: tgId, role: roleToSet });
             }
         } catch (err) {
-            console.error('[AUTH] Critical Error:', err);
+            console.error('[AUTH] Critical Error in fetchUserData:', err);
+            // Emergency fallback
+            setUser({ telegram_id: tgId, role: 'client' });
         } finally {
             setLoading(false);
         }
