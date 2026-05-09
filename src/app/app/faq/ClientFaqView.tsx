@@ -7,6 +7,10 @@ const i18n: Record<string, Record<string, string>> = {
     ru: { title: 'Часто задаваемые вопросы', empty: 'Вопросов пока нет', loading: 'Загрузка...', readMore: 'Читать далее' },
     en: { title: 'Frequently Asked Questions', empty: 'No questions yet', loading: 'Loading...', readMore: 'Read more' },
     tr: { title: 'Sık Sorulan Sorular', empty: 'Henüz soru yok', loading: 'Yükleniyor...', readMore: 'Devamını oku' },
+    de: { title: 'Häufig gestellte Fragen', empty: 'Noch keine Fragen', loading: 'Lade...', readMore: 'Mehr lesen' },
+    es: { title: 'Preguntas Frecuentes', empty: 'Aún no hay preguntas', loading: 'Cargando...', readMore: 'Leer más' },
+    ar: { title: 'الأسئلة الشائعة', empty: 'لا توجد أسئلة بعد', loading: 'جاري التحميل...', readMore: 'اقرأ المزيد' },
+    fr: { title: 'Foire Aux Questions', empty: 'Pas encore de questions', loading: 'Chargement...', readMore: 'Lire la suite' },
 };
 
 export default function ClientFaqView({ lang = 'ru' }: { lang?: string }) {

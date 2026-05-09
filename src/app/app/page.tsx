@@ -67,6 +67,70 @@ const translations: Record<string, any> = {
         managerMode: 'Manager Mode',
         clientMode: 'Client Access',
     },
+    de: {
+        loading: 'Initialisierung...',
+        loginTitle: 'Auth Terminal',
+        loginDesc: 'Autorisierung des Managementsystems',
+        loginPlaceholder: 'Telegram ID',
+        loginBtn: 'Einloggen',
+        tabCatalog: 'Katalog',
+        tabBonuses: 'Boni',
+        tabStats: 'Statistik',
+        tabLeads: 'Anfragen',
+        tabUnits: 'Objekte',
+        tabFaq: 'FAQ',
+        adminMode: 'Admin-Modus',
+        managerMode: 'Manager-Modus',
+        clientMode: 'Client-Zugriff',
+    },
+    es: {
+        loading: 'Iniciando...',
+        loginTitle: 'Terminal de Aut.',
+        loginDesc: 'Autorización del sistema de gestión',
+        loginPlaceholder: 'Telegram ID',
+        loginBtn: 'Entrar',
+        tabCatalog: 'Catálogo',
+        tabBonuses: 'Bonos',
+        tabStats: 'Estadísticas',
+        tabLeads: 'Clientes',
+        tabUnits: 'Unidades',
+        tabFaq: 'FAQ',
+        adminMode: 'Modo Admin',
+        managerMode: 'Modo Manager',
+        clientMode: 'Acceso Cliente',
+    },
+    ar: {
+        loading: 'جاري التحميل...',
+        loginTitle: 'محطة التفويض',
+        loginDesc: 'تفويض نظام الإدارة',
+        loginPlaceholder: 'Telegram ID',
+        loginBtn: 'تسجيل الدخول',
+        tabCatalog: 'الكتالوج',
+        tabBonuses: 'المكافآت',
+        tabStats: 'الإحصائيات',
+        tabLeads: 'الطلبات',
+        tabUnits: 'الوحدات',
+        tabFaq: 'الأسئلة الشائعة',
+        adminMode: 'وضع المسؤول',
+        managerMode: 'وضع المدير',
+        clientMode: 'وصول العميل',
+    },
+    fr: {
+        loading: 'Initialisation...',
+        loginTitle: 'Terminal Auth',
+        loginDesc: 'Autorisation du système de gestion',
+        loginPlaceholder: 'Telegram ID',
+        loginBtn: 'Connexion',
+        tabCatalog: 'Catalogue',
+        tabBonuses: 'Bonus',
+        tabStats: 'Stats',
+        tabLeads: 'Prospects',
+        tabUnits: 'Unités',
+        tabFaq: 'FAQ',
+        adminMode: 'Mode Admin',
+        managerMode: 'Mode Manager',
+        clientMode: 'Accès Client',
+    },
 };
 
 export default function MiniAppDispatcher() {
@@ -346,13 +410,20 @@ export default function MiniAppDispatcher() {
 
                 {showLangDropdown && (
                     <div className="absolute top-24 right-6 w-48 bg-[#1a1a1f] border border-white/10 rounded-3xl shadow-2xl z-[100] overflow-hidden py-2 animate-in fade-in zoom-in duration-200">
-                        {['ru', 'en', 'tr'].map((l) => (
+                        {['ru', 'en', 'tr', 'de', 'es', 'ar', 'fr'].map((l) => (
                             <button
                                 key={l}
                                 onClick={() => { setLang(l); setShowLangDropdown(false); }}
                                 className={`w-full text-left px-5 py-4 text-xs font-black uppercase tracking-widest flex items-center justify-between ${lang === l ? 'text-primary bg-primary/5' : 'text-zinc-500 hover:bg-white/5'}`}
                             >
-                                {l === 'ru' ? 'Русский' : l === 'en' ? 'English' : 'Türkçe'}
+                                <span>
+                                    {l === 'ru' ? 'Русский' : 
+                                     l === 'en' ? 'English' : 
+                                     l === 'tr' ? 'Türkçe' : 
+                                     l === 'de' ? 'Deutsch' : 
+                                     l === 'es' ? 'Español' : 
+                                     l === 'ar' ? 'العربية' : 'Français'}
+                                </span>
                                 {lang === l && <span className="material-symbols-outlined text-[16px]">check_circle</span>}
                             </button>
                         ))}

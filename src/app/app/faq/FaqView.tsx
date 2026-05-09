@@ -7,6 +7,10 @@ const i18n: Record<string, Record<string, string>> = {
     ru: { title: 'Управление FAQ', add: 'Добавить', question: 'Вопрос', answer: 'Ответ...', save: 'Сохранить', cancel: 'Отмена', deleteConfirm: 'Удалить этот вопрос?', empty: 'FAQ пуст. Добавьте первый вопрос.' },
     en: { title: 'FAQ Manager', add: 'Add', question: 'Question', answer: 'Answer...', save: 'Save', cancel: 'Cancel', deleteConfirm: 'Delete this question?', empty: 'FAQ is empty. Add the first question.' },
     tr: { title: 'SSS Yönetimi', add: 'Ekle', question: 'Soru', answer: 'Cevap...', save: 'Kaydet', cancel: 'İptal', deleteConfirm: 'Bu soruyu silmek istiyor musunuz?', empty: 'SSS boş. İlk soruyu ekleyin.' },
+    de: { title: 'FAQ-Verwaltung', add: 'Hinzufügen', question: 'Frage', answer: 'Antwort...', save: 'Speichern', cancel: 'Abbrechen', deleteConfirm: 'Diese Frage löschen?', empty: 'FAQ ist leer. Fügen Sie die erste Frage hinzu.' },
+    es: { title: 'Gestor de FAQ', add: 'Añadir', question: 'Pregunta', answer: 'Respuesta...', save: 'Guardar', cancel: 'Cancelar', deleteConfirm: '¿Eliminar esta pregunta?', empty: 'El FAQ está vacío. Añade la primera pregunta.' },
+    ar: { title: 'إدارة الأسئلة الشائعة', add: 'إضافة', question: 'السؤال', answer: 'الإجابة...', save: 'حفظ', cancel: 'إلغاء', deleteConfirm: 'حذف هذا السؤال؟', empty: 'الأسئلة الشائعة فارغة. أضف السؤال الأول.' },
+    fr: { title: 'Gestion FAQ', add: 'Ajouter', question: 'Question', answer: 'Réponse...', save: 'Sauvegarder', cancel: 'Annuler', deleteConfirm: 'Supprimer cette question ?', empty: 'La FAQ est vide. Ajoutez la première question.' },
 };
 
 export default function FaqView({ lang = 'ru' }: { lang?: string }) {
