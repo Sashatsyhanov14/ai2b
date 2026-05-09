@@ -8,6 +8,7 @@ export type ToolAction =
 export type SearchArgs = {
   id?: string;
   intent?: "sale" | "rent" | "land" | "commercial";
+  category?: string;
   search_keywords?: string[];
   price?: number;     // Maximum budget (lte)
   price_min?: number; // Minimum budget (gte)
