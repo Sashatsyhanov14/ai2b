@@ -31,8 +31,10 @@ export async function handleSaveLead(
         .maybeSingle();
 
     const payload = {
-        source: "telegram",
-        source_bot_id: "telegram",
+        source: args.unit_id ? "mini_app" : "telegram",
+        user_id: parseInt(chatId),
+        unit_id: args.unit_id || null,
+        referrer_id: args.referrer_id ? parseInt(String(args.referrer_id)) : null,
         phone: args.phone !== "Unknown" ? args.phone : null,
         name: args.name || "Unknown",
         data: {

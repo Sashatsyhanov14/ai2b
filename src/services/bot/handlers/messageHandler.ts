@@ -6,6 +6,7 @@ import { handleSearchDatabase } from "../actions/search";
 import { handleSaveLead } from "../actions/leads";
 import { handleGetPhotos } from "../actions/photos";
 import { handleGetAgencyInfo } from "../actions/agency";
+import { scheduleFollowup } from "../actions/followup";
 
 function escapeHtml(text: string): string {
     return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -21,6 +22,22 @@ export async function handleMessage(
 ) {
     try {
         console.log(`[Bot] Message from ${chatId}: ${text}`);
+
+        // 0. HANDLE WEB_APP_DATA
+        const webAppData = update?.message?.web_app_data?.data;
+        if (webAppData) {
+            try {
+                const data = JSON.parse(webAppData);
+                console.log("[Bot] WebApp Data received:", data);
+                
+                if (data.action === 'book_now' || data.action === 'ask_about') {
+                    // Treat this as a trigger for lead extraction or direct notification
+                    text = `Я интересуюсь объектом: ${data.title} (ID: ${data.unit_id}). ${data.action === 'book_now' ? 'ХОЧУ КУПИТЬ/ЗАБРОНИРОВАТЬ!' : 'Расскажи подробнее.'}`;
+                }
+            } catch (e) {
+                console.error("WebApp Data Parse Error:", e);
+            }
+        }
 
         // 0. REGISTER / UPDATE USER in Supabase (with Referral support)
         const supabase = getServerClient();
@@ -196,8 +213,12 @@ export async function handleMessage(
                 language: userInfo.language_code || "ru", 
                 purpose: "НЕДВИЖИМОСТЬ",
                 unit_id: unitsFound.length > 0 ? unitsFound[0].id : undefined,
-                interested_units: interested_units.length > 0 ? interested_units : undefined
-            } as any, chatId, userInfo.username).catch(e => console.error("[Bot] Save Lead Error:", e));
+                interested_units: interested_units.length > 0 ? interested_units : undefined,
+                referrer_id: referrer_id || undefined
+            } as any, chatId, userInfo.username).then(() => {
+                // Schedule follow-up advertising message (2 min)
+                scheduleFollowup(chatId, token, userInfo.language_code || 'ru').catch(() => {});
+            }).catch(e => console.error("[Bot] Save Lead Error:", e));
         }
 
         // C. NOTIFIER AGENT
@@ -223,10 +244,16 @@ export async function handleMessage(
 
                 for (const recipient of recipients) {
                     if (recipient.telegram_id) {
+                        const { data: lastLead } = await supabase.from('leads').select('id').eq('user_id', parseInt(chatId)).order('created_at', { ascending: false }).limit(1).single();
+                        
                         sendMessage(token, String(recipient.telegram_id), alertMsg, { 
                             parse_mode: "HTML", 
                             reply_markup: { 
-                                inline_keyboard: [[{ text: "В дашборд ↗️", url: "https://ai2b.app/app/leads" }]] 
+                                inline_keyboard: [
+                                    [{ text: "✅ Подтвердить сделку", callback_data: `deal_confirm_${lastLead?.id || 'none'}` }],
+                                    [{ text: "❌ Отклонить", callback_data: `deal_cancel_${lastLead?.id || 'none'}` }],
+                                    [{ text: "В дашборд ↗️", url: "https://ai2b.app/app/leads" }]
+                                ] 
                             } 
                         }).catch(() => {});
                     }
@@ -274,7 +301,7 @@ export async function handleMessage(
             
             // Update user language in DB if it changed
             if (plan.language && plan.language !== existingUser?.lang_code) {
-                supabase.from('users').update({ lang_code: plan.language }).eq('telegram_id', parseInt(chatId)).then(() => {}).catch(() => {});
+                await supabase.from('users').update({ lang_code: plan.language }).eq('telegram_id', parseInt(chatId));
             }
 
             try {

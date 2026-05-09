@@ -139,6 +139,15 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
         }
     };
 
+    const handleBookNow = (unit: any) => {
+        const tg = window.Telegram?.WebApp;
+        const title = unit.title?.ru || unit.title || 'Property';
+        if (tg) {
+            tg.sendData(JSON.stringify({ action: 'book_now', unit_id: unit.id, title }));
+            tg.close();
+        }
+    };
+
     return (
         <div className="space-y-5">
             {/* Search Bar - MD3 Style */}
@@ -236,6 +245,7 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
                             tr={tr}
                             lang={lang}
                             onAskBot={() => handleAskBot(unit)}
+                            onBookNow={() => handleBookNow(unit)}
                         />
                     ))}
                 </div>
@@ -244,7 +254,7 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
     );
 }
 
-function PropertyCard({ unit, tr, lang, onAskBot }: any) {
+function PropertyCard({ unit, tr, lang, onAskBot, onBookNow }: any) {
     const photo = unit.photos?.[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=800';
     
     const getLocalized = (val: any, l: string) => {
@@ -263,7 +273,7 @@ function PropertyCard({ unit, tr, lang, onAskBot }: any) {
     const isInvest = unit.unit_type === 'invest';
 
     return (
-        <div className="group card-premium !p-0 overflow-hidden neon-glow animate-fade-in">
+        <div className="group glass-card rounded-2xl !p-0 overflow-hidden animate-fade-in shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
             {/* Image */}
             <div className="relative h-64 w-full overflow-hidden">
                 <img
@@ -326,13 +336,21 @@ function PropertyCard({ unit, tr, lang, onAskBot }: any) {
                         )}
                     </div>
 
-                    <button
-                        onClick={onAskBot}
-                        className="btn-primary !py-3 !px-4"
-                    >
-                        <span className="material-symbols-outlined text-[16px]">smart_toy</span>
-                        {tr.askBot}
-                    </button>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={onAskBot}
+                            className="btn-secondary !p-3"
+                        >
+                            <span className="material-symbols-outlined text-[18px]">smart_toy</span>
+                        </button>
+                        <button
+                            onClick={onBookNow}
+                            className="btn-primary !py-3 !px-5"
+                        >
+                            <span className="material-symbols-outlined text-[16px] font-black">shopping_cart_checkout</span>
+                            {lang === 'ru' ? 'КУПИТЬ' : 'BOOK'}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

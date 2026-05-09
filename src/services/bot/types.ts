@@ -41,6 +41,7 @@ export type SaveLeadArgs = {
   start_date?: string;     // For rentals
   end_date?: string;       // For rentals
   guests?: number;         // For rentals
+  referrer_id?: number | string; // Referrer TG ID
 };
 
 export type GetPhotosArgs = {

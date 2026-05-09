@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleMessage } from "@/services/bot/handlers/messageHandler";
+import { handleCallbackQuery } from "@/services/bot/handlers/callbackHandler";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -20,10 +21,13 @@ export async function POST(req: NextRequest) {
         }
 
         // Basic extraction
+        if (update.callback_query) {
+            await handleCallbackQuery(update.callback_query, token);
+            return NextResponse.json({ ok: true });
+        }
+
         const message = update.message || update.edited_message;
         if (!message) {
-            // Could be a callback query or status update, ignore for now in this simple version
-            // Or handle callback if we add buttons later
             return NextResponse.json({ ok: true });
         }
 

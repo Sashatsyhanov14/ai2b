@@ -36,8 +36,8 @@
   background: rgba(42, 42, 44, 0.6);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  border: 1px solid rgba(229, 225, 228, 0.05);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
 .neon-glow {
@@ -54,15 +54,15 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-primary text-on-primary font-black py-4 px-6 rounded-2xl flex items-center justify-center gap-3 shadow-[0_10px_25px_rgba(208,188,255,0.15)] transition-all active:scale-[0.98] uppercase tracking-widest text-xs;
+    @apply bg-primary text-on-primary font-bold py-3.5 px-6 rounded-2xl flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(208,188,255,0.2)] transition-all active:scale-95 hover:bg-primary/90 outline-none;
   }
 
   .btn-secondary {
-    @apply bg-white/5 text-zinc-300 border border-white/10 py-4 px-6 rounded-2xl font-bold active:scale-95 transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-widest;
+    @apply bg-surface-container text-on-surface-variant font-bold py-2 px-4 rounded-xl border border-white/5 transition-all active:scale-95 flex items-center justify-center gap-1 text-sm;
   }
 
   .input-field {
-    @apply w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-white outline-none focus:border-primary/50 transition-all placeholder:text-zinc-700;
+    @apply w-full bg-surface-container border border-outline-variant/10 rounded-2xl py-4 px-4 text-sm text-on-surface focus:border-primary/50 focus:outline-none transition-all shadow-lg;
   }
 
   .card-premium {
