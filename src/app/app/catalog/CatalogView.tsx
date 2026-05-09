@@ -49,6 +49,7 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'apartment' | 'land'>('apartment');
     const [intentFilter, setIntentFilter] = useState<'sale' | 'rent'>('sale');
+    const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         fetchUnits();
@@ -89,13 +90,16 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
             {/* Header Card */}
             <div className="relative overflow-hidden bg-gradient-to-br from-[#121214] to-[#0d0d0f] p-5 rounded-3xl border border-white/5">
                 <div className="absolute top-0 right-0 w-40 h-40 bg-emerald-500/10 rounded-full blur-[60px] translate-x-1/3 -translate-y-1/3" />
-                <div className="relative flex justify-between items-center">
-                    <div>
-                        <h2 className="text-xl font-extrabold text-white tracking-tight">{tr.title}</h2>
-                        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.2em] mt-0.5">{tr.subtitle}</p>
-                    </div>
-                    <div className="bg-emerald-500/15 p-3 rounded-2xl border border-emerald-500/20">
-                        <span className="material-symbols-outlined text-emerald-400 text-[24px]">search</span>
+                <div className="relative flex items-center gap-4 w-full">
+                    <div className="relative flex-1">
+                        <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-[20px]">search</span>
+                        <input 
+                            type="text"
+                            placeholder="Поиск по городу или адресу..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50 transition-all"
+                        />
                     </div>
                 </div>
             </div>
@@ -159,7 +163,10 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
             ) : (
                 /* Property Cards */
                 <div className="space-y-5">
-                    {units.map((unit) => (
+                    {units.filter(u => {
+                        const q = searchQuery.toLowerCase();
+                        return (u.city || '').toLowerCase().includes(q) || (u.address || '').toLowerCase().includes(q) || (u.title?.ru || u.title || '').toLowerCase().includes(q);
+                    }).map((unit) => (
                         <PropertyCard
                             key={unit.id}
                             unit={unit}

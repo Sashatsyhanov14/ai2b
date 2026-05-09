@@ -29,7 +29,7 @@ const translations: Record<string, any> = {
         loginPlaceholder: 'Введите ID (например, 12345678)',
         loginBtn: 'Войти',
         // Tabs
-        tabCatalog: 'Каталог',
+        tabCatalog: 'Поиск',
         tabBonuses: 'Бонусы',
         tabStats: 'Статистика',
         tabLeads: 'Лиды',
@@ -49,7 +49,7 @@ const translations: Record<string, any> = {
         loginDesc: 'Opened outside of Telegram. Enter your Telegram ID for access.',
         loginPlaceholder: 'Enter ID (e.g., 12345678)',
         loginBtn: 'Login',
-        tabCatalog: 'Catalog',
+        tabCatalog: 'Search',
         tabBonuses: 'Bonuses',
         tabStats: 'Stats',
         tabLeads: 'Leads',
@@ -68,7 +68,7 @@ const translations: Record<string, any> = {
         loginDesc: 'Telegram dışında açıldı. Erişim için Telegram ID girin.',
         loginPlaceholder: 'ID girin (örn. 12345678)',
         loginBtn: 'Giriş Yap',
-        tabCatalog: 'Katalog',
+        tabCatalog: 'Arama',
         tabBonuses: 'Bonuslar',
         tabStats: 'İstatistik',
         tabLeads: 'Müşteriler',
@@ -400,7 +400,7 @@ export default function MiniAppDispatcher() {
             <nav className="fixed bottom-0 w-full z-50 flex justify-around items-center px-2 pb-6 pt-3 bg-[#0a0a0c]/80 backdrop-blur-2xl rounded-t-[1.5rem] shadow-[0_-10px_30px_rgba(0,0,0,0.5)] border-t border-white/5">
                 {/* Catalog — always visible */}
                 <NavTab
-                    icon="home"
+                    icon="search"
                     label={t.tabCatalog}
                     active={activeTab === 'catalog'}
                     onClick={() => setActiveTab('catalog')}
