@@ -59,7 +59,7 @@ export default function ReferralView({ user, lang = 'ru' }: { user: any; lang?: 
     const [stats, setStats] = useState({ invited: 0 });
     const [loading, setLoading] = useState(true);
 
-    const botUsername = process.env.NEXT_PUBLIC_BOT_USERNAME || 'ai2b_app_bot';
+    const botUsername = 'emedeoestate_bot';
     const refLink = `https://t.me/${botUsername}?start=${user?.telegram_id || ''}`;
     const tg = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
 
