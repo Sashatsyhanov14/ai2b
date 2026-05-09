@@ -318,10 +318,12 @@ export async function handleMessage(
                             ]);
                         }
 
+                        // Add Dashboard button as last row
+                        buttons.inline_keyboard.push([{ text: "В дашборд ↗️", url: "https://ai2b.app/app/stats" }]);
+
                         sendMessage(token, String(recipient.telegram_id), alertMsg, { 
-                                    [{ text: "В дашборд ↗️", url: "https://ai2b.app/app/stats" }]
-                                ] 
-                            } 
+                            parse_mode: 'HTML',
+                            reply_markup: buttons
                         }).catch(() => {});
                     }
                 }
