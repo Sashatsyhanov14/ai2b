@@ -20,8 +20,8 @@ export default function FaqView({ lang = 'ru' }: { lang?: string }) {
     const [loading, setLoading] = useState(true);
     const [editingFaq, setEditingFaq] = useState<any>(null);
     const [form, setForm] = useState<any>({
-        question: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' },
-        answer: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' },
+        question: '',
+        answer: '',
         photos: []
     });
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -60,40 +60,39 @@ export default function FaqView({ lang = 'ru' }: { lang?: string }) {
     };
 
     const handleSave = async () => {
-        if (!form.question.ru || !form.answer.ru) return;
+        if (!form.question || !form.answer) return;
         
-        let finalQ = form.question;
-        let finalA = form.answer;
+        setTranslating(true);
+        try {
+            // Auto translate question and answer in parallel
+            const [transQ, transA] = await Promise.all([
+                fetch('/api/translate', { method: 'POST', body: JSON.stringify({ text: form.question }) }).then(r => r.json()),
+                fetch('/api/translate', { method: 'POST', body: JSON.stringify({ text: form.answer }) }).then(r => r.json())
+            ]);
 
-        if (!form.question.en || !form.question.tr) {
-            setTranslating(true);
-            try {
-                const resQ = await fetch('/api/translate', { method: 'POST', body: JSON.stringify({ text: form.question.ru }) });
-                finalQ = await resQ.json();
-                const resA = await fetch('/api/translate', { method: 'POST', body: JSON.stringify({ text: form.answer.ru }) });
-                finalA = await resA.json();
-            } catch (e) { console.error(e); }
-            setTranslating(false);
+            const payload = {
+                question: transQ.ru || form.question,
+                answer: transA.ru || form.answer,
+                i18n: {
+                    questions: transQ,
+                    answers: transA
+                },
+                photos: form.photos
+            };
+
+            if (editingFaq) {
+                await supabase.from('faq').update(payload).eq('id', editingFaq.id);
+            } else {
+                await supabase.from('faq').insert(payload);
+            }
+
+            resetForm();
+            fetchFaqs();
+        } catch (e) {
+            console.error('FAQ Save Error:', e);
+            alert('Error saving FAQ');
         }
-
-        const payload = {
-            question: finalQ.ru,
-            answer: finalA.ru,
-            i18n: {
-                questions: finalQ,
-                answers: finalA
-            },
-            photos: form.photos
-        };
-
-        if (editingFaq) {
-            await supabase.from('faq').update(payload).eq('id', editingFaq.id);
-        } else {
-            await supabase.from('faq').insert(payload);
-        }
-
-        resetForm();
-        fetchFaqs();
+        setTranslating(false);
     };
 
     const handleEdit = (faq: any) => {
@@ -102,8 +101,8 @@ export default function FaqView({ lang = 'ru' }: { lang?: string }) {
         const answers = faq.i18n?.answers || { ru: faq.answer };
         
         setForm({
-            question: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '', ...questions },
-            answer: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '', ...answers },
+            question: questions.ru || faq.question,
+            answer: answers.ru || faq.answer,
             photos: faq.photos || []
         });
         setIsFormOpen(true);
@@ -118,8 +117,8 @@ export default function FaqView({ lang = 'ru' }: { lang?: string }) {
     const resetForm = () => {
         setEditingFaq(null);
         setForm({
-            question: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' },
-            answer: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' },
+            question: '',
+            answer: '',
             photos: []
         });
         setIsFormOpen(false);
@@ -181,55 +180,20 @@ export default function FaqView({ lang = 'ru' }: { lang?: string }) {
             {/* Form */}
             {isFormOpen && (
                 <div className="bg-[#121214] p-5 rounded-2xl border border-violet-500/20 space-y-4 animate-in slide-in-from-top duration-300">
-                    {/* Lang Tabs for Form */}
-                    <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                        <div className="flex gap-1 overflow-x-auto scrollbar-hide">
-                            {['ru', 'en', 'tr', 'de', 'es', 'ar', 'fr'].map(l => (
-                                <button
-                                    key={l}
-                                    type="button"
-                                    onClick={() => setLangTab(l)}
-                                    className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${langTab === l ? 'bg-violet-500 text-white' : 'bg-white/5 text-zinc-500'}`}
-                                >
-                                    {l}
-                                </button>
-                            ))}
-                        </div>
-                        <button
-                            type="button"
-                            onClick={handleAutoTranslate}
-                            disabled={translating || !form.question.ru}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${translating ? 'bg-zinc-800 text-zinc-500' : 'bg-violet-500/20 text-violet-400 hover:bg-violet-500/30'}`}
-                        >
-                            <span className="material-symbols-outlined text-[14px]">{translating ? 'sync' : 'auto_fix_high'}</span>
-                            {translating ? '...' : 'AI'}
-                        </button>
-                    </div>
-
                     <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">{t.question} ({langTab.toUpperCase()})</label>
+                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">{t.question}</label>
                         <input
-                            value={form.question[langTab] || ''}
-                            onBlur={() => {
-                                if (langTab === 'ru' && form.question.ru && !form.question.en) {
-                                    handleAutoTranslate();
-                                }
-                            }}
-                            onChange={e => setForm({ ...form, question: { ...form.question, [langTab]: e.target.value } })}
+                            value={form.question}
+                            onChange={e => setForm({ ...form, question: e.target.value })}
                             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-violet-500/50 placeholder:text-zinc-600"
                             placeholder="e.g. Как оформить ВНЖ?"
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">{t.answer} ({langTab.toUpperCase()})</label>
+                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">{t.answer}</label>
                         <textarea
-                            value={form.answer[langTab] || ''}
-                            onBlur={() => {
-                                if (langTab === 'ru' && form.answer.ru && !form.answer.en) {
-                                    handleAutoTranslate();
-                                }
-                            }}
-                            onChange={e => setForm({ ...form, answer: { ...form.answer, [langTab]: e.target.value } })}
+                            value={form.answer}
+                            onChange={e => setForm({ ...form, answer: e.target.value })}
                             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-violet-500/50 min-h-[120px] resize-y placeholder:text-zinc-600"
                             placeholder={t.answer}
                         />

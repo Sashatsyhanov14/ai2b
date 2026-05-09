@@ -5,13 +5,12 @@ const MODEL = process.env.OPENROUTER_MODEL || 'google/gemini-2.0-flash-001';
 
 export async function POST(req: Request) {
     try {
-        const { text, targetLangs = ['en', 'tr', 'de', 'es', 'ar', 'fr'] } = await JSON.parse(await req.text());
+        const { text } = await JSON.parse(await req.text());
+        if (!text) return NextResponse.json({ error: 'No text' }, { status: 400 });
 
-        if (!text) {
-            return NextResponse.json({ error: 'No text provided' }, { status: 400 });
-        }
-
-        const prompt = `Translate the following text from Russian into these languages: ${targetLangs.join(', ')}.
+        const targetLangs = ['ru', 'en', 'tr', 'de', 'es', 'ar', 'fr'];
+        const prompt = `Translate the following text into these languages: ${targetLangs.join(', ')}. 
+Detect the source language automatically. 
 Return ONLY a valid JSON object where keys are language codes and values are translated strings.
 Do not include any explanation or markdown.
 
@@ -36,8 +35,7 @@ Text: "${text}"`;
         const content = data.choices[0].message.content;
         const translations = JSON.parse(content);
 
-        // Include original RU
-        translations.ru = text;
+
 
         return NextResponse.json(translations);
     } catch (error: any) {

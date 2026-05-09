@@ -132,7 +132,7 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
     const [isAdding, setIsAdding] = useState(false);
     const [langTab, setLangTab] = useState('ru');
     const [formData, setFormData] = useState<any>({
-        title: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' },
+        title: '',
         city: 'Alanya',
         address: '',
         price: '',
@@ -140,7 +140,7 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
         is_sale: true,
         is_rent: false,
         photos: [],
-        description: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' },
+        description: '',
     });
 
     const [translating, setTranslating] = useState(false);
@@ -193,58 +193,63 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
     };
 
     const handleAdd = async () => {
-        if (!formData.title.ru || !formData.price) return;
+        if (!formData.title || !formData.price) return;
         
-        let finalTitle = formData.title;
-        let finalDesc = formData.description;
+        setTranslating(true);
+        try {
+            // Auto-translate title and description in parallel
+            const [transTitle, transDesc] = await Promise.all([
+                fetch('/api/translate', { method: 'POST', body: JSON.stringify({ text: formData.title }) }).then(r => r.json()),
+                formData.description 
+                    ? fetch('/api/translate', { method: 'POST', body: JSON.stringify({ text: formData.description }) }).then(r => r.json())
+                    : Promise.resolve({})
+            ]);
 
-        // Auto-translate if only RU is filled
-        if (!formData.title.en || !formData.title.tr) {
-            setTranslating(true);
-            try {
-                const resT = await fetch('/api/translate', { method: 'POST', body: JSON.stringify({ text: formData.title.ru }) });
-                finalTitle = await resT.json();
-                
-                if (formData.description.ru) {
-                    const resD = await fetch('/api/translate', { method: 'POST', body: JSON.stringify({ text: formData.description.ru }) });
-                    finalDesc = await resD.json();
-                }
-            } catch (e) { console.error(e); }
+            const payload = {
+                title: transTitle.ru || formData.title,
+                city: formData.city,
+                address: formData.address,
+                description: transDesc.ru || formData.description,
+                unit_type: formData.unit_type,
+                intent: [formData.is_sale && 'sale', formData.is_rent && 'rent'].filter(Boolean).join(','),
+                price: parseFloat(formData.price),
+                price_period: formData.is_rent && !formData.is_sale ? 'month' : 'total',
+                photos: formData.photos,
+                is_active: true,
+                i18n: Object.keys(transTitle).reduce((acc: any, l) => {
+                    acc[l] = { 
+                        title: transTitle[l], 
+                        description: transDesc[l] || '' 
+                    };
+                    return acc;
+                }, {})
+            };
+
+            const { error } = await supabase.from('units').insert(payload);
+            
+            if (error) {
+                console.error('Add failed:', error);
+                alert('Error: ' + error.message);
+            } else {
+                setIsAdding(false);
+                setFormData({ 
+                    title: '',
+                    city: 'Alanya', 
+                    address: '', 
+                    price: '', 
+                    unit_type: 'apartment', 
+                    is_sale: true, 
+                    is_rent: false, 
+                    photos: [],
+                    description: '' 
+                });
+                fetchUnits();
+            }
+        } catch (err) {
+            console.error('Save failed:', err);
+            alert('Save failed');
+        } finally {
             setTranslating(false);
-        }
-
-        const payload = {
-            title: finalTitle,
-            city: formData.city,
-            address: formData.address,
-            description: finalDesc,
-            unit_type: formData.unit_type,
-            intent: [formData.is_sale && 'sale', formData.is_rent && 'rent'].filter(Boolean).join(','),
-            price: parseFloat(formData.price),
-            price_period: formData.is_rent && !formData.is_sale ? 'month' : 'total',
-            photos: formData.photos,
-            is_active: true,
-        };
-
-        const { error } = await supabase.from('units').insert(payload);
-        
-        if (error) {
-            console.error('Add failed:', error);
-            alert('Error: ' + error.message);
-        } else {
-            setIsAdding(false);
-            setFormData({ 
-                title: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' },
-                city: 'Alanya', 
-                address: '', 
-                price: '', 
-                unit_type: 'apartment', 
-                is_sale: true, 
-                is_rent: false, 
-                photos: [],
-                description: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' } 
-            });
-            fetchUnits();
         }
     };
 
@@ -318,60 +323,19 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
             {isAdding && (
                 <div className="glass-card bg-[#121214] p-5 rounded-[32px] border border-primary/20 space-y-5 animate-in fade-in slide-in-from-top-4 duration-300">
                     <div className="space-y-4">
-                        {/* Lang Tabs for Form */}
-                        <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                            <div className="flex gap-1 overflow-x-auto scrollbar-hide">
-                                {['ru', 'en', 'tr', 'de', 'es', 'ar', 'fr'].map(l => (
-                                    <button
-                                        key={l}
-                                        type="button"
-                                        onClick={() => setLangTab(l)}
-                                        className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${langTab === l ? 'bg-primary text-black' : 'bg-white/5 text-zinc-500'}`}
-                                    >
-                                        {l}
-                                    </button>
-                                ))}
-                            </div>
-                            <button
-                                type="button"
-                                onClick={handleAutoTranslate}
-                                disabled={translating || !formData.title.ru}
-                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${translating ? 'bg-zinc-800 text-zinc-500' : 'bg-violet-500/20 text-violet-400 hover:bg-violet-500/30'}`}
-                            >
-                                <span className="material-symbols-outlined text-[14px]">{translating ? 'sync' : 'auto_fix_high'}</span>
-                                {translating ? '...' : 'AI'}
-                            </button>
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">{t.details} ({langTab.toUpperCase()})</p>
+                        <div className="space-y-2">
+                            <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">{t.details}</p>
                             <input
-                                placeholder={`${t.titleField} (${langTab.toUpperCase()})`}
+                                placeholder={t.titleField}
                                 className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-primary/30 transition-all font-medium"
-                                value={formData.title[langTab] || ''}
-                                onBlur={() => {
-                                    if (langTab === 'ru' && formData.title.ru && !formData.title.en) {
-                                        handleAutoTranslate();
-                                    }
-                                }}
-                                onChange={e => {
-                                    const newTitle = { ...formData.title, [langTab]: e.target.value };
-                                    setFormData({ ...formData, title: newTitle });
-                                }}
+                                value={formData.title}
+                                onChange={e => setFormData({ ...formData, title: e.target.value })}
                             />
                             <textarea
-                                placeholder={`Описание (${langTab.toUpperCase()})...`}
+                                placeholder="Описание объекта..."
                                 className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-primary/30 transition-all font-medium min-h-[100px] resize-none"
-                                value={formData.description[langTab] || ''}
-                                onBlur={() => {
-                                    if (langTab === 'ru' && formData.description.ru && !formData.description.en) {
-                                        handleAutoTranslate();
-                                    }
-                                }}
-                                onChange={e => {
-                                    const newDesc = { ...formData.description, [langTab]: e.target.value };
-                                    setFormData({ ...formData, description: newDesc });
-                                }}
+                                value={formData.description}
+                                onChange={e => setFormData({ ...formData, description: e.target.value })}
                             />
                             <div className="grid grid-cols-2 gap-2">
                                 <div className="relative">
