@@ -9,7 +9,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }){
     <html lang="ru">
       <head>
         <meta charSet="UTF-8" />
-        <script src="https://telegram.org/js/telegram-web-app.js"></script>
+        <script src="/telegram-web-app.js"></script>
       </head>
       <body>
         {children}

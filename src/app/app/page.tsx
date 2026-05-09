@@ -86,11 +86,20 @@ export default function MiniAppDispatcher() {
             
             // Force inject if missing
             if (!window.Telegram) {
-                console.log('[AUTH] Script missing, injecting...');
+                console.log('[AUTH] Script missing, injecting local...');
                 const s = document.createElement('script');
-                s.src = 'https://telegram.org/js/telegram-web-app.js';
+                s.src = '/telegram-web-app.js';
                 s.async = false;
                 document.head.appendChild(s);
+            }
+
+            // Connection test
+            let dbStatus = 'Wait';
+            try {
+                const { error } = await supabase.from('users').select('count', { count: 'exact', head: true }).limit(1);
+                dbStatus = error ? `Err: ${error.message}` : 'OK';
+            } catch (e) {
+                dbStatus = 'Fail';
             }
 
             let tg: any = window.Telegram?.WebApp || (window as any).parent?.Telegram?.WebApp;
@@ -105,7 +114,7 @@ export default function MiniAppDispatcher() {
             }
 
             if (tg) {
-                setDebugInfo('SDK Found, readying...');
+                setDebugInfo(`SDK OK | DB: ${dbStatus}`);
                 try {
                     tg.ready();
                     tg.expand();
@@ -113,7 +122,7 @@ export default function MiniAppDispatcher() {
                     tg.headerColor = '#0a0a0c';
                 } catch (e) {}
             } else {
-                setDebugInfo(`SDK Missing. W:${!!window.Telegram} P:${!!(window as any).parent?.Telegram}`);
+                setDebugInfo(`SDK Missing | DB: ${dbStatus} | W:${!!window.Telegram} P:${!!(window as any).parent?.Telegram}`);
             }
 
             let tgUser: any = null;
