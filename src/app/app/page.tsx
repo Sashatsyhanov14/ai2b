@@ -235,7 +235,7 @@ export default function MiniAppDispatcher() {
                 // Persist for next time
                 localStorage.setItem('tgUser', JSON.stringify(tgUser));
                 
-                const supportedLangs = ['ru', 'en', 'tr'];
+                const supportedLangs = ['ru', 'en', 'tr', 'de', 'es', 'ar', 'fr'];
                 const userLang = tgUser.language_code?.toLowerCase();
                 if (userLang && supportedLangs.includes(userLang)) {
                     setLang(userLang);

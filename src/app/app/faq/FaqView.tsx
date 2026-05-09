@@ -15,10 +15,14 @@ const i18n: Record<string, Record<string, string>> = {
 
 export default function FaqView({ lang = 'ru' }: { lang?: string }) {
     const t = i18n[lang] || i18n['ru'];
+    const [langTab, setLangTab] = useState('ru');
     const [faqs, setFaqs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingFaq, setEditingFaq] = useState<any>(null);
-    const [form, setForm] = useState({ question: '', answer: '' });
+    const [form, setForm] = useState<any>({
+        question: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' },
+        answer: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' }
+    });
     const [isFormOpen, setIsFormOpen] = useState(false);
 
     useEffect(() => { fetchFaqs(); }, []);
@@ -31,11 +35,15 @@ export default function FaqView({ lang = 'ru' }: { lang?: string }) {
     };
 
     const handleSave = async () => {
-        if (!form.question || !form.answer) return;
+        if (!form.question.ru || !form.answer.ru) return;
         const payload = {
-            question: form.question,
-            answer: form.answer,
-            i18n: { ru: { question: form.question, answer: form.answer } },
+            question: form.question.ru,
+            answer: form.answer.ru,
+            i18n: {
+                ...form.question, // This will have ru, en, etc keys
+                questions: form.question,
+                answers: form.answer
+            }
         };
 
         if (editingFaq) {
@@ -50,7 +58,13 @@ export default function FaqView({ lang = 'ru' }: { lang?: string }) {
 
     const handleEdit = (faq: any) => {
         setEditingFaq(faq);
-        setForm({ question: faq.question, answer: faq.answer });
+        const questions = faq.i18n?.questions || { ru: faq.question };
+        const answers = faq.i18n?.answers || { ru: faq.answer };
+        
+        setForm({
+            question: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '', ...questions },
+            answer: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '', ...answers }
+        });
         setIsFormOpen(true);
     };
 
@@ -62,7 +76,10 @@ export default function FaqView({ lang = 'ru' }: { lang?: string }) {
 
     const resetForm = () => {
         setEditingFaq(null);
-        setForm({ question: '', answer: '' });
+        setForm({
+            question: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' },
+            answer: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' }
+        });
         setIsFormOpen(false);
     };
 
@@ -85,20 +102,33 @@ export default function FaqView({ lang = 'ru' }: { lang?: string }) {
             {/* Form */}
             {isFormOpen && (
                 <div className="bg-[#121214] p-5 rounded-2xl border border-violet-500/20 space-y-4 animate-in slide-in-from-top duration-300">
+                    {/* Lang Tabs for Form */}
+                    <div className="flex gap-1 overflow-x-auto pb-2 scrollbar-hide border-b border-white/5">
+                        {['ru', 'en', 'tr', 'de', 'es', 'ar', 'fr'].map(l => (
+                            <button
+                                key={l}
+                                onClick={() => setLangTab(l)}
+                                className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${langTab === l ? 'bg-violet-500 text-white' : 'bg-white/5 text-zinc-500'}`}
+                            >
+                                {l}
+                            </button>
+                        ))}
+                    </div>
+
                     <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">{t.question}</label>
+                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">{t.question} ({langTab.toUpperCase()})</label>
                         <input
-                            value={form.question}
-                            onChange={e => setForm({ ...form, question: e.target.value })}
+                            value={form.question[langTab] || ''}
+                            onChange={e => setForm({ ...form, question: { ...form.question, [langTab]: e.target.value } })}
                             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-violet-500/50 placeholder:text-zinc-600"
                             placeholder="e.g. Как оформить ВНЖ?"
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">{t.answer}</label>
+                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">{t.answer} ({langTab.toUpperCase()})</label>
                         <textarea
-                            value={form.answer}
-                            onChange={e => setForm({ ...form, answer: e.target.value })}
+                            value={form.answer[langTab] || ''}
+                            onChange={e => setForm({ ...form, answer: { ...form.answer, [langTab]: e.target.value } })}
                             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-violet-500/50 min-h-[120px] resize-y placeholder:text-zinc-600"
                             placeholder={t.answer}
                         />

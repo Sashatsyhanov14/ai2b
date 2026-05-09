@@ -215,7 +215,20 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
                 <div className="space-y-6">
                     {units.filter(u => {
                         const q = searchQuery.toLowerCase();
-                        return (u.city || '').toLowerCase().includes(q) || (u.address || '').toLowerCase().includes(q) || (u.title?.ru || u.title || '').toLowerCase().includes(q);
+                        const getTitle = (title: any) => {
+                            if (typeof title === 'string') return title;
+                            if (typeof title === 'object' && title !== null) {
+                                return title[lang] || title.en || title.ru || '';
+                            }
+                            return '';
+                        };
+                        const titleStr = getTitle(u.i18n?.[lang]?.title || u.title);
+                        const cityStr = (u.i18n?.[lang]?.city || u.city || '').toString();
+                        const addrStr = (u.i18n?.[lang]?.address || u.address || '').toString();
+                        
+                        return cityStr.toLowerCase().includes(q) || 
+                               addrStr.toLowerCase().includes(q) || 
+                               titleStr.toLowerCase().includes(q);
                     }).map((unit) => (
                         <PropertyCard
                             key={unit.id}
@@ -233,9 +246,19 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
 
 function PropertyCard({ unit, tr, lang, onAskBot }: any) {
     const photo = unit.photos?.[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=800';
-    const city = unit.i18n?.[lang]?.city || unit.city || 'Alanya';
+    
+    const getLocalized = (val: any, l: string) => {
+        if (typeof val === 'string') return val;
+        if (typeof val === 'object' && val !== null) {
+            return val[l] || val.en || val.ru || Object.values(val)[0] || '';
+        }
+        return '';
+    };
+
+    const title = getLocalized(unit.title, lang) || 'Property';
+    const city = getLocalized(unit.city, lang) || 'Alanya';
+    const description = getLocalized(unit.description, lang);
     const price = unit.price;
-    const title = unit.i18n?.[lang]?.title || unit.title?.ru || unit.title || 'Property';
     const isRent = unit.intent === 'rent';
     const isInvest = unit.unit_type === 'invest';
 

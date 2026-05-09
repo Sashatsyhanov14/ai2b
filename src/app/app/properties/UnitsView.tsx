@@ -129,15 +129,15 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
     const t = i18n[lang] || i18n['ru'];
     const [units, setUnits] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [isAdding, setIsAdding] = useState(false);
-    const [formData, setFormData] = useState({
-        title: '',
+    const [langTab, setLangTab] = useState('ru');
+    const [formData, setFormData] = useState<any>({
+        title: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' },
         city: 'Alanya',
         address: '',
         price: '',
         unit_type: 'apartment',
         intent: 'sale',
-        description: '',
+        description: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' },
     });
 
     useEffect(() => { fetchUnits(); }, []);
@@ -154,13 +154,13 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
     };
 
     const handleAdd = async () => {
-        if (!formData.title || !formData.price) return;
+        if (!formData.title.ru || !formData.price) return;
 
         const payload = {
-            title: { ru: formData.title },
+            title: formData.title,
             city: formData.city,
             address: formData.address,
-            description: { ru: formData.description },
+            description: formData.description,
             unit_type: formData.unit_type,
             intent: formData.intent,
             price: parseFloat(formData.price),
@@ -176,13 +176,13 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
         } else {
             setIsAdding(false);
             setFormData({ 
-                title: '', 
+                title: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' },
                 city: 'Alanya', 
                 address: '', 
                 price: '', 
                 unit_type: 'apartment', 
                 intent: 'sale', 
-                description: '' 
+                description: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' } 
             });
             fetchUnits();
         }
@@ -221,13 +221,38 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
             {isAdding && (
                 <div className="glass-card bg-[#121214] p-5 rounded-[32px] border border-primary/20 space-y-5 animate-in fade-in slide-in-from-top-4 duration-300">
                     <div className="space-y-4">
+                        {/* Lang Tabs for Form */}
+                        <div className="flex gap-1 overflow-x-auto pb-2 scrollbar-hide">
+                            {['ru', 'en', 'tr', 'de', 'es', 'ar', 'fr'].map(l => (
+                                <button
+                                    key={l}
+                                    onClick={() => setLangTab(l)}
+                                    className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${langTab === l ? 'bg-primary text-black' : 'bg-white/5 text-zinc-500'}`}
+                                >
+                                    {l}
+                                </button>
+                            ))}
+                        </div>
+
                         <div className="space-y-1.5">
-                            <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">{t.details}</p>
+                            <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">{t.details} ({langTab.toUpperCase()})</p>
                             <input
-                                placeholder={t.titleField}
+                                placeholder={`${t.titleField} (${langTab.toUpperCase()})`}
                                 className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-primary/30 transition-all font-medium"
-                                value={formData.title}
-                                onChange={e => setFormData({ ...formData, title: e.target.value })}
+                                value={formData.title[langTab] || ''}
+                                onChange={e => {
+                                    const newTitle = { ...formData.title, [langTab]: e.target.value };
+                                    setFormData({ ...formData, title: newTitle });
+                                }}
+                            />
+                            <textarea
+                                placeholder={`Описание (${langTab.toUpperCase()})...`}
+                                className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-primary/30 transition-all font-medium min-h-[100px] resize-none"
+                                value={formData.description[langTab] || ''}
+                                onChange={e => {
+                                    const newDesc = { ...formData.description, [langTab]: e.target.value };
+                                    setFormData({ ...formData, description: newDesc });
+                                }}
                             />
                             <div className="grid grid-cols-2 gap-2">
                                 <div className="relative">

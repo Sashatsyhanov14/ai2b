@@ -62,8 +62,10 @@ export default function ClientFaqView({ lang = 'ru' }: { lang?: string }) {
                 <div className="space-y-3">
                     {faqs.map(faq => {
                         const isOpen = openId === faq.id;
-                        const question = faq.i18n?.[lang]?.question || faq.question;
-                        const answer = faq.i18n?.[lang]?.answer || faq.answer;
+                        const questions = faq.i18n?.questions || { ru: faq.question };
+                        const answers = faq.i18n?.answers || { ru: faq.answer };
+                        const question = questions[lang] || questions.en || questions.ru || faq.question;
+                        const answer = answers[lang] || answers.en || answers.ru || faq.answer;
 
                         return (
                             <div
