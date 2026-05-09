@@ -130,20 +130,35 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
         setLoading(false);
     };
 
+    const [bookingUnit, setBookingUnit] = useState<any>(null);
+    const [bookingAction, setBookingAction] = useState<'book_now' | 'ask_about'>('book_now');
+    const [phone, setPhone] = useState('');
+
     const handleAskBot = (unit: any) => {
-        const tg = window.Telegram?.WebApp;
-        const title = unit.title?.ru || unit.title || 'Property';
-        if (tg) {
-            tg.sendData(JSON.stringify({ action: 'ask_about', unit_id: unit.id, title }));
-            tg.close();
-        }
+        setBookingAction('ask_about');
+        setBookingUnit(unit);
     };
 
     const handleBookNow = (unit: any) => {
+        setBookingAction('book_now');
+        setBookingUnit(unit);
+    };
+
+    const submitLead = () => {
         const tg = window.Telegram?.WebApp;
-        const title = unit.title?.ru || unit.title || 'Property';
+        if (!phone) {
+            tg?.showAlert(lang === 'ru' ? 'Пожалуйста, введите номер телефона' : 'Please enter your phone number');
+            return;
+        }
+
+        const title = bookingUnit.title?.ru || bookingUnit.title || 'Property';
         if (tg) {
-            tg.sendData(JSON.stringify({ action: 'book_now', unit_id: unit.id, title }));
+            tg.sendData(JSON.stringify({ 
+                action: bookingAction, 
+                unit_id: bookingUnit.id, 
+                title,
+                phone: phone
+            }));
             tg.close();
         }
     };
@@ -248,6 +263,51 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
                             onBookNow={() => handleBookNow(unit)}
                         />
                     ))}
+                </div>
+            )}
+
+            {/* Lead Generation Modal */}
+            {bookingUnit && (
+                <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-background/80 backdrop-blur-md" onClick={() => setBookingUnit(null)} />
+                    <div className="relative w-full max-w-sm glass-card border border-primary/20 p-8 space-y-6 shadow-2xl animate-in zoom-in-95 duration-200">
+                        <div className="text-center space-y-2">
+                            <div className="w-16 h-16 bg-primary/10 rounded-2xl mx-auto flex items-center justify-center border border-primary/20">
+                                <span className="material-symbols-outlined text-primary text-[32px]">contact_phone</span>
+                            </div>
+                            <h4 className="text-xl font-black text-on-background">{lang === 'ru' ? 'Контактные данные' : 'Contact Details'}</h4>
+                            <p className="text-[10px] text-outline font-bold uppercase tracking-widest">{lang === 'ru' ? 'Введите ваш номер телефона для связи' : 'Enter your phone number for contact'}</p>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-outline uppercase tracking-widest pl-1">{lang === 'ru' ? 'Телефон (WhatsApp)' : 'Phone (WhatsApp)'}</label>
+                                <input
+                                    type="tel"
+                                    placeholder="+7 (___) ___-__-__"
+                                    value={phone}
+                                    onChange={e => setPhone(e.target.value)}
+                                    autoFocus
+                                    className="input-field text-center text-lg tracking-wider"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 pt-2">
+                            <button
+                                onClick={() => setBookingUnit(null)}
+                                className="btn-secondary flex-1"
+                            >
+                                {lang === 'ru' ? 'ОТМЕНА' : 'CANCEL'}
+                            </button>
+                            <button
+                                onClick={submitLead}
+                                className="btn-primary flex-1 shadow-[0_10px_20px_rgba(208,188,255,0.3)]"
+                            >
+                                {lang === 'ru' ? 'ОТПРАВИТЬ' : 'SEND'}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

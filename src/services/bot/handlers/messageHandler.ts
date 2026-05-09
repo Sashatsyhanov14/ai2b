@@ -24,6 +24,7 @@ export async function handleMessage(
         console.log(`[Bot] Message from ${chatId}: ${text}`);
 
         // 0. HANDLE WEB_APP_DATA
+        let manualPhone = "";
         const webAppData = update?.message?.web_app_data?.data;
         if (webAppData) {
             try {
@@ -32,7 +33,9 @@ export async function handleMessage(
                 
                 if (data.action === 'book_now' || data.action === 'ask_about') {
                     // Treat this as a trigger for lead extraction or direct notification
-                    text = `Я интересуюсь объектом: ${data.title} (ID: ${data.unit_id}). ${data.action === 'book_now' ? 'ХОЧУ КУПИТЬ/ЗАБРОНИРОВАТЬ!' : 'Расскажи подробнее.'}`;
+                    if (data.phone) manualPhone = data.phone;
+                    const phoneSuffix = data.phone ? `\n📞 Телефон: ${data.phone}` : '';
+                    text = `Я интересуюсь объектом: ${data.title} (ID: ${data.unit_id}). ${data.action === 'book_now' ? 'ХОЧУ КУПИТЬ/ЗАБРОНИРОВАТЬ!' : 'Расскажи подробнее.'}${phoneSuffix}`;
                 }
             } catch (e) {
                 console.error("WebApp Data Parse Error:", e);
@@ -254,7 +257,7 @@ export async function handleMessage(
             }
 
             handleSaveLead({ 
-                phone: ext.client_phone || userInfo.phone || "Unknown", 
+                phone: manualPhone || ext.client_phone || userInfo.phone || "Unknown", 
                 name: ext.client_name || userInfo.fullName || userInfo.username || "Client", 
                 info: ext.client_profile || "Аналитика диалога", 
                 budget: ext.budget, 
@@ -285,7 +288,11 @@ export async function handleMessage(
                 await supabase.from('users').update({ is_support_mode: true }).eq('telegram_id', parseInt(chatId));
 
                 const name = userInfo.fullName || userInfo.username || "Client";
-                const alertMsg = `🔥 <b>ВНИМАНИЕ! (ИИ-БОТ)</b> 🔥\n\n👤 Пользователь: @${userInfo.username || chatId}\n👤 Имя: ${escapeHtml(name)}\n🆔 ID: <code>${chatId}</code>\n💬 Причина: ${escapeHtml(plan.notifier_agent.alert_reason || "Вызов менеджера")}`;
+                const phoneText = manualPhone ? `\n📞 <b>Номер:</b> <code>${escapeHtml(manualPhone)}</code>` : "";
+                const unit = unitsFound.length > 0 ? unitsFound[0] : null;
+                const unitText = unit ? `\n🏠 <b>Объект:</b> ${escapeHtml(unit.title?.ru || unit.title || unit.city)}` : "";
+
+                const alertMsg = `🔥 <b>ВНИМАНИЕ! (ИИ-БОТ)</b> 🔥\n\n👤 Пользователь: @${userInfo.username || chatId}\n👤 Имя: ${escapeHtml(name)}\n🆔 ID: <code>${chatId}</code>${phoneText}${unitText}\n💬 Причина: ${escapeHtml(plan.notifier_agent.alert_reason || "Вызов менеджера")}`;
                 
                 // Filtering recipients based on role logic from eSIM bot
                 const recipients = staffMembers.filter(r => 
