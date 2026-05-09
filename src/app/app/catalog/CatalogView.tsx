@@ -262,9 +262,11 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
                         };
                         const titleStr = getTitle(u.i18n?.[lang]?.title || u.title);
                         const cityStr = (u.i18n?.[lang]?.city || u.city || '').toString();
+                        const districtStr = (u.i18n?.[lang]?.district || u.district || '').toString();
                         const addrStr = (u.i18n?.[lang]?.address || u.address || '').toString();
                         
                         return cityStr.toLowerCase().includes(q) || 
+                               districtStr.toLowerCase().includes(q) || 
                                addrStr.toLowerCase().includes(q) || 
                                titleStr.toLowerCase().includes(q);
                     }).map((unit) => (
@@ -363,7 +365,7 @@ function PropertyCard({ unit, tr, lang, onAskBot, onBookNow }: any) {
                 <div className="absolute top-5 left-5 flex gap-2">
                     <div className="bg-black/60 backdrop-blur-xl px-4 py-1.5 rounded-2xl flex items-center gap-1.5 border border-white/10">
                         <span className="material-symbols-outlined text-[14px] text-primary">location_on</span>
-                        <span className="text-[10px] font-black text-white uppercase tracking-widest">{city}</span>
+                        <span className="text-[10px] font-black text-white uppercase tracking-widest">{unit.district ? `${city}, ${unit.district}` : city}</span>
                     </div>
                 </div>
 
@@ -404,22 +406,24 @@ function PropertyCard({ unit, tr, lang, onAskBot, onBookNow }: any) {
                 {/* Quick Stats & CTA */}
                 <div className="flex justify-between items-center pt-4 border-t border-white/5">
                     <div className="flex gap-4">
-                        {unit.bedrooms != null && (
+                        {(unit.bedrooms != null || unit.living_rooms != null) && (
                             <div className="flex flex-col items-center">
                                 <span className="material-symbols-outlined text-[20px] text-outline">bed</span>
-                                <span className="text-[10px] font-black text-outline-variant mt-1">{unit.bedrooms}</span>
+                                <span className="text-[10px] font-black text-outline-variant mt-1">
+                                    {unit.bedrooms || 0}+{unit.living_rooms || 0}
+                                </span>
                             </div>
                         )}
-                        {(unit.bathrooms || unit.living_rooms) && (
+                        {unit.bathrooms != null && (
                             <div className="flex flex-col items-center">
                                 <span className="material-symbols-outlined text-[20px] text-outline">bathtub</span>
-                                <span className="text-[10px] font-black text-outline-variant mt-1">{unit.bathrooms || unit.living_rooms || 1}</span>
+                                <span className="text-[10px] font-black text-outline-variant mt-1">{unit.bathrooms}</span>
                             </div>
                         )}
-                        {unit.rooms && (
+                        {unit.area != null && (
                             <div className="flex flex-col items-center">
-                                <span className="material-symbols-outlined text-[20px] text-outline">meeting_room</span>
-                                <span className="text-[10px] font-black text-outline-variant mt-1">{unit.rooms}</span>
+                                <span className="material-symbols-outlined text-[20px] text-outline">square_foot</span>
+                                <span className="text-[10px] font-black text-outline-variant mt-1">{unit.area} м²</span>
                             </div>
                         )}
                     </div>

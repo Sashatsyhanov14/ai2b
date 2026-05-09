@@ -134,6 +134,7 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
     const [formData, setFormData] = useState<any>({
         title: '',
         city: 'Alanya',
+        district: '',
         address: '',
         price_sale: '',
         price_month: '',
@@ -141,6 +142,10 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
         unit_type: 'apartment',
         is_sale: true,
         is_rent: false,
+        bedrooms: '',
+        living_rooms: '',
+        bathrooms: '',
+        area: '',
         photos: [],
         description: '',
     });
@@ -215,10 +220,14 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                 unit_type: formData.unit_type,
                 intent: [formData.is_sale && 'sale', formData.is_rent && 'rent'].filter(Boolean).join(','),
                 price: parseFloat(formData.price_sale || formData.price_month || formData.price_day || '0'),
-                price_sale: formData.price_sale ? parseFloat(formData.price_sale) : null,
-                price_month: formData.price_month ? parseFloat(formData.price_month) : null,
-                price_day: formData.price_day ? parseFloat(formData.price_day) : null,
+                price_sale: formData.is_sale ? parseFloat(formData.price_sale || '0') : null,
+                price_month: formData.is_rent ? parseFloat(formData.price_month || '0') : null,
+                price_day: formData.is_rent ? parseFloat(formData.price_day || '0') : null,
                 price_period: formData.is_rent && !formData.is_sale ? 'month' : 'total',
+                bedrooms: formData.bedrooms ? parseInt(formData.bedrooms) : null,
+                living_rooms: formData.living_rooms ? parseInt(formData.living_rooms) : null,
+                bathrooms: formData.bathrooms ? parseInt(formData.bathrooms) : null,
+                area: formData.area ? parseFloat(formData.area) : null,
                 photos: formData.photos,
                 is_active: true,
                 i18n: Object.keys(transTitle).reduce((acc: any, l) => {
@@ -240,6 +249,7 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                 setFormData({ 
                     title: '',
                     city: 'Alanya', 
+                    district: '',
                     address: '', 
                     price_sale: '',
                     price_month: '',
@@ -247,6 +257,10 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                     unit_type: 'apartment', 
                     is_sale: true, 
                     is_rent: false, 
+                    bedrooms: '',
+                    living_rooms: '',
+                    bathrooms: '',
+                    area: '',
                     photos: [],
                     description: '' 
                 });
@@ -387,11 +401,40 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                                     onChange={e => setFormData({ ...formData, city: e.target.value })}
                                 />
                                 <input
-                                    placeholder={t.address}
+                                    placeholder="Район / Махалле"
                                     className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-primary/30 transition-all font-medium"
+                                    value={formData.district}
+                                    onChange={e => setFormData({ ...formData, district: e.target.value })}
+                                />
+                                <input
+                                    placeholder={t.address}
+                                    className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-primary/30 transition-all font-medium col-span-2"
                                     value={formData.address}
                                     onChange={e => setFormData({ ...formData, address: e.target.value })}
                                 />
+                            </div>
+                        </div>
+
+                        {/* Features / Tags */}
+                        <div className="space-y-4">
+                            <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">Характеристики</p>
+                            <div className="grid grid-cols-4 gap-2">
+                                <div className="space-y-1">
+                                    <label className="text-[8px] text-zinc-500 uppercase font-black pl-1">Спальни</label>
+                                    <input type="number" placeholder="0" className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2.5 text-xs text-white outline-none" value={formData.bedrooms} onChange={e => setFormData({...formData, bedrooms: e.target.value})} />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[8px] text-zinc-500 uppercase font-black pl-1">Гостиные</label>
+                                    <input type="number" placeholder="0" className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2.5 text-xs text-white outline-none" value={formData.living_rooms} onChange={e => setFormData({...formData, living_rooms: e.target.value})} />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[8px] text-zinc-500 uppercase font-black pl-1">Ванные</label>
+                                    <input type="number" placeholder="0" className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2.5 text-xs text-white outline-none" value={formData.bathrooms} onChange={e => setFormData({...formData, bathrooms: e.target.value})} />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[8px] text-zinc-500 uppercase font-black pl-1">Площадь (м²)</label>
+                                    <input type="number" placeholder="0" className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2.5 text-xs text-white outline-none font-bold text-primary" value={formData.area} onChange={e => setFormData({...formData, area: e.target.value})} />
+                                </div>
                             </div>
                         </div>
 
