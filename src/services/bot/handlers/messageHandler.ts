@@ -274,7 +274,7 @@ export async function handleMessage(
             
             // Update user language in DB if it changed
             if (plan.language && plan.language !== existingUser?.lang_code) {
-                supabase.from('users').update({ lang_code: plan.language }).eq('telegram_id', parseInt(chatId)).catch(() => {});
+                supabase.from('users').update({ lang_code: plan.language }).eq('telegram_id', parseInt(chatId)).then(() => {}).catch(() => {});
             }
 
             try {
