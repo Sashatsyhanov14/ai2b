@@ -388,14 +388,8 @@ export default function MiniAppDispatcher() {
             <header className="px-6 pt-10 pb-4 flex justify-between items-center relative">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[100px] -z-10" />
                 <div>
-                    <div className="flex items-center gap-2 mb-1">
-                        <div className={`w-2 h-2 rounded-full ${isStaff ? 'bg-primary shadow-[0_0_8px_rgba(208,188,255,0.8)]' : 'bg-emerald-400'}`} />
-                        <span className="text-[9px] font-black text-outline uppercase tracking-widest">
-                            {isAdmin ? t.adminMode : isStaff ? t.managerMode : t.clientMode}
-                        </span>
-                    </div>
                     <h1 className="text-3xl font-black text-on-background tracking-tighter uppercase">
-                        {isStaff ? 'Terminal' : 'Real Estate'}
+                        Real Estate
                     </h1>
                 </div>
                 
