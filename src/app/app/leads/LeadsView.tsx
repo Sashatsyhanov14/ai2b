@@ -78,11 +78,28 @@ export default function LeadsView({ user, lang = 'ru' }: { user?: any; lang?: st
 
     const fetchLeads = async () => {
         setLoading(true);
-        let query = supabase.from('leads').select('*').order('created_at', { ascending: false }).limit(50);
+        let query = supabase.from('leads').select('*').order('created_at', { ascending: false }).limit(100);
 
         if (filter === 'new') query = query.eq('status', 'new');
         else if (filter === 'inWork') query = query.eq('status', 'in_work');
         else if (filter === 'hot') query = query.eq('status', 'hot');
+
+        // Manager restriction: only see leads from their own referrals
+        if (user?.role === 'manager' && user?.telegram_id) {
+            const { data: referrals } = await supabase
+                .from('users')
+                .select('telegram_id')
+                .eq('referrer_id', user.telegram_id);
+            
+            const refIds = referrals?.map(r => r.telegram_id) || [];
+            if (refIds.length > 0) {
+                query = query.in('user_id', refIds);
+            } else {
+                setLeads([]);
+                setLoading(false);
+                return;
+            }
+        }
 
         const { data } = await query;
         setLeads(data || []);
