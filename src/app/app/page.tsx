@@ -126,6 +126,8 @@ export default function MiniAppDispatcher() {
             }
 
             let tgUser: any = null;
+            const unsafeKeys = tg?.initDataUnsafe ? Object.keys(tg.initDataUnsafe).join(',') : 'none';
+            const hasUserInUnsafe = !!tg?.initDataUnsafe?.user;
             
             // 2. Try initDataUnsafe.user
             for (let i = 0; i < 15; i++) {
@@ -149,6 +151,16 @@ export default function MiniAppDispatcher() {
                 }
             }
 
+            // 4. Fallback: check localStorage
+            if (!tgUser?.id) {
+                const storedUser = localStorage.getItem('tgUser');
+                if (storedUser) tgUser = JSON.parse(storedUser);
+            }
+
+            // 5. Final Debug Info
+            const debugMsg = `SDK:OK | DB:${dbStatus} | UserInUnsafe:${hasUserInUnsafe} | Keys:${unsafeKeys} | DataLen:${tg?.initData?.length || 0}`;
+            setDebugInfo(debugMsg);
+
             let referrerId: number | null = null;
             if (tg?.initDataUnsafe?.start_param) {
                 const ref = parseInt(tg.initDataUnsafe.start_param);
@@ -156,7 +168,9 @@ export default function MiniAppDispatcher() {
             }
 
             if (tgUser?.id) {
-                setDebugInfo(`User Found: ${tgUser.id}`);
+                // Persist for next time
+                localStorage.setItem('tgUser', JSON.stringify(tgUser));
+                
                 const supportedLangs = ['ru', 'en', 'tr'];
                 const userLang = tgUser.language_code?.toLowerCase();
                 if (userLang && supportedLangs.includes(userLang)) {
@@ -164,7 +178,6 @@ export default function MiniAppDispatcher() {
                 }
                 await fetchUserData(tgUser.id, `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim(), tgUser.username, referrerId);
             } else {
-                setDebugInfo(`No User. TG: ${!!tg} Unsafe: ${!!tg?.initDataUnsafe} Data: ${!!tg?.initData}`);
                 const params = new URLSearchParams(window.location.search);
                 const uid = params.get('uid');
                 const ref = params.get('ref');
