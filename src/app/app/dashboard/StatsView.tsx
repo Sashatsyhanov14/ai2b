@@ -565,43 +565,4 @@ function MetricCard({ icon, label, value, color }: { icon: string; label: string
     );
 }
 
-function RoleBadge({ role, t }: { role: string; t: any }) {
-    const map: Record<string, { label: string; color: string; icon: string }> = {
-        founder: { label: t.ownerBadge, color: 'bg-amber-500/10 text-amber-400 border-amber-500/20', icon: 'shield_person' },
-        admin: { label: t.adminBadge, color: 'bg-violet-500/10 text-violet-400 border-violet-500/20', icon: 'manage_accounts' },
-        manager: { label: t.managerBadge, color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: 'badge' },
-    };
-    const b = map[role] || map.manager;
-    return (
-        <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border ${b.color} shadow-sm`}>
-            <span className="material-symbols-outlined text-[12px]">{b.icon}</span>
-            <span className="text-[9px] font-black uppercase tracking-widest leading-none">{b.label}</span>
-        </div>
-    );
-}
-
-function MetricCard({ icon, label, value, color }: { icon: string; label: string; value: any; color: string }) {
-    const colorMap: Record<string, string> = {
-        violet: 'text-violet-400 bg-violet-500/10 border-violet-500/20',
-        emerald: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-        amber: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
-        blue: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
-    };
-    const c = colorMap[color] || colorMap.violet;
-
-    return (
-        <div className="relative overflow-hidden bg-[#121214] border border-white/5 rounded-3xl p-5 group transition-all hover:border-white/10 shadow-lg active:scale-[0.98]">
-            <div className={`absolute -top-4 -right-4 w-20 h-20 rounded-full blur-[40px] opacity-20 ${c.split(' ')[1]}`} />
-            <div className="space-y-4 relative">
-                <div className="flex items-center gap-2.5">
-                    <div className={`p-1.5 rounded-xl border ${c}`}>
-                        <span className="material-symbols-outlined text-[16px]">{icon}</span>
-                    </div>
-                    <p className="text-[9px] font-black text-zinc-500 uppercase tracking-[0.15em]">{label}</p>
-                </div>
-                <h2 className="text-2xl font-black text-white tracking-tight">{value}</h2>
-            </div>
-        </div>
-    );
-}
 
