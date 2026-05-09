@@ -110,8 +110,6 @@ const i18n: Record<string, Record<string, any>> = {
 
 export default function StatsView({ user, lang = 'ru' }: { user?: any; lang?: string }) {
     const t = i18n[lang] || i18n['ru'];
-    const [activeTab, setActiveTab] = useState<'leads' | 'users'>('leads');
-    const [isLeadsExpanded, setIsLeadsExpanded] = useState(false);
     const [isUsersExpanded, setIsUsersExpanded] = useState(false);
     
     const [stats, setStats] = useState({ totalUsers: 0, totalLeads: 0, refUsers: 0, revenue: 0 });
@@ -124,7 +122,6 @@ export default function StatsView({ user, lang = 'ru' }: { user?: any; lang?: st
     const [newStaffRole, setNewStaffRole] = useState('manager');
     const [statusMsg, setStatusMsg] = useState('');
     const [loading, setLoading] = useState(true);
-    const [statusFilter, setStatusFilter] = useState<string>('all');
     const [selectedUser, setSelectedUser] = useState<any>(null);
     const [refLeads, setRefLeads] = useState<any[]>([]);
     const [refLeadsLoading, setRefLeadsLoading] = useState(false);
@@ -145,10 +142,10 @@ export default function StatsView({ user, lang = 'ru' }: { user?: any; lang?: st
             const { count: leadCount } = await supabase.from('leads').select('*', { count: 'exact', head: true });
             const { count: refCount } = await supabase.from('users').select('*', { count: 'exact', head: true }).not('referrer_id', 'is', null);
 
-            // Fetch leads with units
+            // Fetch leads for revenue calculation
             const { data: leadsData } = await supabase
                 .from('leads')
-                .select('*, units(*), users(telegram_id, username, full_name)')
+                .select('*, units(*)')
                 .order('created_at', { ascending: false });
 
             // Fetch all users for partner stats
@@ -195,7 +192,6 @@ export default function StatsView({ user, lang = 'ru' }: { user?: any; lang?: st
                             uMap[refId].refLeadsCount++;
                             if (l.status === 'closed') {
                                 uMap[refId].refTotalVolume += unitPrice;
-                                // Example: 1% commission for real estate lead closure
                                 uMap[refId].earnedBonuses += (unitPrice * 0.01);
                             }
                         }
@@ -217,7 +213,6 @@ export default function StatsView({ user, lang = 'ru' }: { user?: any; lang?: st
                 
                 setUsersInfo(sortedUsers);
 
-                // Top referrers for the quick view
                 setTopReferrers(sortedUsers.slice(0, 5).map(u => ({
                     id: u.telegram_id,
                     name: u.username || u.full_name || `#${u.telegram_id}`,
@@ -225,7 +220,6 @@ export default function StatsView({ user, lang = 'ru' }: { user?: any; lang?: st
                 })));
             }
 
-            // Staff list
             if (isAdmin) {
                 const { data: staffData } = await supabase.from('users').select('*').in('role', ['founder', 'admin', 'manager']).order('created_at', { ascending: true });
                 setStaff(staffData || []);
@@ -302,8 +296,6 @@ export default function StatsView({ user, lang = 'ru' }: { user?: any; lang?: st
         setRefLeadsLoading(false);
     };
 
-    const filteredLeads = leads.filter(l => statusFilter === 'all' || l.status === statusFilter);
-
     return (
         <div className="space-y-6 pb-20">
             {/* Metric Cards */}
@@ -314,169 +306,100 @@ export default function StatsView({ user, lang = 'ru' }: { user?: any; lang?: st
                 <MetricCard icon="payments" label={t.revenue} value={`€${stats.revenue.toLocaleString()}`} color="blue" />
             </div>
 
-            {/* Tabs */}
-            <div className="flex gap-2 p-1 bg-white/[0.03] rounded-2xl border border-white/5">
-                <button 
-                    onClick={() => setActiveTab('leads')} 
-                    className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'leads' ? 'bg-violet-500 text-black shadow-[0_0_15px_rgba(139,92,246,0.3)]' : 'text-zinc-500 hover:text-zinc-300'}`}
-                >
-                    {t.tabLeads}
-                </button>
-                <button 
-                    onClick={() => setActiveTab('users')} 
-                    className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'users' ? 'bg-violet-500 text-black shadow-[0_0_15px_rgba(139,92,246,0.3)]' : 'text-zinc-500 hover:text-zinc-300'}`}
-                >
-                    {t.tabUsers}
-                </button>
-            </div>
-
             {loading ? (
                 <div className="text-center p-12 animate-pulse text-zinc-500 font-bold uppercase tracking-widest text-[10px]">
                     {t.analyzing}
                 </div>
             ) : (
                 <>
-                    {activeTab === 'leads' ? (
-                        <div className="space-y-4">
-                            {/* Lead Filters */}
-                            <div className="flex gap-2 overflow-x-auto pb-2 clean-scrollbar">
-                                {['all', 'new', 'contacted', 'closed', 'cancelled'].map(st => (
-                                    <button
-                                        key={st}
-                                        onClick={() => setStatusFilter(st)}
-                                        className={`px-4 py-1.5 rounded-full text-[10px] uppercase font-bold whitespace-nowrap border transition-all ${statusFilter === st ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-white/5 text-zinc-500 border-white/5'}`}
-                                    >
-                                        {st === 'all' ? 'Все' : (t.statuses[st] || st)}
-                                    </button>
-                                ))}
-                            </div>
-
-                            <div className="space-y-3">
-                                {filteredLeads.length === 0 && (
-                                    <p className="text-center py-10 text-zinc-600 font-bold uppercase tracking-widest text-[10px]">{t.noLeads}</p>
-                                )}
-                                {filteredLeads.slice(0, isLeadsExpanded ? undefined : 6).map((l: any) => (
-                                    <div key={l.id} className="glass-card bg-[#121214] border border-white/5 rounded-3xl p-4 space-y-3 relative overflow-hidden group">
-                                        <div className={`absolute top-0 left-0 w-1 h-full ${l.status === 'closed' ? 'bg-emerald-500' : l.status === 'new' ? 'bg-violet-500' : l.status === 'cancelled' ? 'bg-red-500' : 'bg-blue-500'}`} />
-                                        
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <p className="text-sm font-bold text-white">@{l.users?.username || l.users?.full_name || t.unknownUser}</p>
-                                                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{new Date(l.created_at).toLocaleString()}</p>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-sm font-black text-emerald-400">€{(l.units?.price || 0).toLocaleString()}</p>
-                                                <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${l.status === 'closed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : l.status === 'new' ? 'bg-violet-500/10 text-violet-400 border-violet-500/20' : l.status === 'cancelled' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}`}>
-                                                    {t.statuses[l.status] || l.status}
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-2 bg-white/[0.02] p-2 rounded-xl border border-white/5">
-                                            <span className="material-symbols-outlined text-zinc-500 text-[16px]">home_work</span>
-                                            <p className="text-[10px] font-bold text-zinc-400 uppercase truncate">
-                                                {l.units ? l.units.title?.ru || l.units.title : t.deletedUnit}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))}
-
-                                {filteredLeads.length > 6 && (
-                                    <button 
-                                        onClick={() => setIsLeadsExpanded(!isLeadsExpanded)}
-                                        className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 transition-all"
-                                    >
-                                        {isLeadsExpanded ? t.hideAll : t.showAll.replace('{count}', filteredLeads.length)}
-                                    </button>
-                                )}
-                            </div>
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2 px-1">
+                            <span className="material-symbols-outlined text-violet-400 text-[18px]">group</span>
+                            <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em]">{t.tabUsers}</h3>
                         </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {usersInfo.slice(0, isUsersExpanded ? undefined : 6).map((u: any) => (
-                                <div key={u.telegram_id} className="glass-card bg-[#121214] border border-white/5 rounded-3xl p-5 space-y-4">
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-sm font-bold text-zinc-500 border border-white/5">
-                                                {(u.username || u.full_name || '?')[0]?.toUpperCase()}
+
+                        {usersInfo.slice(0, isUsersExpanded ? undefined : 6).map((u: any) => (
+                            <div key={u.telegram_id} className="glass-card bg-[#121214] border border-white/5 rounded-3xl p-5 space-y-4">
+                                <div className="flex justify-between items-start">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-sm font-bold text-zinc-500 border border-white/5">
+                                            {(u.username || u.full_name || '?')[0]?.toUpperCase()}
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-sm font-bold text-white">@{u.username || u.full_name || u.telegram_id}</p>
+                                                {u.custom_note && <span className="text-[8px] bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded-full font-bold border border-violet-500/20 uppercase tracking-widest">{u.custom_note}</span>}
                                             </div>
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <p className="text-sm font-bold text-white">@{u.username || u.full_name || u.telegram_id}</p>
-                                                    {u.custom_note && <span className="text-[8px] bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded-full font-bold border border-violet-500/20 uppercase tracking-widest">{u.custom_note}</span>}
-                                                </div>
-                                                <p className="text-[10px] text-zinc-600 font-bold font-mono">ID: {u.telegram_id}</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest">{t.commissionLabelAdmin}</p>
-                                            <p className="text-sm font-black text-emerald-400">€{(u.earnedBonuses || 0).toLocaleString()}</p>
+                                            <p className="text-[10px] text-zinc-600 font-bold font-mono">ID: {u.telegram_id}</p>
                                         </div>
                                     </div>
-
-                                    <div className="grid grid-cols-2 gap-2 text-[9px] font-bold uppercase tracking-widest text-zinc-500 bg-white/[0.02] p-3 rounded-2xl border border-white/5">
-                                        <div>{t.invitedLabelStats} <span className="text-white">{u.invitedCount}</span></div>
-                                        <div>{t.refDealsLabel} <span className="text-white">{u.refLeadsCount}</span></div>
+                                    <div className="text-right">
+                                        <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest">{t.commissionLabelAdmin}</p>
+                                        <p className="text-sm font-black text-emerald-400">€{(u.earnedBonuses || 0).toLocaleString()}</p>
                                     </div>
-
-                                    <div className="flex gap-2">
-                                        {u.invitedCount > 0 && (
-                                            <button 
-                                                onClick={() => openRefDrilldown(u)}
-                                                className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-[9px] font-bold uppercase tracking-widest text-zinc-400 flex items-center justify-center gap-2 transition-all"
-                                            >
-                                                <span className="material-symbols-outlined text-[14px]">visibility</span>
-                                                {t.viewRefDealsBtn}
-                                            </button>
-                                        )}
-                                        {u.balance > 0 && (
-                                            <button 
-                                                onClick={() => handlePayout(u.telegram_id, u.balance)}
-                                                className="flex-1 py-2.5 bg-emerald-500 text-black rounded-xl text-[9px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
-                                            >
-                                                <span className="material-symbols-outlined text-[14px]">payments</span>
-                                                {t.payoutBtn} (€{u.balance})
-                                            </button>
-                                        )}
-                                        <button 
-                                            onClick={() => {
-                                                setEditingNoteId(u.telegram_id);
-                                                setNoteValue(u.custom_note || '');
-                                            }}
-                                            className="w-10 h-10 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl flex items-center justify-center text-zinc-500 transition-all"
-                                        >
-                                            <span className="material-symbols-outlined text-[18px]">edit_note</span>
-                                        </button>
-                                    </div>
-
-                                    {editingNoteId === u.telegram_id && (
-                                        <div className="flex gap-2 pt-2">
-                                            <input 
-                                                type="text" 
-                                                value={noteValue} 
-                                                onChange={(e) => setNoteValue(e.target.value)}
-                                                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-violet-500/30"
-                                                placeholder={t.notePlaceholder}
-                                            />
-                                            <button onClick={() => handleSaveNote(u.telegram_id)} className="bg-violet-500 text-black px-4 rounded-xl text-[10px] font-bold uppercase">OK</button>
-                                            <button onClick={() => setEditingNoteId(null)} className="bg-white/10 text-white px-4 rounded-xl text-[10px] font-bold uppercase">X</button>
-                                        </div>
-                                    )}
                                 </div>
-                            ))}
 
-                            {usersInfo.length > 6 && (
-                                <button 
-                                    onClick={() => setIsUsersExpanded(!isUsersExpanded)}
-                                    className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 transition-all"
-                                >
-                                    {isUsersExpanded ? t.hideAll : t.showAll.replace('{count}', usersInfo.length)}
-                                </button>
-                            )}
-                        </div>
-                    )}
+                                <div className="grid grid-cols-2 gap-2 text-[9px] font-bold uppercase tracking-widest text-zinc-500 bg-white/[0.02] p-3 rounded-2xl border border-white/5">
+                                    <div>{t.invitedLabelStats} <span className="text-white">{u.invitedCount}</span></div>
+                                    <div>{t.refDealsLabel} <span className="text-white">{u.refLeadsCount}</span></div>
+                                </div>
 
-                    {/* Staff Management (Admin Only) */}
+                                <div className="flex gap-2">
+                                    {u.invitedCount > 0 && (
+                                        <button 
+                                            onClick={() => openRefDrilldown(u)}
+                                            className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-[9px] font-bold uppercase tracking-widest text-zinc-400 flex items-center justify-center gap-2 transition-all"
+                                        >
+                                            <span className="material-symbols-outlined text-[14px]">visibility</span>
+                                            {t.viewRefDealsBtn}
+                                        </button>
+                                    )}
+                                    {u.balance > 0 && (
+                                        <button 
+                                            onClick={() => handlePayout(u.telegram_id, u.balance)}
+                                            className="flex-1 py-2.5 bg-emerald-500 text-black rounded-xl text-[9px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+                                        >
+                                            <span className="material-symbols-outlined text-[14px]">payments</span>
+                                            {t.payoutBtn} (€{u.balance})
+                                        </button>
+                                    )}
+                                    <button 
+                                        onClick={() => {
+                                            setEditingNoteId(u.telegram_id);
+                                            setNoteValue(u.custom_note || '');
+                                        }}
+                                        className="w-10 h-10 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl flex items-center justify-center text-zinc-500 transition-all"
+                                    >
+                                        <span className="material-symbols-outlined text-[18px]">edit_note</span>
+                                    </button>
+                                </div>
+
+                                {editingNoteId === u.telegram_id && (
+                                    <div className="flex gap-2 pt-2">
+                                        <input 
+                                            type="text" 
+                                            value={noteValue} 
+                                            onChange={(e) => setNoteValue(e.target.value)}
+                                            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-violet-500/30"
+                                            placeholder={t.notePlaceholder}
+                                        />
+                                        <button onClick={() => handleSaveNote(u.telegram_id)} className="bg-violet-500 text-black px-4 rounded-xl text-[10px] font-bold uppercase">OK</button>
+                                        <button onClick={() => setEditingNoteId(null)} className="bg-white/10 text-white px-4 rounded-xl text-[10px] font-bold uppercase">X</button>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+
+                        {usersInfo.length > 6 && (
+                            <button 
+                                onClick={() => setIsUsersExpanded(!isUsersExpanded)}
+                                className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 transition-all"
+                            >
+                                {isUsersExpanded ? t.hideAll : t.showAll.replace('{count}', usersInfo.length)}
+                            </button>
+                        )}
+                    </div>
+
                     {isAdmin && (
                         <section className="space-y-4 pt-6 border-t border-white/5">
                             <div className="flex items-center gap-2 px-1">
@@ -598,6 +521,46 @@ export default function StatsView({ user, lang = 'ru' }: { user?: any; lang?: st
                     </div>
                 </div>
             )}
+        </div>
+    );
+}
+
+function RoleBadge({ role, t }: { role: string; t: any }) {
+    const map: Record<string, { label: string; color: string; icon: string }> = {
+        founder: { label: t.ownerBadge, color: 'bg-amber-500/10 text-amber-400 border-amber-500/20', icon: 'shield_person' },
+        admin: { label: t.adminBadge, color: 'bg-violet-500/10 text-violet-400 border-violet-500/20', icon: 'manage_accounts' },
+        manager: { label: t.managerBadge, color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: 'badge' },
+    };
+    const b = map[role] || map.manager;
+    return (
+        <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border ${b.color} shadow-sm`}>
+            <span className="material-symbols-outlined text-[12px]">{b.icon}</span>
+            <span className="text-[9px] font-black uppercase tracking-widest leading-none">{b.label}</span>
+        </div>
+    );
+}
+
+function MetricCard({ icon, label, value, color }: { icon: string; label: string; value: any; color: string }) {
+    const colorMap: Record<string, string> = {
+        violet: 'text-violet-400 bg-violet-500/10 border-violet-500/20',
+        emerald: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+        amber: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+        blue: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
+    };
+    const c = colorMap[color] || colorMap.violet;
+
+    return (
+        <div className="relative overflow-hidden bg-[#121214] border border-white/5 rounded-3xl p-5 group transition-all hover:border-white/10 shadow-lg active:scale-[0.98]">
+            <div className={`absolute -top-4 -right-4 w-20 h-20 rounded-full blur-[40px] opacity-20 ${c.split(' ')[1]}`} />
+            <div className="space-y-4 relative">
+                <div className="flex items-center gap-2.5">
+                    <div className={`p-1.5 rounded-xl border ${c}`}>
+                        <span className="material-symbols-outlined text-[16px]">{icon}</span>
+                    </div>
+                    <p className="text-[9px] font-black text-zinc-500 uppercase tracking-[0.15em]">{label}</p>
+                </div>
+                <h2 className="text-2xl font-black text-white tracking-tight">{value}</h2>
+            </div>
         </div>
     );
 }
