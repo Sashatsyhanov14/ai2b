@@ -15,7 +15,6 @@ const i18n: Record<string, Record<string, string>> = {
 
 export default function FaqView({ lang = 'ru' }: { lang?: string }) {
     const t = i18n[lang] || i18n['ru'];
-    const [langTab, setLangTab] = useState('ru');
     const [faqs, setFaqs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingFaq, setEditingFaq] = useState<any>(null);
@@ -37,27 +36,7 @@ export default function FaqView({ lang = 'ru' }: { lang?: string }) {
         setLoading(false);
     };
 
-    const handleAutoTranslate = async () => {
-        if (!form.question.ru) return;
-        setTranslating(true);
-        try {
-            const resQ = await fetch('/api/translate', { method: 'POST', body: JSON.stringify({ text: form.question.ru }) });
-            const translatedQs = await resQ.json();
-            
-            let translatedAs = form.answer;
-            if (form.answer.ru) {
-                const resA = await fetch('/api/translate', { method: 'POST', body: JSON.stringify({ text: form.answer.ru }) });
-                translatedAs = await resA.json();
-            }
 
-            setForm({
-                ...form,
-                question: { ...form.question, ...translatedQs },
-                answer: { ...form.answer, ...translatedAs }
-            });
-        } catch (e) { console.error(e); }
-        setTranslating(false);
-    };
 
     const handleSave = async () => {
         if (!form.question || !form.answer) return;
@@ -198,7 +177,7 @@ export default function FaqView({ lang = 'ru' }: { lang?: string }) {
                             placeholder={t.answer}
                         />
                     </div>
-                    </div>
+
                     
                     {/* Photo Upload Section */}
                     <div className="space-y-2">
