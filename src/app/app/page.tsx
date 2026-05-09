@@ -382,7 +382,7 @@ export default function MiniAppDispatcher() {
                     {isStaff && (
                         <NavTab icon="analytics" label={t.tabStats} active={activeTab === 'stats'} onClick={() => setActiveTab('stats')} color="primary" />
                     )}
-                    {isStaff && (
+                    {user?.role === 'manager' && (
                         <NavTab icon="person_search" label={t.tabLeads} active={activeTab === 'leads'} onClick={() => setActiveTab('leads')} color="primary" />
                     )}
                     {isAdmin && (
