@@ -5,484 +5,230 @@ import { supabase } from '@/lib/supabaseClient';
 
 const i18n: Record<string, Record<string, any>> = {
     ru: {
-        title: 'Глобальная Статистика',
+        title: 'Панель Управления',
         totalUsers: 'Всего юзеров',
-        totalLeads: 'Всего заявок',
-        refUsers: 'Реферальные',
-        revenue: 'Оборот (закрыто)',
-        topReferrers: 'Топ партнёры',
-        partner: 'Партнёр',
-        invited: 'Приглашено',
-        noData: 'Пока нет данных',
-        manageStaff: 'Управление сотрудниками',
+        totalSales: 'Выручка',
+        manageManagers: 'Управление Менеджерами',
         assignEmployee: 'Назначить сотрудника',
-        enterTgId: 'Введите Telegram ID или @username',
+        enterTgId: 'Введите Telegram ID',
         activeEmployees: 'Действующие сотрудники',
-        addSuccess: 'Успех! Сотрудник добавлен.',
-        addError: 'Пользователь не найден в базе! Пусть нажмет /start в боте.',
-        removeSuccess: 'Сотрудник удалён.',
+        managerAddError: 'ОШИБКА: Этот пользователь еще ни разу не запускал бота! Пусть нажмет /start в боте.',
+        managerAddSuccess: 'Успех! ID {id} теперь {role}.',
+        managerRemoveSuccess: 'Сотрудник {id} удален.',
         ownerBadge: 'Владелец',
         adminBadge: 'Админ',
         managerBadge: 'Менеджер',
         selectAdmin: 'Админ',
         selectManager: 'Менеджер',
         roleLabel: 'Роль:',
-        recentActivity: 'Недавняя активность',
-        analyzing: 'Анализ базы...',
-        tabLeads: 'Заявки',
-        tabUsers: 'Партнёры',
-        noLeads: 'Заявок пока нет',
-        unknownUser: 'Аноним',
-        deletedUnit: 'Удаленный объект',
-        showAll: 'Показать все ({count})',
-        hideAll: 'Скрыть',
-        invitedLabelStats: 'ПРИГЛАШЕНО:',
-        refDealsLabel: 'СДЕЛОК РЕФ:',
-        ownPurchasesLabel: 'ЛИЧНЫХ ЗАЯВОК:',
-        refVolumeLabel: 'ОБЪЁМ РЕФ',
-        commissionLabelAdmin: 'КОМИССИЯ',
-        viewRefDealsBtn: 'Посмотреть сделки рефералов',
-        refDealsTitle: 'Сделки рефералов',
-        loading: 'Загрузка...',
-        statuses: {
-            new: 'Новая',
-            contacted: 'В работе',
-            closed: 'Закрыта',
-            cancelled: 'Отмена'
-        },
         balance: 'Баланс',
+        tabReferral: 'Бонусы',
+        tabCatalog: 'Каталог',
+        tabStats: 'Статистика',
+        tabLeads: 'Заявки',
+        tabUsers: 'Юзеры',
+        analyzing: 'Анализ базы...',
+        noOrders: 'Нет заявок',
+        invitedLabelStats: 'ПРИГЛАШИЛ:',
+        purchasesLabel: 'ЗАЯВОК:',
+        spentLabel: 'Потратил',
+        hideAll: 'Скрыть ⬆',
+        showAll: 'Показать все ({count}) ⬇',
+        deletedUnit: 'Удаленный объект',
+        unknownUser: 'Неизвестный',
+        statuses: {
+            all: 'ВСЕ',
+            new: 'НОВАЯ',
+            contacted: 'В РАБОТЕ',
+            closed: 'ЗАКРЫТА',
+            cancelled: 'ОТМЕНЕНА'
+        },
+        commissionLabel: 'комиссия',
+        notePlaceholder: 'Имя или заметка...',
+        refDealsLabel: 'СДЕЛОК ПО РЕФКЕ:',
+        ownPurchasesLabel: 'СВОИ ЗАЯВКИ:',
+        refVolumeLabel: 'ОБЪ. РЕФЕРАЛОВ',
+        commissionLabelAdmin: 'КОМИССИЯ',
+        viewRefDealsBtn: 'Смотреть сделки рефералов',
         payoutBtn: 'Выплатить',
-        confirmPayout: 'Выплатить ${amount} пользователю?',
-        notePlaceholder: 'Заметка или имя...',
+        payoutHistoryLabel: 'История выплат:',
+        refDealsTitle: 'Сделки рефералов',
+        confirmPayout: 'Выплатить {amount}€ пользователю?\nБаланс будет обнулен.',
+        loading: 'Загрузка...',
     },
     en: {
-        title: 'Global Statistics',
+        title: 'Admin Panel',
         totalUsers: 'Total Users',
-        totalLeads: 'Total Leads',
-        refUsers: 'Referral Signups',
-        revenue: 'Revenue (Closed)',
-        topReferrers: 'Top Referrers',
-        partner: 'Partner',
-        invited: 'Invited',
-        noData: 'No data yet',
-        manageStaff: 'Staff Management',
+        totalSales: 'Revenue',
+        manageManagers: 'Manager Management',
         assignEmployee: 'Assign Employee',
-        enterTgId: 'Enter Telegram ID or @username',
+        enterTgId: 'Enter Telegram ID',
         activeEmployees: 'Active Employees',
-        addSuccess: 'Success! Employee added.',
-        addError: 'User not found! They must press /start in the bot.',
-        removeSuccess: 'Employee removed.',
+        managerAddError: 'ERROR: User not found! Tell them to press /start.',
+        managerAddSuccess: 'Success! ID {id} is now {role}.',
+        managerRemoveSuccess: 'Employee {id} removed.',
         ownerBadge: 'Owner',
         adminBadge: 'Admin',
         managerBadge: 'Manager',
         selectAdmin: 'Admin',
         selectManager: 'Manager',
         roleLabel: 'Role:',
-        recentActivity: 'Recent Activity',
-        analyzing: 'Analyzing...',
+        balance: 'Balance',
         tabLeads: 'Leads',
-        tabUsers: 'Partners',
-        noLeads: 'No leads yet',
-        unknownUser: 'Unknown',
-        deletedUnit: 'Deleted Unit',
-        showAll: 'Show all ({count})',
-        hideAll: 'Hide',
+        tabUsers: 'Users',
+        analyzing: 'Analyzing...',
+        noOrders: 'No leads',
         invitedLabelStats: 'INVITED:',
-        refDealsLabel: 'REF LEADS:',
+        purchasesLabel: 'LEADS:',
+        spentLabel: 'Spent',
+        hideAll: 'Hide ⬆',
+        showAll: 'Show All ({count}) ⬇',
+        deletedUnit: 'Deleted Unit',
+        unknownUser: 'Unknown',
+        statuses: {
+            all: 'ALL',
+            new: 'NEW',
+            contacted: 'IN PROGRESS',
+            closed: 'CLOSED',
+            cancelled: 'CANCELLED'
+        },
+        commissionLabel: 'commission',
+        notePlaceholder: 'Name or note...',
+        refDealsLabel: 'REF DEALS:',
         ownPurchasesLabel: 'OWN LEADS:',
         refVolumeLabel: 'REF VOLUME',
         commissionLabelAdmin: 'COMMISSION',
-        viewRefDealsBtn: 'View referral leads',
-        refDealsTitle: 'Referral Leads',
-        loading: 'Loading...',
-        statuses: {
-            new: 'New',
-            contacted: 'In Progress',
-            closed: 'Closed',
-            cancelled: 'Cancelled'
-        },
-        balance: 'Balance',
+        viewRefDealsBtn: 'View referral deals',
         payoutBtn: 'Payout',
-        confirmPayout: 'Payout ${amount} to user?',
-        notePlaceholder: 'Note or name...',
-    },
-    tr: {
-        title: 'Küresel İstatistikler',
-        totalUsers: 'Toplam Kullanıcı',
-        totalLeads: 'Toplam Başvuru',
-        refUsers: 'Referans Kayıtları',
-        revenue: 'Ciro (Kapalı)',
-        topReferrers: 'En İyi Ortaklar',
-        partner: 'Ortak',
-        invited: 'Davet Edildi',
-        noData: 'Henüz veri yok',
-        manageStaff: 'Personel Yönetimi',
-        assignEmployee: 'Personel Ata',
-        enterTgId: 'Telegram ID veya @kullanıcıadı girin',
-        activeEmployees: 'Aktif Personel',
-        addSuccess: 'Başarılı! Personel eklendi.',
-        addError: 'Kullanıcı bulunamadı! Botta /start tuшuna basmalı.',
-        removeSuccess: 'Personel kaldırıldı.',
-        ownerBadge: 'Sahibi',
-        adminBadge: 'Admin',
-        managerBadge: 'Menajer',
-        selectAdmin: 'Admin',
-        selectManager: 'Menajer',
-        roleLabel: 'Rol:',
-        recentActivity: 'Son Etkinlik',
-        analyzing: 'Analiz ediliyor...',
-        tabLeads: 'Başvurular',
-        tabUsers: 'Ortaklar',
-        noLeads: 'Henüz başvuru yok',
-        unknownUser: 'Anonim',
-        deletedUnit: 'Silinmiş Mülk',
-        showAll: 'Hepsini göster ({count})',
-        hideAll: 'Gizle',
-        invitedLabelStats: 'DAVET:',
-        refDealsLabel: 'REF BAŞVURU:',
-        ownPurchasesLabel: 'KİŞİSEL:',
-        refVolumeLabel: 'REF HACİM',
-        commissionLabelAdmin: 'KOMİSYON',
-        viewRefDealsBtn: 'Referans başvurularını gör',
-        refDealsTitle: 'Referans Başvuruları',
-        loading: 'Yükleniyor...',
-        statuses: {
-            new: 'Yeni',
-            contacted: 'İşlemde',
-            closed: 'Kapandı',
-            cancelled: 'İptal'
-        },
-        balance: 'Bakiye',
-        payoutBtn: 'Ödeme Yap',
-        confirmPayout: 'Kullanıcıya ${amount} ödensin mi?',
-        notePlaceholder: 'Not veya isim...',
-    },
-    de: {
-        title: 'Globale Statistiken',
-        totalUsers: 'Gesamtbenutzer',
-        totalLeads: 'Gesamtanfragen',
-        refUsers: 'Empfehlungen',
-        revenue: 'Umsatz (Abgeschlossen)',
-        topReferrers: 'Top-Partner',
-        partner: 'Partner',
-        invited: 'Eingeladen',
-        noData: 'Noch keine Daten',
-        manageStaff: 'Personalverwaltung',
-        assignEmployee: 'Mitarbeiter zuweisen',
-        enterTgId: 'Telegram ID oder @username eingeben',
-        activeEmployees: 'Aktive Mitarbeiter',
-        addSuccess: 'Erfolg! Mitarbeiter hinzugefügt.',
-        addError: 'Benutzer nicht gefunden! Er muss /start im Bot drücken.',
-        removeSuccess: 'Mitarbeiter entfernt.',
-        ownerBadge: 'Besitzer',
-        adminBadge: 'Admin',
-        managerBadge: 'Manager',
-        selectAdmin: 'Admin',
-        selectManager: 'Manager',
-        roleLabel: 'Rolle:',
-        recentActivity: 'Letzte Aktivitäten',
-        analyzing: 'Analysiere...',
-        tabLeads: 'Anfragen',
-        tabUsers: 'Partner',
-        noLeads: 'Noch keine Anfragen',
-        unknownUser: 'Anonym',
-        deletedUnit: 'Gelöschtes Objekt',
-        showAll: 'Alle anzeigen ({count})',
-        hideAll: 'Ausblenden',
-        invitedLabelStats: 'EINGELADEN:',
-        refDealsLabel: 'REF ANFRAGEN:',
-        ownPurchasesLabel: 'EIGENE ANFRAGEN:',
-        refVolumeLabel: 'REF VOLUMEN',
-        commissionLabelAdmin: 'PROVISION',
-        viewRefDealsBtn: 'Empfehlungsanfragen ansehen',
-        refDealsTitle: 'Empfehlungsanfragen',
-        loading: 'Lade...',
-        statuses: {
-            new: 'Neu',
-            contacted: 'In Bearbeitung',
-            closed: 'Abgeschlossen',
-            cancelled: 'Storniert'
-        },
-        balance: 'Guthaben',
-        payoutBtn: 'Auszahlen',
-        confirmPayout: 'Soll ${amount} an den Benutzer ausgezahlt werden?',
-        notePlaceholder: 'Notiz oder Name...',
-    },
-    es: {
-        title: 'Estadísticas Globales',
-        totalUsers: 'Total Usuarios',
-        totalLeads: 'Total Clientes',
-        refUsers: 'Registros por Referido',
-        revenue: 'Ingresos (Cerrados)',
-        topReferrers: 'Top Referidores',
-        partner: 'Socio',
-        invited: 'Invitados',
-        noData: 'Sin datos aún',
-        manageStaff: 'Gestión de Personal',
-        assignEmployee: 'Asignar Empleado',
-        enterTgId: 'Ingrese ID de Telegram o @username',
-        activeEmployees: 'Empleados Activos',
-        addSuccess: '¡Éxito! Empleado añadido.',
-        addError: '¡Usuario no encontrado! Debe presionar /start en el bot.',
-        removeSuccess: 'Empleado eliminado.',
-        ownerBadge: 'Propietario',
-        adminBadge: 'Admin',
-        managerBadge: 'Manager',
-        selectAdmin: 'Admin',
-        selectManager: 'Manager',
-        roleLabel: 'Rol:',
-        recentActivity: 'Actividad Reciente',
-        analyzing: 'Analizando...',
-        tabLeads: 'Clientes',
-        tabUsers: 'Socios',
-        noLeads: 'Aún no hay clientes',
-        unknownUser: 'Anónimo',
-        deletedUnit: 'Unidad Eliminada',
-        showAll: 'Mostrar todos ({count})',
-        hideAll: 'Ocultar',
-        invitedLabelStats: 'INVITADOS:',
-        refDealsLabel: 'CLIENTES REF:',
-        ownPurchasesLabel: 'CLIENTES PROPIOS:',
-        refVolumeLabel: 'VOLUMEN REF',
-        commissionLabelAdmin: 'COMISIÓN',
-        viewRefDealsBtn: 'Ver clientes referidos',
-        refDealsTitle: 'Clientes Referidos',
-        loading: 'Cargando...',
-        statuses: {
-            new: 'Nuevo',
-            contacted: 'En Proceso',
-            closed: 'Cerrado',
-            cancelled: 'Cancelado'
-        },
-        balance: 'Saldo',
-        payoutBtn: 'Pagar',
-        confirmPayout: '¿Pagar ${amount} al usuario?',
-        notePlaceholder: 'Nota o nombre...',
-    },
-    ar: {
-        title: 'الإحصائيات العامة',
-        totalUsers: 'إجمالي المستخدمين',
-        totalLeads: 'إجمالي الطلبات',
-        refUsers: 'تسجيلات الإحالة',
-        revenue: 'الإيرادات (المغلقة)',
-        topReferrers: 'أفضل المحيلين',
-        partner: 'شريك',
-        invited: 'تمت دعوتهم',
-        noData: 'لا توجد بيانات بعد',
-        manageStaff: 'إدارة الموظفين',
-        assignEmployee: 'تعيين موظف',
-        enterTgId: 'أدخل ID التيليجرام أو @username',
-        activeEmployees: 'الموظفون النشطون',
-        addSuccess: 'نجاح! تم إضافة الموظف.',
-        addError: 'المستخدم غير موجود! يجب أن يضغط على /start في البوت.',
-        removeSuccess: 'تمت إزالة الموظف.',
-        ownerBadge: 'المالك',
-        adminBadge: 'مسؤول',
-        managerBadge: 'مدير',
-        selectAdmin: 'مسؤول',
-        selectManager: 'مدير',
-        roleLabel: 'الدور:',
-        recentActivity: 'النشاط الأخير',
-        analyzing: 'جاري التحليل...',
-        tabLeads: 'الطلبات',
-        tabUsers: 'الشركاء',
-        noLeads: 'لا توجد طلبات بعد',
-        unknownUser: 'مجهول',
-        deletedUnit: 'وحدة محذوفة',
-        showAll: 'إظهار الكل ({count})',
-        hideAll: 'إخفاء',
-        invitedLabelStats: 'تمت دعوتهم:',
-        refDealsLabel: 'طلبات الإحالة:',
-        ownPurchasesLabel: 'طلباتي:',
-        refVolumeLabel: 'حجم الإحالة',
-        commissionLabelAdmin: 'العمولة',
-        viewRefDealsBtn: 'عرض طلبات الإحالة',
-        refDealsTitle: 'طلبات الإحالة',
-        loading: 'جاري التحميل...',
-        statuses: {
-            new: 'جديد',
-            contacted: 'جاري التواصل',
-            closed: 'مغلق',
-            cancelled: 'ملغي'
-        },
-        balance: 'الرصيد',
-        payoutBtn: 'صرف الرصيد',
-        confirmPayout: 'صرف ${amount} للمستخدم؟',
-        notePlaceholder: 'ملاحظة أو اسم...',
-    },
-    fr: {
-        title: 'Statistiques Globales',
-        totalUsers: 'Total Utilisateurs',
-        totalLeads: 'Total Prospects',
-        refUsers: 'Inscriptions par Parrainage',
-        revenue: 'Chiffre d\'affaires (Clos)',
-        topReferrers: 'Top Parrains',
-        partner: 'Partenaire',
-        invited: 'Invités',
-        noData: 'Pas encore de données',
-        manageStaff: 'Gestion du Personnel',
-        assignEmployee: 'Assigner un Employé',
-        enterTgId: 'Entrez ID Telegram ou @username',
-        activeEmployees: 'Employés Actifs',
-        addSuccess: 'Succès ! Employé ajouté.',
-        addError: 'Utilisateur non trouvé ! Il doit appuyer sur /start dans le bot.',
-        removeSuccess: 'Employé supprimé.',
-        ownerBadge: 'Propriétaire',
-        adminBadge: 'Admin',
-        managerBadge: 'Manager',
-        selectAdmin: 'Admin',
-        selectManager: 'Manager',
-        roleLabel: 'Rôle :',
-        recentActivity: 'Activité Récente',
-        analyzing: 'Analyse...',
-        tabLeads: 'Prospects',
-        tabUsers: 'Partenaires',
-        noLeads: 'Pas encore de prospects',
-        unknownUser: 'Anonyme',
-        deletedUnit: 'Unité supprimée',
-        showAll: 'Tout afficher ({count})',
-        hideAll: 'Masquer',
-        invitedLabelStats: 'INVITÉS :',
-        refDealsLabel: 'PROSPECTS REF :',
-        ownPurchasesLabel: 'PROSPECTS PROPRES :',
-        refVolumeLabel: 'VOLUME REF',
-        commissionLabelAdmin: 'COMMISSION',
-        viewRefDealsBtn: 'Voir les prospects parrainés',
-        refDealsTitle: 'Prospects parrainés',
-        loading: 'Chargement...',
-        statuses: {
-            new: 'Nouveau',
-            contacted: 'En cours',
-            closed: 'Clos',
-            cancelled: 'Annulé'
-        },
-        balance: 'Solde',
-        payoutBtn: 'Payer',
-        confirmPayout: 'Payer ${amount} à l\'utilisateur ?',
-        notePlaceholder: 'Note ou nom...',
+        payoutHistoryLabel: 'Payout history:',
+        refDealsTitle: 'Referral deals',
+        confirmPayout: 'Payout {amount}€ to user?\nBalance will be reset.',
+        loading: 'Loading...',
     }
 };
 
 export default function StatsView({ user, lang = 'ru' }: { user?: any; lang?: string }) {
     const t = i18n[lang] || i18n['ru'];
+    const [activeTab, setActiveTab] = useState<'leads' | 'users'>('leads');
+    const [isOrdersExpanded, setIsOrdersExpanded] = useState(false);
     const [isUsersExpanded, setIsUsersExpanded] = useState(false);
-    
-    const [stats, setStats] = useState({ totalUsers: 0, totalLeads: 0, refUsers: 0, revenue: 0 });
     const [leads, setLeads] = useState<any[]>([]);
     const [usersInfo, setUsersInfo] = useState<any[]>([]);
-    const [staff, setStaff] = useState<any[]>([]);
-    const [topReferrers, setTopReferrers] = useState<any[]>([]);
-    
-    const [newStaffId, setNewStaffId] = useState('');
-    const [newStaffRole, setNewStaffRole] = useState('manager');
-    const [statusMsg, setStatusMsg] = useState('');
     const [loading, setLoading] = useState(true);
+    const [statusFilter, setStatusFilter] = useState<string>('all');
     const [selectedUser, setSelectedUser] = useState<any>(null);
     const [refLeads, setRefLeads] = useState<any[]>([]);
     const [refLeadsLoading, setRefLeadsLoading] = useState(false);
-    const [editingNoteId, setEditingNoteId] = useState<string | number | null>(null);
+
+    const [newManagerId, setNewManagerId] = useState('');
+    const [newManagerRole, setNewManagerRole] = useState<'manager' | 'admin'>('manager');
+    const [managersList, setManagersList] = useState<any[]>([]);
+    const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
     const [noteValue, setNoteValue] = useState('');
+    const tg = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
+
+    const [globalStats, setGlobalStats] = useState({ totalUsers: 0, totalSales: 0 });
 
     const isAdmin = user?.role === 'founder' || user?.role === 'admin';
 
     useEffect(() => {
-        fetchAll();
+        fetchData();
     }, []);
 
-    const fetchAll = async () => {
+    const fetchManagers = async () => {
+        const { data: mUsers } = await supabase.from('users').select('*').in('role', ['manager', 'admin', 'founder']);
+        if (mUsers) setManagersList(mUsers);
+    };
+
+    const fetchData = async () => {
         setLoading(true);
-        try {
-            const { count: userCount } = await supabase.from('users').select('*', { count: 'exact', head: true });
-            const { count: leadCount } = await supabase.from('leads').select('*', { count: 'exact', head: true });
-            const { count: refCount } = await supabase.from('users').select('*', { count: 'exact', head: true }).not('referrer_id', 'is', null);
 
-            const { data: leadsData } = await supabase
-                .from('leads')
-                .select('*, units(*)')
-                .order('created_at', { ascending: false });
+        const { count: userCount } = await supabase.from('users').select('*', { count: 'exact', head: true });
+        
+        let { data: leadsData } = await supabase
+            .from('leads')
+            .select(`*, units(*)`)
+            .order('created_at', { ascending: false });
 
-            const { data: allUsers } = await supabase.from('users').select('*');
+        const { data: allUsers } = await supabase.from('users').select('*');
+        const { data: allPayouts } = await supabase.from('chat_history').select('user_id, content, created_at').eq('role', 'assistant').like('content', 'PAYOUT_RECORD:%').order('created_at', { ascending: false });
 
-            if (allUsers && leadsData) {
-                const uMap: Record<string, any> = {};
-                allUsers.forEach((u: any) => {
-                    uMap[String(u.telegram_id)] = { 
-                        ...u, 
-                        invitedCount: 0, 
-                        invitedUserIds: [], 
-                        leadsCount: 0, 
-                        refLeadsCount: 0, 
-                        refTotalVolume: 0, 
-                        earnedBonuses: 0 
-                    };
+        if (allUsers && leadsData) {
+            const uMap: Record<string, any> = {};
+            allUsers.forEach((u: any) => {
+                uMap[String(u.telegram_id)] = { ...u, invitedCount: 0, invitedUserIds: [], leadsCount: 0, totalSpend: 0, refLeadsCount: 0, refTotalVolume: 0, earnedBonuses: 0, payouts: [] };
+            });
+
+            if (allPayouts) {
+                allPayouts.forEach((p: any) => {
+                    const pkId = String(p.user_id);
+                    if (uMap[pkId]) uMap[pkId].payouts.push(p);
                 });
+            }
 
-                allUsers.forEach((u: any) => {
-                    if (u.referrer_id && uMap[String(u.referrer_id)]) {
-                        uMap[String(u.referrer_id)].invitedCount++;
-                        uMap[String(u.referrer_id)].invitedUserIds.push(String(u.telegram_id));
+            allUsers.forEach((u: any) => {
+                const refId = String(u.referrer_id);
+                if (u.referrer_id && uMap[refId]) {
+                    uMap[refId].invitedCount++;
+                    uMap[refId].invitedUserIds.push(String(u.telegram_id));
+                }
+            });
+
+            let totalSales = 0;
+            leadsData.forEach((l: any) => {
+                const uId = String(l.user_id);
+                const price = Number(l.units?.price) || 0;
+
+                if (uId && uMap[uId]) {
+                    uMap[uId].leadsCount++;
+                    
+                    if (l.status === 'closed') {
+                        totalSales += price;
+                        uMap[uId].totalSpend += price;
                     }
-                });
 
-                let totalRevenue = 0;
-                leadsData.forEach((l: any) => {
-                    const uId = String(l.user_id);
-                    const unitPrice = Number(l.units?.price) || 0;
-
-                    if (uId && uMap[uId]) {
-                        uMap[uId].leadsCount++;
-                        
+                    const refId = String(uMap[uId].referrer_id);
+                    if (uMap[uId].referrer_id && uMap[refId]) {
+                        uMap[refId].refLeadsCount++;
                         if (l.status === 'closed') {
-                            totalRevenue += unitPrice;
-                        }
-
-                        const refId = String(uMap[uId].referrer_id);
-                        if (uMap[uId].referrer_id && uMap[refId]) {
-                            uMap[refId].refLeadsCount++;
-                            if (l.status === 'closed') {
-                                uMap[refId].refTotalVolume += unitPrice;
-                                uMap[refId].earnedBonuses += (unitPrice * 0.025);
-                            }
+                            uMap[refId].refTotalVolume += price;
+                            uMap[refId].earnedBonuses += (price * 0.025); // 2.5% commission
                         }
                     }
-                });
+                }
+            });
 
-                setStats({
-                    totalUsers: userCount || 0,
-                    totalLeads: leadCount || 0,
-                    refUsers: refCount || 0,
-                    revenue: totalRevenue
-                });
+            let sortedUsers = Object.values(uMap)
+                .filter((u: any) => u.invitedCount > 0 || u.leadsCount > 0 || (u.balance && u.balance > 0))
+                .sort((a: any, b: any) => b.earnedBonuses - a.earnedBonuses);
 
-                setLeads(leadsData);
+            const isOnlyManager = user?.role === 'manager';
+            const managerId = String(user?.telegram_id);
+
+            if (isOnlyManager) {
+                sortedUsers = sortedUsers.filter((u: any) => 
+                    String(u.telegram_id) === managerId || 
+                    String(u.referrer_id) === managerId
+                );
                 
-                const sortedUsers = Object.values(uMap)
-                    .filter((u: any) => u.invitedCount > 0 || u.leadsCount > 0 || (u.balance && u.balance > 0))
-                    .sort((a: any, b: any) => b.invitedCount - a.invitedCount);
-                
-                setUsersInfo(sortedUsers);
-
-                setTopReferrers(sortedUsers.slice(0, 5).map(u => ({
-                    id: u.telegram_id,
-                    name: u.username || u.full_name || `#${u.telegram_id}`,
-                    count: u.invitedCount
-                })));
+                const myUserIds = sortedUsers.map(u => String(u.telegram_id));
+                leadsData = leadsData.filter((l: any) => myUserIds.includes(String(l.user_id)));
             }
-
-            if (isAdmin) {
-                const { data: staffData } = await supabase.from('users').select('*').in('role', ['founder', 'admin', 'manager']).order('created_at', { ascending: true });
-                setStaff(staffData || []);
-            }
-        } catch (e) {
-            console.error(e);
+            
+            setGlobalStats({ totalUsers: userCount || 0, totalSales });
+            setLeads(leadsData);
+            setUsersInfo(sortedUsers);
         }
+
+        await fetchManagers();
         setLoading(false);
     };
 
-    const handleAddStaff = async () => {
-        if (!newStaffId) return;
-        const input = newStaffId.trim();
+    const handleAddManager = async () => {
+        if (!newManagerId || !isAdmin) return;
+        
         let query = supabase.from('users').select('*');
+        const input = newManagerId.trim();
         
         if (/^\d+$/.test(input)) {
             query = query.eq('telegram_id', parseInt(input));
@@ -491,43 +237,72 @@ export default function StatsView({ user, lang = 'ru' }: { user?: any; lang?: st
             query = query.eq('username', username);
         }
 
-        const { data: existing } = await query.single();
-        if (!existing) {
-            setStatusMsg(t.addError);
-            setTimeout(() => setStatusMsg(''), 3000);
+        const { data: existingUser } = await query.single();
+        
+        if (!existingUser) {
+            if (tg?.showAlert) tg.showAlert(t.managerAddError);
+            else alert(t.managerAddError);
             return;
         }
 
-        await supabase.from('users').update({ role: newStaffRole }).eq('telegram_id', existing.telegram_id);
-        setStatusMsg(t.addSuccess);
-        setNewStaffId('');
-        fetchAll();
-        setTimeout(() => setStatusMsg(''), 3000);
+        const { error: upErr } = await supabase.from('users').update({ role: newManagerRole }).eq('telegram_id', existingUser.telegram_id);
+        
+        if (upErr) {
+            if (tg?.showAlert) tg.showAlert('Error: ' + upErr.message);
+            else alert('Error: ' + upErr.message);
+        } else {
+            if (tg?.showAlert) tg.showAlert('Success!');
+            else alert('Success!');
+            fetchManagers();
+            setNewManagerId('');
+        }
     };
 
-    const handleRemoveStaff = async (tgId: number) => {
-        if (!window.confirm("Удалить этого сотрудника из системы?")) return;
-        await supabase.from('users').update({ role: 'client' }).eq('telegram_id', tgId);
-        setStatusMsg(t.removeSuccess);
-        fetchAll();
-        setTimeout(() => setStatusMsg(''), 3000);
+    const handleRemoveManager = async (tgId: number) => {
+        if (!window.confirm("Удалить сотрудника?")) return;
+        const { error } = await supabase.from('users').update({ role: 'client' }).eq('telegram_id', tgId);
+        if (!error) {
+            fetchManagers();
+        }
+    };
+
+    const handleUpdateRole = async (tgId: number, newRole: 'manager' | 'admin') => {
+        const { error } = await supabase.from('users').update({ role: newRole }).eq('telegram_id', tgId);
+        if (!error) fetchManagers();
+    };
+
+    const handleMarkPaid = async (tgId: number, currentBalance: number) => {
+        if (!window.confirm(t.confirmPayout.replace('{amount}', currentBalance.toFixed(2)))) return;
+        
+        await supabase.from('chat_history').insert({
+            user_id: tgId,
+            role: 'assistant',
+            content: `PAYOUT_RECORD:${currentBalance.toFixed(2)}`,
+            created_at: new Date().toISOString()
+        });
+
+        const { error: upErr } = await supabase.from('users').update({ balance: 0 }).eq('telegram_id', tgId);
+        
+        if (upErr) {
+            if (tg?.showAlert) tg.showAlert("Error: " + upErr.message);
+            else alert("Error: " + upErr.message);
+        } else {
+            if (tg?.showAlert) tg.showAlert('Success!');
+            else alert('Success!');
+            fetchData();
+        }
     };
 
     const handleSaveNote = async (tgId: number) => {
         const { error } = await supabase.from('users').update({ custom_note: noteValue }).eq('telegram_id', tgId);
         if (!error) {
             setUsersInfo(prev => prev.map(u => u.telegram_id === tgId ? { ...u, custom_note: noteValue } : u));
+            fetchManagers();
             setEditingNoteId(null);
         }
     };
 
-    const handlePayout = async (tgId: number, amount: number) => {
-        if (!window.confirm(t.confirmPayout.replace('${amount}', amount.toFixed(2)))) return;
-        const { error } = await supabase.from('users').update({ balance: 0 }).eq('telegram_id', tgId);
-        if (!error) {
-            fetchAll();
-        }
-    };
+    const filteredLeads = leads.filter((l: any) => statusFilter === 'all' || l.status === statusFilter);
 
     const openRefDrilldown = async (user: any) => {
         setSelectedUser(user);
@@ -538,273 +313,422 @@ export default function StatsView({ user, lang = 'ru' }: { user?: any; lang?: st
         setRefLeadsLoading(true);
         const { data } = await supabase
             .from('leads')
-            .select('*, units(*), users(telegram_id, username, full_name)')
+            .select(`*, units(*)`)
             .in('user_id', user.invitedUserIds)
             .order('created_at', { ascending: false });
         setRefLeads(data || []);
         setRefLeadsLoading(false);
     };
 
+    const closeRefDrilldown = () => {
+        setSelectedUser(null);
+        setRefLeads([]);
+    };
+
     return (
-        <div className="space-y-6 pb-20">
-            {/* Metric Cards */}
-            <div className="grid grid-cols-2 gap-3 animate-fade-in">
-                <MetricCard icon="group" label={t.totalUsers} value={stats.totalUsers} color="primary" />
-                <MetricCard icon="leaderboard" label={t.totalLeads} value={stats.totalLeads} color="secondary" />
-                <MetricCard icon="person_add" label={t.refUsers} value={stats.refUsers} color="tertiary" />
-                {isAdmin && <MetricCard icon="payments" label={t.revenue} value={`€${stats.revenue.toLocaleString()}`} color="primary" />}
-            </div>
-
-            {loading ? (
-                <div className="text-center p-12 animate-pulse text-outline font-black uppercase tracking-widest text-[10px]">
-                    {t.analyzing}
-                </div>
-            ) : (
-                <>
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-2 px-1">
-                            <span className="material-symbols-outlined text-primary text-[18px]">group</span>
-                            <h3 className="text-[10px] font-black text-outline uppercase tracking-[0.2em]">{t.tabUsers}</h3>
+        <div className="space-y-6 pb-24">
+            {isAdmin && (
+            <section className="space-y-4 mb-2 border-b border-white/5 pb-6">
+                <h3 className="text-lg font-headline font-bold text-on-surface flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary">engineering</span>
+                    {t.manageManagers}
+                </h3>
+                <div className="glass-card p-4 rounded-xl space-y-3">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-surface-container-lowest rounded-full flex items-center justify-center border border-outline-variant/10">
+                            <span className="material-symbols-outlined text-tertiary">person_add</span>
                         </div>
-
-                        {usersInfo.slice(0, isUsersExpanded ? undefined : 6).map((u: any) => (
-                            <div key={u.telegram_id} className="card-premium space-y-4 neon-glow animate-fade-in">
-                                <div className="flex justify-between items-start">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-sm font-bold text-outline border border-white/5">
-                                            {(u.username || u.full_name || '?')[0]?.toUpperCase()}
-                                        </div>
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <p className="text-sm font-black text-on-background">@{u.username || u.full_name || u.telegram_id}</p>
-                                                {u.custom_note && <span className="text-[8px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-black border border-primary/20 uppercase tracking-widest">{u.custom_note}</span>}
-                                            </div>
-                                            <p className="text-[10px] text-outline-variant font-bold font-mono">ID: {u.telegram_id}</p>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-[8px] text-outline font-bold uppercase tracking-widest">{t.commissionLabelAdmin}</p>
-                                        <p className="text-sm font-black text-primary">€{(u.earnedBonuses || 0).toLocaleString()}</p>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-2 text-[9px] font-black uppercase tracking-widest text-outline bg-white/[0.02] p-3 rounded-2xl border border-white/5">
-                                    <div>{t.invitedLabelStats} <span className="text-on-background">{u.invitedCount}</span></div>
-                                    <div>{t.refDealsLabel} <span className="text-on-background">{u.refLeadsCount}</span></div>
-                                </div>
-
-                                <div className="flex gap-2">
-                                    {u.invitedCount > 0 && (
-                                        <button 
-                                            onClick={() => openRefDrilldown(u)}
-                                            className="btn-secondary flex-1 !py-2.5 !px-4"
-                                        >
-                                            <span className="material-symbols-outlined text-[14px]">visibility</span>
-                                            {t.viewRefDealsBtn}
-                                        </button>
-                                    )}
-                                    {u.balance > 0 && isAdmin && (
-                                        <button 
-                                            onClick={() => handlePayout(u.telegram_id, u.balance)}
-                                            className="btn-primary flex-1 !py-2.5 !px-4"
-                                        >
-                                            <span className="material-symbols-outlined text-[14px]">payments</span>
-                                            {t.payoutBtn} (€{u.balance})
-                                        </button>
-                                    )}
-                                    <button 
-                                        onClick={() => {
-                                            setEditingNoteId(u.telegram_id);
-                                            setNoteValue(u.custom_note || '');
-                                        }}
-                                        className="w-10 h-10 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl flex items-center justify-center text-outline transition-all active:scale-90"
-                                    >
-                                        <span className="material-symbols-outlined text-[18px]">edit_note</span>
-                                    </button>
-                                </div>
-
-                                {editingNoteId === u.telegram_id && (
-                                    <div className="flex gap-2 pt-2 animate-in slide-in-from-top-2 duration-300">
-                                        <input 
-                                            type="text" 
-                                            value={noteValue} 
-                                            onChange={(e) => setNoteValue(e.target.value)}
-                                            className="input-field !p-3 !text-xs"
-                                            placeholder={t.notePlaceholder}
-                                        />
-                                        <button onClick={() => handleSaveNote(u.telegram_id)} className="btn-primary !p-3">OK</button>
-                                        <button onClick={() => setEditingNoteId(null)} className="btn-secondary !p-3">X</button>
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-
-                        {usersInfo.length > 6 && (
-                            <button 
-                                onClick={() => setIsUsersExpanded(!isUsersExpanded)}
-                                className="btn-secondary w-full"
-                            >
-                                {isUsersExpanded ? t.hideAll : t.showAll.replace('{count}', usersInfo.length)}
+                        <div>
+                            <p className="font-headline font-semibold text-on-surface text-sm">{t.assignEmployee}</p>
+                            <p className="text-xs text-on-surface-variant">{t.enterTgId}</p>
+                        </div>
+                    </div>
+                    <div className="flex flex-col gap-3 pt-2">
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={newManagerId}
+                                onChange={(e) => setNewManagerId(e.target.value)}
+                                className="flex-1 bg-surface-container-lowest border border-outline-variant/20 rounded-lg px-4 min-h-[42px] text-sm text-on-surface focus:outline-none focus:border-primary/50"
+                                placeholder="12345678"
+                            />
+                            <button onClick={handleAddManager} className="whitespace-nowrap bg-primary/20 text-primary border border-primary/30 w-[42px] h-[42px] min-w-[42px] flex items-center justify-center rounded-lg shadow-[0_0_15px_rgba(208,188,255,0.1)] hover:bg-primary/30 transition-all active:scale-95">
+                                <span className="material-symbols-outlined font-bold text-xl">add</span>
                             </button>
-                        )}
+                        </div>
+                        
+                        <div className="flex items-center gap-4 bg-surface-container-lowest/50 p-2 px-3 rounded-lg border border-outline-variant/10">
+                            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">{t.roleLabel}</span>
+                            <div className="flex gap-2 flex-1">
+                                <button 
+                                    onClick={() => setNewManagerRole('manager')}
+                                    className={`flex-1 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${newManagerRole === 'manager' ? 'bg-secondary/20 text-secondary border border-secondary/30' : 'bg-surface-container-high text-on-surface-variant'}`}
+                                >
+                                    {t.selectManager}
+                                </button>
+                                <button 
+                                    onClick={() => setNewManagerRole('admin')}
+                                    className={`flex-1 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${newManagerRole === 'admin' ? 'bg-primary/20 text-primary border border-primary/30' : 'bg-white/5 text-on-surface-variant'}`}
+                                >
+                                    {t.selectAdmin}
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
-                    {isAdmin && (
-                        <section className="space-y-4 pt-6 border-t border-white/5">
-                            <div className="flex items-center gap-2 px-1">
-                                <span className="material-symbols-outlined text-primary text-[18px]">engineering</span>
-                                <h3 className="text-[10px] font-black text-outline uppercase tracking-[0.2em]">{t.manageStaff}</h3>
-                            </div>
-
-                            <div className="card-premium space-y-5 neon-glow">
-                                <div className="space-y-3">
-                                    <div className="flex items-center gap-3 bg-white/[0.03] p-3 rounded-2xl border border-white/5">
-                                        <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center border border-primary/20">
-                                            <span className="material-symbols-outlined text-primary">person_add</span>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs font-black text-on-background uppercase tracking-wider">{t.assignEmployee}</p>
-                                            <p className="text-[10px] text-outline font-bold uppercase tracking-widest">{t.enterTgId}</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex gap-2">
-                                        <input
-                                            type="text"
-                                            value={newStaffId}
-                                            onChange={(e) => setNewStaffId(e.target.value)}
-                                            placeholder="ID / @username"
-                                            className="input-field flex-1 font-mono"
-                                        />
-                                        <select
-                                            value={newStaffRole}
-                                            onChange={(e) => setNewStaffRole(e.target.value)}
-                                            className="input-field appearance-none min-w-[120px] text-center uppercase tracking-widest font-black"
-                                        >
-                                            <option value="manager" className="bg-surface-container-high">{t.selectManager}</option>
-                                            <option value="admin" className="bg-surface-container-high">{t.selectAdmin}</option>
-                                        </select>
-                                        <button
-                                            onClick={handleAddStaff}
-                                            className="btn-primary w-14 !p-0"
-                                        >
-                                            <span className="material-symbols-outlined font-black">add</span>
-                                        </button>
-                                    </div>
-                                    {statusMsg && (
-                                        <p className={`text-[10px] font-black uppercase tracking-widest text-center py-2 rounded-xl bg-white/[0.02] ${statusMsg.includes('Ошибка') || statusMsg.includes('Error') || statusMsg.includes('не найден') || statusMsg.includes('not found') ? 'text-error' : 'text-primary'}`}>
-                                            {statusMsg}
-                                        </p>
-                                    )}
-                                </div>
-
-                                <div className="space-y-3 pt-2">
-                                    <p className="text-[9px] font-black text-outline uppercase tracking-[0.2em] px-1">{t.activeEmployees}</p>
-                                    <div className="space-y-2">
-                                        {staff.map((s) => (
-                                            <div key={s.telegram_id} className="flex items-center justify-between bg-white/[0.02] p-3 rounded-2xl border border-white/5 hover:bg-white/[0.04] transition-all">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-xs font-bold text-outline">
-                                                        {(s.username || s.full_name || '?')[0]?.toUpperCase()}
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-sm font-black text-on-background">@{s.username || s.full_name || s.telegram_id}</p>
-                                                        <p className="text-[10px] text-outline-variant font-bold font-mono tracking-tighter">ID: {s.telegram_id}</p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <RoleBadge role={s.role} t={t} />
-                                                    {s.role !== 'founder' && s.telegram_id !== user?.telegram_id && (
-                                                        <button
-                                                            onClick={() => handleRemoveStaff(s.telegram_id)}
-                                                            className="w-8 h-8 flex items-center justify-center bg-error/10 rounded-lg border border-error/20 text-error hover:bg-error/20 transition-all active:scale-90"
-                                                        >
-                                                            <span className="material-symbols-outlined text-[16px]">person_remove</span>
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-                    )}
-                </>
-            )}
-
-            {/* Referral Drilldown Modal */}
-            {selectedUser && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-300" onClick={() => setSelectedUser(null)}>
-                    <div className="bg-surface-container-high w-full max-w-lg h-[80vh] rounded-[2.5rem] p-6 overflow-hidden flex flex-col gap-4 shadow-2xl border border-white/10" onClick={e => e.stopPropagation()}>
-                        <div className="flex justify-between items-center pb-4 border-b border-white/5">
-                            <div>
-                                <h3 className="text-lg font-black text-on-background uppercase tracking-tight">🔗 {t.refDealsTitle}</h3>
-                                <p className="text-[10px] text-outline font-bold uppercase tracking-widest mt-1">@{selectedUser.username || selectedUser.telegram_id}</p>
-                            </div>
-                            <button onClick={() => setSelectedUser(null)} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-outline hover:text-on-background transition-colors">
-                                <span className="material-symbols-outlined">close</span>
-                            </button>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto clean-scrollbar space-y-3 pr-1">
-                            {refLeadsLoading ? (
-                                <div className="text-center py-20 animate-pulse text-outline font-black uppercase tracking-widest text-[10px]">{t.loading}</div>
-                            ) : refLeads.length === 0 ? (
-                                <div className="text-center py-20 text-outline-variant font-black uppercase tracking-widest text-[10px]">{t.noLeads}</div>
-                            ) : refLeads.map((l: any) => (
-                                <div key={l.id} className="bg-white/[0.02] p-4 rounded-3xl border border-white/5 space-y-2">
-                                    <div className="flex justify-between items-start">
-                                        <p className="text-xs font-bold text-on-background">@{l.users?.username || l.users?.full_name || t.unknownUser}</p>
-                                        <b className="text-primary text-xs">€{(l.units?.price || 0).toLocaleString()}</b>
-                                    </div>
+                    {managersList.length > 0 && (
+                        <div className="pt-4 mt-4 border-t border-outline-variant/10 space-y-2">
+                            <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-2">{t.activeEmployees}</p>
+                            {managersList.map((m) => (
+                                <div key={m.telegram_id} className="flex flex-col bg-surface-container-lowest p-2 px-3 rounded-lg border border-outline-variant/10 gap-2">
                                     <div className="flex justify-between items-center">
-                                        <p className="text-[10px] text-outline font-bold uppercase">{l.units?.title?.ru || l.units?.title || t.deletedUnit}</p>
-                                        <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${l.status === 'closed' ? 'bg-primary/10 text-primary border-primary/20' : 'bg-white/5 text-outline border-white/5'}`}>
-                                            {t.statuses[l.status] || l.status}
-                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="material-symbols-outlined text-[16px] text-tertiary">
+                                                {m.role === 'founder' ? 'shield_person' : (m.role === 'admin' ? 'manage_accounts' : 'badge')}
+                                            </span>
+                                            <span className="text-sm text-on-surface font-medium truncate max-w-[120px]">@{m.username || String(m.telegram_id)}</span>
+                                            {m.role === 'founder' ? (
+                                                <span className="text-[8px] uppercase tracking-widest px-1.5 py-0.5 rounded-sm font-bold bg-primary/20 text-primary">
+                                                    {t.ownerBadge}
+                                                </span>
+                                            ) : (
+                                                <div className="flex bg-surface-container-high p-0.5 rounded border border-outline-variant/10">
+                                                    <button 
+                                                        onClick={() => handleUpdateRole(m.telegram_id, 'manager')}
+                                                        className={`px-1.5 py-0.5 rounded-sm text-[8px] font-bold uppercase transition-all ${m.role === 'manager' ? 'bg-tertiary/20 text-tertiary' : 'text-on-surface-variant hover:text-on-surface'}`}
+                                                    >
+                                                        M
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleUpdateRole(m.telegram_id, 'admin')}
+                                                        className={`px-1.5 py-0.5 rounded-sm text-[8px] font-bold uppercase transition-all ${m.role === 'admin' ? 'bg-secondary/20 text-secondary' : 'text-on-surface-variant hover:text-on-surface'}`}
+                                                    >
+                                                        A
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                        {m.role !== 'founder' && (
+                                            <button onClick={() => handleRemoveManager(m.telegram_id)} className="text-red-400 hover:bg-red-400/10 p-1.5 rounded-md transition-colors active:scale-95 flex items-center justify-center">
+                                                <span className="material-symbols-outlined text-[16px]">person_remove</span>
+                                            </button>
+                                        )}
                                     </div>
+
+                                    {editingNoteId === m.telegram_id ? (
+                                        <div className="flex gap-2">
+                                            <input 
+                                                type="text"
+                                                value={noteValue}
+                                                onChange={(e) => setNoteValue(e.target.value)}
+                                                className="flex-1 bg-surface-container-high border border-outline-variant/20 rounded px-2 py-1 text-xs text-on-surface focus:outline-none"
+                                                placeholder="Имя менеджера..."
+                                                autoFocus
+                                            />
+                                            <button onClick={() => handleSaveNote(m.telegram_id)} className="bg-primary/20 text-primary p-1 rounded">
+                                                <span className="material-symbols-outlined text-[14px]">check</span>
+                                            </button>
+                                            <button onClick={() => setEditingNoteId(null)} className="bg-red-400/20 text-red-400 p-1 rounded">
+                                                <span className="material-symbols-outlined text-[14px]">close</span>
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        m.custom_note && (
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold">
+                                                    {m.custom_note}
+                                                </span>
+                                                <button 
+                                                    onClick={() => {
+                                                        setEditingNoteId(m.telegram_id);
+                                                        setNoteValue(m.custom_note || '');
+                                                    }}
+                                                    className="text-on-surface-variant hover:text-primary transition-colors"
+                                                >
+                                                    <span className="material-symbols-outlined text-[14px]">edit_note</span>
+                                                </button>
+                                            </div>
+                                        ) || (
+                                            <button 
+                                                onClick={() => {
+                                                    setEditingNoteId(m.telegram_id);
+                                                    setNoteValue('');
+                                                }}
+                                                className="text-[10px] text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1"
+                                            >
+                                                <span className="material-symbols-outlined text-[14px]">add_notes</span>
+                                                Добавить заметку
+                                            </button>
+                                        )
+                                    )}
                                 </div>
                             ))}
                         </div>
+                    )}
+                </div>
+            </section>
+            )}
+
+            <section className="grid grid-cols-2 gap-3">
+                <div className="bg-[#201f22] p-4 rounded-xl flex flex-col justify-between min-h-[100px] border border-white/5">
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="bg-primary/10 p-1.5 rounded-lg flex items-center justify-center">
+                            <span className="material-symbols-outlined text-primary text-[18px]">group</span>
+                        </div>
+                        <p className="text-on-surface-variant text-[10px] font-bold uppercase tracking-wider">{t.totalUsers}</p>
+                    </div>
+                    <span className="text-3xl font-headline font-extrabold text-on-surface">{globalStats.totalUsers}</span>
+                </div>
+
+                <div className="bg-[#201f22] p-4 rounded-xl flex flex-col justify-between min-h-[100px] border border-white/5">
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="bg-secondary/10 p-1.5 rounded-lg flex items-center justify-center">
+                            <span className="material-symbols-outlined text-secondary text-[18px]">payments</span>
+                        </div>
+                        <p className="text-on-surface-variant text-[10px] font-bold uppercase tracking-wider">{t.totalSales}</p>
+                    </div>
+                    <span className="text-2xl font-headline font-extrabold text-on-surface">€{globalStats.totalSales.toLocaleString()}</span>
+                </div>
+            </section>
+
+            <div className="flex gap-2 p-1 bg-surface-container-lowest rounded-xl">
+                <button onClick={() => setActiveTab('leads')} className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'leads' ? 'bg-primary text-on-primary shadow-lg' : 'text-on-surface-variant hover:text-on-surface'}`}>{t.tabLeads}</button>
+                <button onClick={() => setActiveTab('users')} className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'users' ? 'bg-primary text-on-primary shadow-lg' : 'text-on-surface-variant hover:text-on-surface'}`}>{t.tabUsers}</button>
+            </div>
+
+            {loading ? (
+                <div className="text-center p-4 animate-pulse text-on-surface-variant">{t.analyzing}</div>
+            ) : activeTab === 'leads' ? (
+                <div className="space-y-4">
+                    <div className="flex gap-2 overflow-x-auto pb-2 clean-scrollbar">
+                        {['all', 'new', 'contacted', 'closed', 'cancelled'].map(st => (
+                            <button
+                                key={st}
+                                onClick={() => setStatusFilter(st)}
+                                className={`px-3 py-1 rounded-full text-[10px] uppercase font-bold whitespace-nowrap transition-all ${statusFilter === st ? 'bg-secondary text-on-secondary shadow-md' : 'bg-surface-container-low text-on-surface-variant border border-white/5'}`}
+                            >
+                                {t.statuses ? (t.statuses[st] || st.toUpperCase()) : st.toUpperCase()}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="flex flex-col gap-3">
+                        {filteredLeads.length === 0 ? <div className="text-sm text-center text-on-surface-variant mt-4">{t.noOrders}</div> : null}
+                        {filteredLeads.slice(0, isOrdersExpanded ? undefined : 6).map((l: any) => {
+                            return (
+                                <div key={l.id} className="glass-card p-4 rounded-xl relative border-l-4 border-l-primary/30 text-sm">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="font-bold text-on-surface flex items-center gap-2">
+                                            {l.name} {l.phone && <span className="text-[10px] text-primary">| {l.phone}</span>}
+                                        </div>
+                                        <b className="text-green-400">€{(Number(l.units?.price) || 0).toLocaleString()}</b>
+                                    </div>
+
+                                    <div className="text-on-surface-variant text-xs space-y-1.5 mb-2">
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="material-symbols-outlined text-[14px]">home</span>
+                                            <span>
+                                                {l.units ? (l.units.title?.ru || l.units.title) : t.deletedUnit}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="material-symbols-outlined text-[14px]">calendar_today</span>
+                                            <span>{new Date(l.created_at).toLocaleString()}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-between items-center mt-3 pt-2 border-t border-outline-variant/10">
+                                        <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${
+                                            l.status === 'closed' ? 'bg-green-500/20 text-green-400' : 
+                                            l.status === 'new' ? 'bg-blue-500/20 text-blue-400' : 
+                                            l.status === 'cancelled' ? 'bg-red-500/20 text-red-400' : 
+                                            'bg-orange-500/20 text-orange-400'
+                                        }`}>
+                                            {t.statuses ? (t.statuses[l.status] || l.status) : l.status}
+                                        </span>
+                                    </div>
+                                </div>
+                            );
+                        })}
+
+                        {filteredLeads.length > 6 && (
+                            <button
+                                onClick={() => setIsOrdersExpanded(!isOrdersExpanded)}
+                                className="w-full py-3 mt-1 bg-surface-container-high hover:bg-surface-container-highest rounded-xl text-primary text-sm font-bold active:scale-95 transition-all text-center border border-white/5"
+                            >
+                                {isOrdersExpanded ? t.hideAll : t.showAll.replace('{count}', filteredLeads.length)}
+                            </button>
+                        )}
                     </div>
                 </div>
+            ) : (
+                <div className="flex flex-col gap-3">
+                {usersInfo.slice(0, isUsersExpanded ? undefined : 6).map(u => (
+                        <div key={u.telegram_id} className="glass-card p-4 rounded-xl flex flex-col gap-3">
+                            <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                        <p className="font-headline font-semibold text-on-surface text-sm">@{u.username || u.telegram_id}</p>
+                                        {u.custom_note && (
+                                            <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold">
+                                                {u.custom_note}
+                                            </span>
+                                        )}
+                                        {editingNoteId !== u.telegram_id && (
+                                            <button 
+                                                onClick={() => {
+                                                    setEditingNoteId(u.telegram_id);
+                                                    setNoteValue(u.custom_note || '');
+                                                }}
+                                                className="text-on-surface-variant hover:text-primary transition-colors"
+                                            >
+                                                <span className="material-symbols-outlined text-[14px]">edit_note</span>
+                                            </button>
+                                        )}
+                                    </div>
+                                    {editingNoteId === u.telegram_id && (
+                                        <div className="flex gap-2 mt-2">
+                                            <input 
+                                                type="text"
+                                                value={noteValue}
+                                                onChange={(e) => setNoteValue(e.target.value)}
+                                                className="flex-1 bg-surface-container-lowest border border-outline-variant/20 rounded px-2 py-1 text-xs text-on-surface focus:outline-none"
+                                                placeholder={t.notePlaceholder}
+                                                autoFocus
+                                            />
+                                            <button onClick={() => handleSaveNote(u.telegram_id)} className="bg-primary/20 text-primary p-1 rounded">
+                                                <span className="material-symbols-outlined text-[14px]">check</span>
+                                            </button>
+                                            <button onClick={() => setEditingNoteId(null)} className="bg-red-400/20 text-red-400 p-1 rounded">
+                                                <span className="material-symbols-outlined text-[14px]">close</span>
+                                            </button>
+                                        </div>
+                                    )}
+                                    <div className="text-[10px] text-on-surface-variant uppercase mt-1 flex flex-col gap-1">
+                                        <div className="flex gap-3">
+                                            <span>{t.invitedLabelStats} <b className="text-primary">{u.invitedCount}</b></span>
+                                            <span>{t.refDealsLabel} <b className="text-secondary">{u.refLeadsCount}</b></span>
+                                        </div>
+                                        <div className="flex gap-3 mt-1 pt-1 border-t border-white/5">
+                                            <span>{t.ownPurchasesLabel} <b className="text-on-surface">{u.leadsCount}</b></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="text-right flex flex-col items-end pl-2 gap-2">
+                                    <div>
+                                        <p className="text-[10px] text-on-surface-variant uppercase">{t.refVolumeLabel}</p>
+                                        <p className="font-headline font-bold text-blue-400 mt-[-2px]">€{(u.refTotalVolume || 0).toLocaleString()}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] text-on-surface-variant uppercase">{t.commissionLabelAdmin}</p>
+                                        <p className="font-headline font-bold text-green-400 mt-[-2px]">€{u.earnedBonuses.toLocaleString()}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {u.invitedCount > 0 && (
+                                <button
+                                    onClick={() => openRefDrilldown(u)}
+                                    className="w-full py-2 text-[11px] font-bold uppercase tracking-wider bg-secondary/10 text-secondary border border-secondary/20 rounded-lg flex items-center justify-center gap-1.5 hover:bg-secondary/20 active:scale-95 transition-all"
+                                >
+                                    <span className="material-symbols-outlined text-[14px]">visibility</span>
+                                    {t.viewRefDealsBtn}
+                                </button>
+                            )}
+
+                            {/* Payouts Section */}
+                            <div className="bg-surface-container-low rounded-lg p-3 border border-white/5">
+                                <div className="flex justify-between items-center mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-[14px] text-tertiary">account_balance_wallet</span>
+                                        <span className="text-xs font-bold text-on-surface uppercase tracking-widest">{t.balance}: <span className="text-tertiary">€{(u.balance || 0).toLocaleString()}</span></span>
+                                    </div>
+                                    {(u.balance || 0) > 0 && isAdmin && (
+                                        <button onClick={() => handleMarkPaid(u.telegram_id, u.balance)} className="bg-tertiary/20 text-tertiary border border-tertiary/30 px-3 py-1 text-[10px] rounded-md font-bold uppercase tracking-wider hover:bg-tertiary/30 active:scale-95 transition-all">
+                                            {t.payoutBtn}
+                                        </button>
+                                    )}
+                                </div>
+                                
+                                {u.payouts && u.payouts.length > 0 && (
+                                    <div className="mt-2 pt-2 border-t border-outline-variant/10">
+                                        <p className="text-[9px] text-on-surface-variant font-bold uppercase mb-1">{t.payoutHistoryLabel}</p>
+                                        <div className="flex flex-col gap-1 max-h-24 overflow-y-auto clean-scrollbar pr-1">
+                                            {u.payouts.map((p: any, idx: number) => (
+                                                <div key={idx} className="flex justify-between text-[10px] items-center bg-surface-container-lowest px-2 py-1 rounded">
+                                                    <span className="text-on-surface-variant">{new Date(p.created_at).toLocaleDateString()} {new Date(p.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                                    <span className="font-bold text-red-400">-€{Number(p.content.split(':')[1]).toLocaleString()}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+
+                    {usersInfo.length > 6 && (
+                        <button
+                            onClick={() => setIsUsersExpanded(!isUsersExpanded)}
+                            className="w-full py-3 mt-1 bg-surface-container-high hover:bg-surface-container-highest rounded-xl text-primary text-sm font-bold active:scale-95 transition-all text-center border border-white/5"
+                        >
+                            {isUsersExpanded ? t.hideAll : t.showAll.replace('{count}', usersInfo.length)}
+                        </button>
+                    )}
+                </div>
             )}
-        </div>
-    );
-}
 
-function RoleBadge({ role, t }: { role: string; t: any }) {
-    const map: Record<string, { label: string; color: string; icon: string }> = {
-        founder: { label: t.ownerBadge, color: 'bg-primary/10 text-primary border-primary/20', icon: 'shield_person' },
-        admin: { label: t.adminBadge, color: 'bg-secondary/10 text-secondary border-secondary/20', icon: 'manage_accounts' },
-        manager: { label: t.managerBadge, color: 'bg-tertiary/10 text-tertiary border-tertiary/20', icon: 'badge' },
-    };
-    const b = map[role] || map.manager;
-    return (
-        <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border ${b.color} shadow-sm`}>
-            <span className="material-symbols-outlined text-[12px]">{b.icon}</span>
-            <span className="text-[9px] font-black uppercase tracking-widest leading-none">{b.label}</span>
-        </div>
-    );
-}
+        {/* Referral Drilldown Modal */}
+        {selectedUser && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={closeRefDrilldown}>
+                <div className="bg-[#1a1a1f] w-full max-w-lg h-[96vh] rounded-2xl p-4 overflow-y-auto flex flex-col gap-3 shadow-2xl border border-white/10" onClick={e => e.stopPropagation()}>
+                    <div className="flex justify-between items-center pb-2 border-b border-white/10">
+                        <div>
+                            <p className="font-headline font-bold text-on-surface text-base">
+                                🔗 {t.refDealsTitle} @{selectedUser.username || selectedUser.telegram_id}
+                            </p>
+                            <p className="text-[11px] text-on-surface-variant mt-0.5">
+                                Приглашено: <b className="text-primary">{selectedUser.invitedCount}</b>
+                                &nbsp;·&nbsp; Сделок: <b className="text-secondary">{selectedUser.refLeadsCount}</b>
+                                &nbsp;·&nbsp; Объём: <b className="text-green-400">€{(selectedUser.refTotalVolume || 0).toLocaleString()}</b>
+                            </p>
+                        </div>
+                        <button onClick={closeRefDrilldown} className="text-on-surface-variant hover:text-on-surface p-1">
+                            <span className="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
 
-function MetricCard({ icon, label, value, color }: { icon: string; label: string; value: any; color: string }) {
-    const colorMap: Record<string, string> = {
-        primary: 'text-primary bg-primary/10 border-primary/20',
-        secondary: 'text-secondary bg-secondary/10 border-secondary/20',
-        tertiary: 'text-tertiary bg-tertiary/10 border-tertiary/20',
-    };
-    const c = colorMap[color] || colorMap.primary;
-
-    return (
-        <div className={`card-premium !p-5 flex flex-col items-center text-center space-y-1 relative overflow-hidden group neon-glow`}>
-            <div className={`absolute top-0 right-0 w-16 h-16 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 opacity-20 ${c.split(' ')[0]}`} />
-            <div className={`p-2 rounded-xl mb-1 ${c}`}>
-                <span className="material-symbols-outlined text-[20px]">{icon}</span>
+                    {refLeadsLoading ? (
+                        <div className="text-center text-on-surface-variant text-sm py-4 animate-pulse">{t.loading}</div>
+                    ) : refLeads.length === 0 ? (
+                        <div className="text-center text-on-surface-variant text-sm py-4">{t.noOrders}</div>
+                    ) : refLeads.map((l: any) => {
+                        return (
+                            <div key={l.id} className="glass-card p-3 rounded-xl border-l-4 border-l-secondary/30 text-sm">
+                                <div className="flex justify-between items-start mb-1">
+                                    <span className="font-bold text-on-surface">{l.name}</span>
+                                    <div className="text-right">
+                                        <b className="text-green-400">€{(l.units?.price || 0).toLocaleString()}</b>
+                                        <p className="text-[10px] text-yellow-400 font-bold">+€{(Number(l.units?.price) * 0.025).toLocaleString()} {t.commissionLabel}</p>
+                                    </div>
+                                </div>
+                                <div className="text-xs text-on-surface-variant space-y-0.5">
+                                    <div>{l.units?.title?.ru || l.units?.title || '—'}</div>
+                                    <div className="flex justify-between items-center">
+                                        <span>{new Date(l.created_at).toLocaleString()}</span>
+                                        <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${
+                                            l.status === 'closed' ? 'bg-green-500/20 text-green-400' :
+                                            l.status === 'new' ? 'bg-blue-500/20 text-blue-400' :
+                                            'bg-red-500/20 text-red-400'
+                                        }`}>{t.statuses ? (t.statuses[l.status] || l.status) : l.status}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
-            <p className="text-xl font-black text-on-background tracking-tight">{value}</p>
-            <p className="text-[8px] text-outline font-black uppercase tracking-[0.2em]">{label}</p>
+        )}
         </div>
     );
 }
