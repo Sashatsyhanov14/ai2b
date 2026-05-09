@@ -307,6 +307,11 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                                 placeholder={`${t.titleField} (${langTab.toUpperCase()})`}
                                 className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-primary/30 transition-all font-medium"
                                 value={formData.title[langTab] || ''}
+                                onBlur={() => {
+                                    if (langTab === 'ru' && formData.title.ru && !formData.title.en) {
+                                        handleAutoTranslate();
+                                    }
+                                }}
                                 onChange={e => {
                                     const newTitle = { ...formData.title, [langTab]: e.target.value };
                                     setFormData({ ...formData, title: newTitle });
@@ -316,6 +321,11 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                                 placeholder={`Описание (${langTab.toUpperCase()})...`}
                                 className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-primary/30 transition-all font-medium min-h-[100px] resize-none"
                                 value={formData.description[langTab] || ''}
+                                onBlur={() => {
+                                    if (langTab === 'ru' && formData.description.ru && !formData.description.en) {
+                                        handleAutoTranslate();
+                                    }
+                                }}
                                 onChange={e => {
                                     const newDesc = { ...formData.description, [langTab]: e.target.value };
                                     setFormData({ ...formData, description: newDesc });

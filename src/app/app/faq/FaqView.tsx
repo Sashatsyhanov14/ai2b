@@ -169,6 +169,11 @@ export default function FaqView({ lang = 'ru' }: { lang?: string }) {
                         <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">{t.question} ({langTab.toUpperCase()})</label>
                         <input
                             value={form.question[langTab] || ''}
+                            onBlur={() => {
+                                if (langTab === 'ru' && form.question.ru && !form.question.en) {
+                                    handleAutoTranslate();
+                                }
+                            }}
                             onChange={e => setForm({ ...form, question: { ...form.question, [langTab]: e.target.value } })}
                             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-violet-500/50 placeholder:text-zinc-600"
                             placeholder="e.g. Как оформить ВНЖ?"
@@ -178,6 +183,11 @@ export default function FaqView({ lang = 'ru' }: { lang?: string }) {
                         <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">{t.answer} ({langTab.toUpperCase()})</label>
                         <textarea
                             value={form.answer[langTab] || ''}
+                            onBlur={() => {
+                                if (langTab === 'ru' && form.answer.ru && !form.answer.en) {
+                                    handleAutoTranslate();
+                                }
+                            }}
                             onChange={e => setForm({ ...form, answer: { ...form.answer, [langTab]: e.target.value } })}
                             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-violet-500/50 min-h-[120px] resize-y placeholder:text-zinc-600"
                             placeholder={t.answer}
