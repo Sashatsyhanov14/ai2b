@@ -28,7 +28,6 @@ export default function ClientFaqView({ lang = 'ru' }: { lang?: string }) {
         const { data } = await supabase
             .from('faq')
             .select('*')
-            .eq('is_active', true)
             .order('sort_order', { ascending: true });
         if (data) setFaqs(data);
         setLoading(false);
@@ -36,30 +35,28 @@ export default function ClientFaqView({ lang = 'ru' }: { lang?: string }) {
 
     if (loading) {
         return (
-            <div className="space-y-4 animate-pulse">
+            <div className="space-y-4">
                 {[1, 2, 3].map(i => (
-                    <div key={i} className="h-16 bg-white/[0.03] rounded-2xl border border-white/5" />
+                    <div key={i} className="h-20 bg-white/[0.02] rounded-[24px] border border-white/5 animate-pulse" />
                 ))}
             </div>
         );
     }
 
     return (
-        <div className="space-y-5">
-            <div className="flex items-center gap-3 px-1">
-                <div className="bg-emerald-500/10 p-2 rounded-xl border border-emerald-500/20">
-                    <span className="material-symbols-outlined text-emerald-400 text-[20px]">help</span>
-                </div>
-                <h2 className="text-lg font-bold text-white uppercase tracking-widest">{t.title}</h2>
+        <div className="space-y-6">
+            <div className="px-1">
+                <h2 className="text-2xl font-black text-white tracking-tighter uppercase">{t.title}</h2>
+                <div className="h-1 w-12 bg-primary rounded-full mt-2" />
             </div>
 
             {faqs.length === 0 ? (
-                <div className="flex flex-col items-center py-16 space-y-4">
-                    <span className="material-symbols-outlined text-zinc-700 text-[48px]">quiz</span>
-                    <p className="text-sm text-zinc-600 font-medium">{t.empty}</p>
+                <div className="flex flex-col items-center py-24 space-y-4 opacity-20">
+                    <span className="material-symbols-outlined text-[64px] font-thin">quiz</span>
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em]">{t.empty}</p>
                 </div>
             ) : (
-                <div className="space-y-3">
+                <div className="grid gap-4">
                     {faqs.map(faq => {
                         const isOpen = openId === faq.id;
                         const questions = faq.i18n?.questions || { ru: faq.question };
@@ -70,24 +67,40 @@ export default function ClientFaqView({ lang = 'ru' }: { lang?: string }) {
                         return (
                             <div
                                 key={faq.id}
-                                className={`bg-[#121214] rounded-2xl border transition-all duration-300 overflow-hidden ${
-                                    isOpen ? 'border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.05)]' : 'border-white/5'
+                                className={`group bg-[#121214] rounded-[32px] border transition-all duration-500 overflow-hidden ${
+                                    isOpen ? 'border-primary/30 shadow-[0_20px_40px_rgba(0,0,0,0.4)]' : 'border-white/5 hover:border-white/10'
                                 }`}
                             >
                                 <button
                                     onClick={() => setOpenId(isOpen ? null : faq.id)}
-                                    className="w-full flex items-center justify-between p-4 text-left"
+                                    className="w-full flex items-center justify-between p-6 text-left"
                                 >
-                                    <h3 className="text-sm font-bold text-white pr-4 leading-snug">{question}</h3>
-                                    <span className={`material-symbols-outlined text-zinc-500 text-[20px] transition-transform duration-300 flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`}>
-                                        expand_more
-                                    </span>
+                                    <h3 className={`text-sm font-black tracking-tight leading-snug transition-colors duration-300 ${isOpen ? 'text-primary' : 'text-zinc-100'}`}>
+                                        {question}
+                                    </h3>
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-500 ${isOpen ? 'bg-primary text-black rotate-180' : 'bg-white/5 text-zinc-500'}`}>
+                                        <span className="material-symbols-outlined text-[20px]">expand_more</span>
+                                    </div>
                                 </button>
-                                <div className={`transition-all duration-300 ${isOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                                    <div className="px-4 pb-4 pt-0">
-                                        <div className="border-t border-white/5 pt-3">
-                                            <p className="text-xs text-zinc-400 leading-relaxed whitespace-pre-wrap">{answer}</p>
-                                        </div>
+                                
+                                <div className={`transition-all duration-500 ease-in-out ${isOpen ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                                    <div className="px-6 pb-6 space-y-4">
+                                        <div className="h-[1px] w-full bg-white/5" />
+                                        
+                                        {/* Photos Grid */}
+                                        {faq.photos && faq.photos.length > 0 && (
+                                            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                                                {faq.photos.map((photo: string, idx: number) => (
+                                                    <div key={idx} className="flex-shrink-0 w-48 aspect-video rounded-2xl overflow-hidden border border-white/10">
+                                                        <img src={photo} className="w-full h-full object-cover" alt="" />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        
+                                        <p className="text-sm text-zinc-400 leading-relaxed font-medium whitespace-pre-wrap">
+                                            {answer}
+                                        </p>
                                     </div>
                                 </div>
                             </div>

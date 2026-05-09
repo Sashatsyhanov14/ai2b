@@ -241,24 +241,39 @@ export default function FaqView({ lang = 'ru' }: { lang?: string }) {
 
             {/* List */}
             {faqs.length === 0 && !loading ? (
-                <div className="flex flex-col items-center py-16 space-y-4">
-                    <span className="material-symbols-outlined text-zinc-700 text-[48px]">quiz</span>
-                    <p className="text-sm text-zinc-600 font-medium">{t.empty}</p>
+                <div className="flex flex-col items-center py-24 space-y-4 opacity-20">
+                    <span className="material-symbols-outlined text-[64px] font-thin">quiz</span>
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em]">{t.empty}</p>
                 </div>
             ) : (
                 <div className="space-y-3">
                     {faqs.map(faq => (
-                        <div key={faq.id} className="bg-[#121214]/60 p-4 rounded-2xl border border-white/5 flex justify-between items-start gap-4">
-                            <div className="flex-1 space-y-1 min-w-0">
-                                <h3 className="text-sm font-bold text-white leading-snug">{faq.question}</h3>
-                                <p className="text-xs text-zinc-500 line-clamp-2 leading-relaxed">{faq.answer}</p>
+                        <div key={faq.id} className="glass-card bg-[#121214] p-3 rounded-3xl border border-white/5 flex items-center gap-4 group hover:border-violet-500/20 transition-all">
+                            <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center overflow-hidden border border-white/5 flex-shrink-0">
+                                {faq.photos?.[0] ? (
+                                    <img src={faq.photos[0]} className="w-full h-full object-cover" alt="" />
+                                ) : (
+                                    <span className="material-symbols-outlined text-zinc-700 text-[24px]">quiz</span>
+                                )}
                             </div>
-                            <div className="flex flex-col gap-2 flex-shrink-0">
-                                <button onClick={() => handleEdit(faq)} className="p-2 bg-white/5 rounded-lg border border-white/10 text-zinc-400 hover:text-white transition-colors">
-                                    <span className="material-symbols-outlined text-[16px]">edit</span>
+                            
+                            <div className="flex-1 min-w-0">
+                                <h3 className="text-sm font-black text-zinc-100 truncate tracking-tight">{faq.question}</h3>
+                                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5 line-clamp-1">{faq.answer}</p>
+                            </div>
+                            
+                            <div className="flex flex-col gap-2 flex-shrink-0 pr-1">
+                                <button 
+                                    onClick={() => handleEdit(faq)} 
+                                    className="w-9 h-9 flex items-center justify-center bg-violet-500/10 rounded-xl border border-violet-500/20 text-violet-400/60 hover:text-violet-400 transition-all active:scale-90"
+                                >
+                                    <span className="material-symbols-outlined text-[18px]">edit</span>
                                 </button>
-                                <button onClick={() => handleDelete(faq.id)} className="p-2 bg-red-500/10 rounded-lg border border-red-500/20 text-red-400/70 hover:text-red-400 transition-colors">
-                                    <span className="material-symbols-outlined text-[16px]">delete</span>
+                                <button 
+                                    onClick={() => handleDelete(faq.id)} 
+                                    className="w-9 h-9 flex items-center justify-center bg-red-500/10 rounded-xl border border-red-500/20 text-red-400/60 hover:text-red-400 transition-all active:scale-90"
+                                >
+                                    <span className="material-symbols-outlined text-[18px]">delete</span>
                                 </button>
                             </div>
                         </div>
