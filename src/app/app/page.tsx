@@ -385,7 +385,7 @@ export default function MiniAppDispatcher() {
     return (
         <div className="min-h-screen pb-32 bg-background">
             {/* MD3 Header */}
-            <header className="px-6 pt-10 pb-4 flex justify-between items-center relative overflow-hidden">
+            <header className="px-6 pt-10 pb-4 flex justify-between items-center relative">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[100px] -z-10" />
                 <div>
                     <div className="flex items-center gap-2 mb-1">
@@ -408,7 +408,7 @@ export default function MiniAppDispatcher() {
                 </button>
 
                 {showLangDropdown && (
-                    <div className="absolute top-24 right-6 w-48 bg-surface-container-high border border-white/10 rounded-3xl shadow-2xl z-[100] overflow-hidden py-2 animate-in fade-in zoom-in duration-200">
+                    <div className="absolute top-24 right-6 w-48 bg-surface-container-high/90 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl z-[1000] overflow-hidden py-2 animate-in fade-in zoom-in duration-200">
                         {['ru', 'en', 'tr', 'de', 'es', 'ar', 'fr'].map((l) => (
                             <button
                                 key={l}
