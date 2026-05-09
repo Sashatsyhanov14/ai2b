@@ -139,6 +139,7 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
         unit_type: 'apartment',
         is_sale: true,
         is_rent: false,
+        photos: [],
         description: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' },
     });
 
@@ -221,6 +222,7 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
             intent: [formData.is_sale && 'sale', formData.is_rent && 'rent'].filter(Boolean).join(','),
             price: parseFloat(formData.price),
             price_period: formData.is_rent && !formData.is_sale ? 'month' : 'total',
+            photos: formData.photos,
             is_active: true,
         };
 
@@ -239,10 +241,48 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                 unit_type: 'apartment', 
                 is_sale: true, 
                 is_rent: false, 
+                photos: [],
                 description: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' } 
             });
             fetchUnits();
         }
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+
+        setTranslating(true); // Reuse translating as loading state for simplicity
+        const newPhotos = [...formData.photos];
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Math.random()}.${fileExt}`;
+            const filePath = `units/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('media')
+                .upload(filePath, file);
+
+            if (uploadError) {
+                console.error('Upload error:', uploadError);
+                continue;
+            }
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('media')
+                .getPublicUrl(filePath);
+
+            newPhotos.push(publicUrl);
+        }
+
+        setFormData({ ...formData, photos: newPhotos });
+        setTranslating(false);
+    };
+
+    const removePhoto = (url: string) => {
+        setFormData({ ...formData, photos: formData.photos.filter((p: string) => p !== url) });
     };
 
     const handleDelete = async (unit: any) => {
@@ -389,6 +429,29 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                                 value={formData.address}
                                 onChange={e => setFormData({ ...formData, address: e.target.value })}
                             />
+                        </div>
+
+                        {/* Photo Upload Section */}
+                        <div className="space-y-3">
+                            <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">Фотографии объекта</p>
+                            <div className="grid grid-cols-4 gap-2">
+                                {formData.photos.map((p: string) => (
+                                    <div key={p} className="relative aspect-square rounded-xl overflow-hidden border border-white/10">
+                                        <img src={p} className="w-full h-full object-cover" alt="" />
+                                        <button 
+                                            onClick={() => removePhoto(p)}
+                                            className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5"
+                                        >
+                                            <span className="material-symbols-outlined text-[14px]">close</span>
+                                        </button>
+                                    </div>
+                                ))}
+                                <label className="aspect-square rounded-xl border border-dashed border-white/20 flex flex-col items-center justify-center cursor-pointer hover:bg-white/5 transition-all">
+                                    <input type="file" multiple accept="image/*" onChange={handleFileUpload} className="hidden" />
+                                    <span className="material-symbols-outlined text-zinc-500 text-[20px]">add_a_photo</span>
+                                    <span className="text-[8px] text-zinc-600 font-bold uppercase mt-1">Добавить</span>
+                                </label>
+                            </div>
                         </div>
                     </div>
                     <button

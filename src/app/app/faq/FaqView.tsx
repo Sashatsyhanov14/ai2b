@@ -21,7 +21,8 @@ export default function FaqView({ lang = 'ru' }: { lang?: string }) {
     const [editingFaq, setEditingFaq] = useState<any>(null);
     const [form, setForm] = useState<any>({
         question: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' },
-        answer: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' }
+        answer: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' },
+        photos: []
     });
     const [isFormOpen, setIsFormOpen] = useState(false);
 
@@ -81,7 +82,8 @@ export default function FaqView({ lang = 'ru' }: { lang?: string }) {
             i18n: {
                 questions: finalQ,
                 answers: finalA
-            }
+            },
+            photos: form.photos
         };
 
         if (editingFaq) {
@@ -101,7 +103,8 @@ export default function FaqView({ lang = 'ru' }: { lang?: string }) {
         
         setForm({
             question: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '', ...questions },
-            answer: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '', ...answers }
+            answer: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '', ...answers },
+            photos: faq.photos || []
         });
         setIsFormOpen(true);
     };
@@ -116,9 +119,47 @@ export default function FaqView({ lang = 'ru' }: { lang?: string }) {
         setEditingFaq(null);
         setForm({
             question: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' },
-            answer: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' }
+            answer: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' },
+            photos: []
         });
         setIsFormOpen(false);
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+
+        setTranslating(true);
+        const newPhotos = [...form.photos];
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Math.random()}.${fileExt}`;
+            const filePath = `faq/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('media')
+                .upload(filePath, file);
+
+            if (uploadError) {
+                console.error('Upload error:', uploadError);
+                continue;
+            }
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('media')
+                .getPublicUrl(filePath);
+
+            newPhotos.push(publicUrl);
+        }
+
+        setForm({ ...form, photos: newPhotos });
+        setTranslating(false);
+    };
+
+    const removePhoto = (url: string) => {
+        setForm({ ...form, photos: form.photos.filter((p: string) => p !== url) });
     };
 
     return (
@@ -193,6 +234,30 @@ export default function FaqView({ lang = 'ru' }: { lang?: string }) {
                             placeholder={t.answer}
                         />
                     </div>
+                    </div>
+                    
+                    {/* Photo Upload Section */}
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">Фото к ответу</label>
+                        <div className="grid grid-cols-4 gap-2">
+                            {form.photos.map((p: string) => (
+                                <div key={p} className="relative aspect-square rounded-xl overflow-hidden border border-white/10">
+                                    <img src={p} className="w-full h-full object-cover" alt="" />
+                                    <button 
+                                        onClick={() => removePhoto(p)}
+                                        className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5"
+                                    >
+                                        <span className="material-symbols-outlined text-[14px]">close</span>
+                                    </button>
+                                </div>
+                            ))}
+                            <label className="aspect-square rounded-xl border border-dashed border-white/20 flex flex-col items-center justify-center cursor-pointer hover:bg-white/5 transition-all">
+                                <input type="file" multiple accept="image/*" onChange={handleFileUpload} className="hidden" />
+                                <span className="material-symbols-outlined text-zinc-500 text-[20px]">add_a_photo</span>
+                            </label>
+                        </div>
+                    </div>
+
                     <div className="flex gap-2">
                         <button
                             onClick={handleSave}
