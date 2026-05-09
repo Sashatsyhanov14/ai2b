@@ -303,7 +303,7 @@ export default function StatsView({ user, lang = 'ru' }: { user?: any; lang?: st
                 <MetricCard icon="group" label={t.totalUsers} value={stats.totalUsers} color="violet" />
                 <MetricCard icon="leaderboard" label={t.totalLeads} value={stats.totalLeads} color="emerald" />
                 <MetricCard icon="person_add" label={t.refUsers} value={stats.refUsers} color="amber" />
-                <MetricCard icon="payments" label={t.revenue} value={`€${stats.revenue.toLocaleString()}`} color="blue" />
+                {isAdmin && <MetricCard icon="payments" label={t.revenue} value={`€${stats.revenue.toLocaleString()}`} color="blue" />}
             </div>
 
             {loading ? (
@@ -354,7 +354,7 @@ export default function StatsView({ user, lang = 'ru' }: { user?: any; lang?: st
                                             {t.viewRefDealsBtn}
                                         </button>
                                     )}
-                                    {u.balance > 0 && (
+                                    {u.balance > 0 && isAdmin && (
                                         <button 
                                             onClick={() => handlePayout(u.telegram_id, u.balance)}
                                             className="flex-1 py-2.5 bg-emerald-500 text-black rounded-xl text-[9px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.3)]"

@@ -66,7 +66,8 @@ const i18n: Record<string, Record<string, string>> = {
     },
 };
 
-export default function LeadsView({ lang = 'ru' }: { lang?: string }) {
+export default function LeadsView({ user, lang = 'ru' }: { user?: any; lang?: string }) {
+    const isAdmin = user?.role === 'founder' || user?.role === 'admin';
     const t = i18n[lang] || i18n['ru'];
     const [leads, setLeads] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -280,13 +281,15 @@ export default function LeadsView({ lang = 'ru' }: { lang?: string }) {
                                                         <span className="material-symbols-outlined">check_circle</span>
                                                     </button>
                                                 )}
-                                                <button
-                                                    onClick={() => deleteLead(lead.id)}
-                                                    className="w-12 bg-red-500/10 text-red-500 border border-red-500/20 rounded-2xl flex items-center justify-center active:scale-95 transition-all"
-                                                    title={t.delete}
-                                                >
-                                                    <span className="material-symbols-outlined">delete</span>
-                                                </button>
+                                                {isAdmin && (
+                                                    <button
+                                                        onClick={() => deleteLead(lead.id)}
+                                                        className="w-12 bg-red-500/10 text-red-500 border border-red-500/20 rounded-2xl flex items-center justify-center active:scale-95 transition-all"
+                                                        title={t.delete}
+                                                    >
+                                                        <span className="material-symbols-outlined">delete</span>
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

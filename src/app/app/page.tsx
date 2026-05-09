@@ -364,7 +364,7 @@ export default function MiniAppDispatcher() {
                 {activeTab === 'catalog' && <CatalogView lang={lang} />}
                 {activeTab === 'bonuses' && <ReferralView user={user} lang={lang} />}
                 {activeTab === 'stats' && <StatsView user={user} lang={lang} />}
-                {activeTab === 'leads' && <LeadsView lang={lang} />}
+                {activeTab === 'leads' && <LeadsView user={user} lang={lang} />}
                 {activeTab === 'units' && <UnitsView lang={lang} />}
                 {activeTab === 'faq' && (isAdmin ? <FaqView lang={lang} /> : <ClientFaqView lang={lang} />)}
             </main>
