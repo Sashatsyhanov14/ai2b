@@ -192,7 +192,7 @@ export default function StatsView({ user, lang = 'ru' }: { user?: any; lang?: st
                             uMap[refId].refLeadsCount++;
                             if (l.status === 'closed') {
                                 uMap[refId].refTotalVolume += unitPrice;
-                                uMap[refId].earnedBonuses += (unitPrice * 0.01);
+                                uMap[refId].earnedBonuses += (unitPrice * 0.025);
                             }
                         }
                     }
