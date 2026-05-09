@@ -23,7 +23,7 @@ export async function handleSearchDatabase(args: SearchArgs & { id?: string; pri
 
     if (args.intent) {
         if (args.intent === "rent" || args.intent === "sale") {
-            query = query.eq("intent", args.intent);
+            query = query.ilike("intent", `%${args.intent}%`);
             // Optionally default to apartment if not specified
             if (args.category === "land") query = query.eq("unit_type", "land");
             else if (args.category === "commercial") query = query.eq("unit_type", "commercial");

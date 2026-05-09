@@ -137,7 +137,8 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
         address: '',
         price: '',
         unit_type: 'apartment',
-        intent: 'sale',
+        is_sale: true,
+        is_rent: false,
         description: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' },
     });
 
@@ -217,9 +218,9 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
             address: formData.address,
             description: finalDesc,
             unit_type: formData.unit_type,
-            intent: formData.intent,
+            intent: [formData.is_sale && 'sale', formData.is_rent && 'rent'].filter(Boolean).join(','),
             price: parseFloat(formData.price),
-            price_period: formData.intent === 'rent' ? 'month' : 'total',
+            price_period: formData.is_rent && !formData.is_sale ? 'month' : 'total',
             is_active: true,
         };
 
@@ -236,7 +237,8 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                 address: '', 
                 price: '', 
                 unit_type: 'apartment', 
-                intent: 'sale', 
+                is_sale: true, 
+                is_rent: false, 
                 description: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' } 
             });
             fetchUnits();
@@ -340,20 +342,26 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                                     >
                                         <option value="apartment" className="bg-[#121214]">Квартира</option>
                                         <option value="land" className="bg-[#121214]">Участок</option>
-                                        <option value="villa" className="bg-[#121214]">Вилла</option>
                                     </select>
                                     <span className="material-symbols-outlined absolute right-3 top-3.5 text-zinc-600 pointer-events-none text-[18px]">expand_more</span>
                                 </div>
-                                <div className="relative">
-                                    <select
-                                        className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-xs font-bold text-white outline-none focus:border-primary/30 appearance-none uppercase tracking-wider"
-                                        value={formData.intent}
-                                        onChange={e => setFormData({ ...formData, intent: e.target.value })}
+                                <div className="flex gap-2">
+                                    <button 
+                                        type="button"
+                                        onClick={() => setFormData({ ...formData, is_sale: !formData.is_sale })}
+                                        className={`flex-1 flex items-center justify-center gap-2 rounded-2xl border transition-all text-[10px] font-black uppercase tracking-widest ${formData.is_sale ? 'bg-blue-500/20 border-blue-500/30 text-blue-400' : 'bg-white/5 border-white/5 text-zinc-600'}`}
                                     >
-                                        <option value="sale" className="bg-[#121214]">{t.sale}</option>
-                                        <option value="rent" className="bg-[#121214]">{t.rent}</option>
-                                    </select>
-                                    <span className="material-symbols-outlined absolute right-3 top-3.5 text-zinc-600 pointer-events-none text-[18px]">expand_more</span>
+                                        <span className="material-symbols-outlined text-[16px]">{formData.is_sale ? 'check_circle' : 'circle'}</span>
+                                        {t.sale}
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        onClick={() => setFormData({ ...formData, is_rent: !formData.is_rent })}
+                                        className={`flex-1 flex items-center justify-center gap-2 rounded-2xl border transition-all text-[10px] font-black uppercase tracking-widest ${formData.is_rent ? 'bg-amber-500/20 border-amber-500/30 text-amber-400' : 'bg-white/5 border-white/5 text-zinc-600'}`}
+                                    >
+                                        <span className="material-symbols-outlined text-[16px]">{formData.is_rent ? 'check_circle' : 'circle'}</span>
+                                        {t.rent}
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -427,13 +435,13 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                                     <div className="flex items-center gap-1.5">
                                         <span className="text-[9px] text-zinc-500 font-black uppercase tracking-widest truncate">{unit.city}</span>
                                         <span className="text-[9px] text-zinc-700">•</span>
-                                        <span className={`text-[9px] font-black uppercase tracking-widest ${unit.intent === 'rent' ? 'text-amber-400' : 'text-blue-400'}`}>
-                                            {unit.intent === 'rent' ? t.rent : t.sale}
+                                        <span className={`text-[9px] font-black uppercase tracking-widest ${unit.intent?.includes('rent') ? 'text-amber-400' : 'text-blue-400'}`}>
+                                            {unit.intent?.includes('rent') && unit.intent?.includes('sale') ? `${t.rent} & ${t.sale}` : unit.intent?.includes('rent') ? t.rent : t.sale}
                                         </span>
                                     </div>
                                     <p className="text-xs font-black text-emerald-400 mt-1">
                                         €{unit.price?.toLocaleString()}
-                                        {unit.intent === 'rent' && <span className="text-[10px] text-zinc-600 font-bold ml-1 uppercase">/мес</span>}
+                                        {unit.intent?.includes('rent') && !unit.intent?.includes('sale') && <span className="text-[10px] text-zinc-600 font-bold ml-1 uppercase">/мес</span>}
                                     </p>
                                 </div>
                             </div>

@@ -119,7 +119,7 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
             .select('*')
             .eq('is_active', true)
             .eq('unit_type', filter)
-            .eq('intent', intentFilter)
+            .ilike('intent', `%${intentFilter}%`)
             .order('created_at', { ascending: false });
         
         if (dbUnits) {
@@ -269,7 +269,8 @@ function PropertyCard({ unit, tr, lang, onAskBot, onBookNow }: any) {
     const city = unit.i18n?.[lang]?.city || getLocalized(unit.city, lang) || 'Alanya';
     const description = unit.i18n?.[lang]?.description || getLocalized(unit.description, lang);
     const price = unit.price;
-    const isRent = unit.intent === 'rent';
+    const isRent = unit.intent?.includes('rent');
+    const isSale = unit.intent?.includes('sale');
     const isInvest = unit.unit_type === 'invest';
 
     return (
@@ -295,11 +296,11 @@ function PropertyCard({ unit, tr, lang, onAskBot, onBookNow }: any) {
                 {/* Price Badge */}
                 <div className="absolute bottom-6 left-6 flex flex-col">
                     <p className="text-primary text-[10px] font-black uppercase tracking-[0.2em] mb-1 opacity-80">
-                        {isRent ? 'Monthy Rent' : 'Selling Price'}
+                        {isRent && isSale ? `${tr.rent} & ${tr.sale}` : isRent ? tr.rent : tr.sale}
                     </p>
                     <p className="text-white text-3xl font-black tracking-tighter">
                         €{price?.toLocaleString()}
-                        {isRent && <span className="text-sm text-zinc-500 font-bold ml-1">{tr.perMonth}</span>}
+                        {isRent && !isSale && <span className="text-sm text-zinc-500 font-bold ml-1">{tr.perMonth}</span>}
                     </p>
                 </div>
             </div>
