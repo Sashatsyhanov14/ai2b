@@ -224,37 +224,47 @@ export default function StatsView({ user, lang = 'ru' }: { user?: any; lang?: st
         setLoading(false);
     };
 
+    const [isAddingManager, setIsAddingManager] = useState(false);
+
     const handleAddManager = async () => {
-        if (!newManagerId || !isAdmin) return;
+        if (!newManagerId) return alert(lang === 'ru' ? 'Введите ID или @username' : 'Enter ID or @username');
+        if (!isAdmin) return;
         
-        let query = supabase.from('users').select('*');
-        const input = newManagerId.trim();
-        
-        if (/^\d+$/.test(input)) {
-            query = query.eq('telegram_id', parseInt(input));
-        } else {
-            const username = input.startsWith('@') ? input.substring(1) : input;
-            query = query.eq('username', username);
-        }
+        setIsAddingManager(true);
+        try {
+            let query = supabase.from('users').select('*');
+            const input = newManagerId.trim();
+            
+            if (/^\d+$/.test(input)) {
+                query = query.eq('telegram_id', parseInt(input));
+            } else {
+                const username = input.startsWith('@') ? input.substring(1) : input;
+                query = query.eq('username', username);
+            }
 
-        const { data: existingUser } = await query.single();
-        
-        if (!existingUser) {
-            if (tg?.showAlert) tg.showAlert(t.managerAddError);
-            else alert(t.managerAddError);
-            return;
-        }
+            const { data: existingUser, error: findErr } = await query.maybeSingle();
+            
+            if (findErr) throw findErr;
+            if (!existingUser) {
+                if (tg?.showAlert) tg.showAlert(t.managerAddError);
+                else alert(t.managerAddError);
+                return;
+            }
 
-        const { error: upErr } = await supabase.from('users').update({ role: newManagerRole }).eq('telegram_id', existingUser.telegram_id);
-        
-        if (upErr) {
-            if (tg?.showAlert) tg.showAlert('Error: ' + upErr.message);
-            else alert('Error: ' + upErr.message);
-        } else {
-            if (tg?.showAlert) tg.showAlert('Success!');
-            else alert('Success!');
+            const { error: upErr } = await supabase.from('users').update({ role: newManagerRole }).eq('telegram_id', existingUser.telegram_id);
+            
+            if (upErr) throw upErr;
+
+            if (tg?.showAlert) tg.showAlert(t.managerAddSuccess.replace('{id}', input).replace('{role}', newManagerRole));
+            else alert(t.managerAddSuccess.replace('{id}', input).replace('{role}', newManagerRole));
+            
             fetchManagers();
             setNewManagerId('');
+        } catch (err: any) {
+            console.error('Add Manager Error:', err);
+            alert('Error: ' + err.message);
+        } finally {
+            setIsAddingManager(false);
         }
     };
 
@@ -352,8 +362,16 @@ export default function StatsView({ user, lang = 'ru' }: { user?: any; lang?: st
                                 className="flex-1 bg-surface-container-lowest border border-outline-variant/20 rounded-lg px-4 min-h-[42px] text-sm text-on-surface focus:outline-none focus:border-primary/50"
                                 placeholder="12345678"
                             />
-                            <button onClick={handleAddManager} className="whitespace-nowrap bg-primary/20 text-primary border border-primary/30 w-[42px] h-[42px] min-w-[42px] flex items-center justify-center rounded-lg shadow-[0_0_15px_rgba(208,188,255,0.1)] hover:bg-primary/30 transition-all active:scale-95">
-                                <span className="material-symbols-outlined font-bold text-xl">add</span>
+                            <button 
+                                onClick={handleAddManager} 
+                                disabled={isAddingManager || !newManagerId}
+                                className="whitespace-nowrap bg-primary/20 text-primary border border-primary/30 w-[42px] h-[42px] min-w-[42px] flex items-center justify-center rounded-lg shadow-[0_0_15px_rgba(208,188,255,0.1)] hover:bg-primary/30 transition-all active:scale-95 disabled:opacity-30"
+                            >
+                                {isAddingManager ? (
+                                    <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                                ) : (
+                                    <span className="material-symbols-outlined font-bold text-xl">add</span>
+                                )}
                             </button>
                         </div>
                         

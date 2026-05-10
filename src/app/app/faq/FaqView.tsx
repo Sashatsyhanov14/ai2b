@@ -43,33 +43,38 @@ export default function FaqView({ lang = 'ru' }: { lang?: string }) {
         
         setTranslating(true);
         try {
-            // Auto translate question and answer in parallel
-            const [transQ, transA] = await Promise.all([
-                fetch('/api/translate', { method: 'POST', body: JSON.stringify({ text: form.question }) }).then(r => r.json()),
-                fetch('/api/translate', { method: 'POST', body: JSON.stringify({ text: form.answer }) }).then(r => r.json())
-            ]);
+            let transQ = { ru: form.question };
+            let transA = { ru: form.answer };
+
+            try {
+                const [resQ, resA] = await Promise.all([
+                    fetch('/api/translate', { method: 'POST', body: JSON.stringify({ text: form.question }) }).then(r => r.json()),
+                    fetch('/api/translate', { method: 'POST', body: JSON.stringify({ text: form.answer }) }).then(r => r.json())
+                ]);
+                if (resQ && !resQ.error) transQ = resQ;
+                if (resA && !resA.error) transA = resA;
+            } catch (e) {
+                console.error('Translation failed during FAQ save:', e);
+            }
 
             const payload = {
                 question: transQ.ru || form.question,
                 answer: transA.ru || form.answer,
-                i18n: {
-                    questions: transQ,
-                    answers: transA
-                },
+                i18n: { questions: transQ, answers: transA },
                 photos: form.photos
             };
 
-            if (editingFaq) {
-                await supabase.from('faq').update(payload).eq('id', editingFaq.id);
-            } else {
-                await supabase.from('faq').insert(payload);
-            }
+            const { error: saveErr } = editingFaq 
+                ? await supabase.from('faq').update(payload).eq('id', editingFaq.id)
+                : await supabase.from('faq').insert(payload);
+
+            if (saveErr) throw saveErr;
 
             resetForm();
             fetchFaqs();
-        } catch (e) {
+        } catch (e: any) {
             console.error('FAQ Save Error:', e);
-            alert('Error saving FAQ');
+            alert('Error saving FAQ: ' + (e.message || 'Unknown error'));
         }
         setTranslating(false);
     };

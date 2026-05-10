@@ -8,6 +8,7 @@ conn.on('ready', () => {
     cd /root/bots/bot4 &&
     git pull origin main &&
     npm install &&
+    node scratch/migrate-db.js &&
     npm run build &&
     pm2 delete bot4 || true &&
     pm2 start ecosystem.config.js

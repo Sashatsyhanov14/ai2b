@@ -224,34 +224,6 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
         setLoading(false);
     };
 
-    const handleAutoTranslate = async () => {
-        const sourceText = formData.address;
-        if (!sourceText) return alert(lang === 'ru' ? 'Введите адрес для перевода' : 'Enter address to translate');
-
-        setTranslating(true);
-        try {
-            const res = await fetch('/api/translate', {
-                method: 'POST',
-                body: JSON.stringify({ text: sourceText }),
-            });
-            const data = await res.json();
-            if (data && typeof data === 'object') {
-                setFormData({ 
-                    ...formData, 
-                    title: data,
-                    description: Object.keys(data).reduce((acc: any, l) => {
-                        acc[l] = ''; 
-                        return acc;
-                    }, {})
-                });
-            }
-        } catch (err) {
-            console.error('Translation failed:', err);
-        } finally {
-            setTranslating(false);
-        }
-    };
-
     const handleAdd = async () => {
         // 1. Validation Logic
         if (!formData.address) return alert(lang === 'ru' ? 'Укажите местоположение' : 'Specify location');
@@ -264,14 +236,20 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
         }
         
         setPublishing(true);
-        setPublishStatus('Подготовка данных...');
+        setPublishStatus(lang === 'ru' ? 'Перевод (ИИ)...' : 'AI Translating...');
         
         try {
-            // If title is not translated yet, use current address as RU title
-            let finalTitle = formData.title;
-            if (!finalTitle.ru) {
-                finalTitle = { ...finalTitle, ru: formData.address };
-            }
+            // Auto-translate address into title and description
+            const res = await fetch('/api/translate', {
+                method: 'POST',
+                body: JSON.stringify({ text: formData.address }),
+            });
+            const transTitle = await res.json();
+            
+            setPublishStatus(lang === 'ru' ? 'Сохранение...' : 'Saving...');
+
+            let finalTitle = transTitle && Object.keys(transTitle).length > 0 ? transTitle : formData.title;
+            if (!finalTitle.ru) finalTitle.ru = formData.address;
 
             const payload: any = {
                 title: finalTitle,
@@ -542,37 +520,6 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                         </div>
                     </div>
 
-                    {/* 4. Details Section (Auto-translation of Location) */}
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center px-1">
-                            <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">{lang === 'ru' ? 'Перевод местоположения' : 'Location Translation'}</p>
-                            <div className="flex bg-white/[0.02] p-1 rounded-xl border border-white/5">
-                                {['ru', 'en', 'tr'].map(l => (
-                                    <button 
-                                        key={l}
-                                        onClick={() => setLangTab(l)}
-                                        className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all ${langTab === l ? 'bg-white/10 text-white' : 'text-zinc-600'}`}
-                                    >
-                                        {l}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        
-                        <div className="space-y-3">
-                            <button 
-                                onClick={handleAutoTranslate}
-                                disabled={translating || !formData.address}
-                                className="w-full py-4 rounded-2xl bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-30"
-                            >
-                                <span className="material-symbols-outlined text-[18px]">{translating ? 'sync' : 'translate'}</span>
-                                {translating ? (lang === 'ru' ? 'ПЕРЕВОД...' : 'TRANSLATING...') : (lang === 'ru' ? 'ПЕРЕВЕСТИ АДРЕС НА ВСЕ ЯЗЫКИ' : 'TRANSLATE ADDRESS TO ALL LANGUAGES')}
-                            </button>
-                            <p className="text-[8px] text-center text-zinc-600 font-bold uppercase tracking-wider">
-                                {lang === 'ru' ? 'Название и описание теперь формируются автоматически' : 'Title and description are now generated automatically'}
-                            </p>
-                        </div>
-                    </div>
 
                     {/* 5. Characteristics Section */}
                     <div className="space-y-4">
