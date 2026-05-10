@@ -25,6 +25,8 @@ export async function handleMessage(
 
         // 0. HANDLE WEB_APP_DATA
         let manualPhone = "";
+        let forceLead = false;
+        let unitsFound: any[] = [];
         const webAppData = update?.message?.web_app_data?.data;
         if (webAppData) {
             try {
@@ -32,10 +34,14 @@ export async function handleMessage(
                 console.log("[Bot] WebApp Data received:", data);
                 
                 if (data.action === 'book_now' || data.action === 'ask_about') {
-                    // Treat this as a trigger for lead extraction or direct notification
+                    forceLead = true;
                     if (data.phone) manualPhone = data.phone;
                     const phoneSuffix = data.phone ? `\n📞 Телефон: ${data.phone}` : '';
                     text = `Я интересуюсь объектом: ${data.title} (ID: ${data.unit_id}). ${data.action === 'book_now' ? 'ХОЧУ КУПИТЬ/ЗАБРОНИРОВАТЬ!' : 'Расскажи подробнее.'}${phoneSuffix}`;
+                    
+                    // Pre-fetch unit to ensure it's in context
+                    const { data: unit } = await supabase.from('units').select('*').eq('id', data.unit_id).single();
+                    if (unit) unitsFound = [unit];
                 }
             } catch (e) {
                 console.error("WebApp Data Parse Error:", e);
@@ -190,11 +196,18 @@ export async function handleMessage(
         // ==========================================
         sendChatAction(token, chatId, 'typing').catch(() => {});
         const plan = await runAnalyzerAgent(messages, botKnowledge);
+        
+        // Force agents for Mini App leads
+        if (forceLead) {
+            if (!plan.notifier_agent) plan.notifier_agent = { alert_reason: "Заявка из Mini App" };
+            if (!plan.lead_extractor_agent) plan.lead_extractor_agent = { lead_temperature: "hot", client_profile: text };
+            if (!plan.writer_agent) plan.writer_agent = { instruction: "Поблагодари за заявку и скажи что менеджер скоро свяжется." };
+        }
+
         console.log(`[Bot] Orchestrator Plan:`, JSON.stringify(plan));
 
         let propertyContext = "База недвижимости не запрашивалась.";
         let leadContext = "";
-        let unitsFound: any[] = [];
         let finalReplyText = "";
 
         // A. SEARCH AGENT
