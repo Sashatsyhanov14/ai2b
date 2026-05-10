@@ -182,7 +182,7 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
     const [isAdding, setIsAdding] = useState(false);
     const [langTab, setLangTab] = useState('ru');
     const [formData, setFormData] = useState<any>({
-        title: '',
+        title: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' },
         city: 'Alanya',
         district: '',
         address: '',
@@ -204,7 +204,7 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
         height_limit: '',
         tags: [],
         photos: [],
-        description: '',
+        description: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' },
     });
 
     const [publishing, setPublishing] = useState(false);
@@ -225,22 +225,25 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
     };
 
     const handleAutoTranslate = async () => {
-        if (!formData.title.ru) return;
+        const sourceTitle = formData.title[langTab as keyof typeof formData.title] || formData.title.ru;
+        const sourceDesc = formData.description[langTab as keyof typeof formData.description] || formData.description.ru;
+        
+        if (!sourceTitle) return;
         setTranslating(true);
         try {
             // Translate Title
             const resTitle = await fetch('/api/translate', {
                 method: 'POST',
-                body: JSON.stringify({ text: formData.title.ru })
+                body: JSON.stringify({ text: sourceTitle })
             });
             const translatedTitles = await resTitle.json();
 
             // Translate Description
             let translatedDescs = formData.description;
-            if (formData.description.ru) {
+            if (sourceDesc) {
                 const resDesc = await fetch('/api/translate', {
                     method: 'POST',
-                    body: JSON.stringify({ text: formData.description.ru })
+                    body: JSON.stringify({ text: sourceDesc })
                 });
                 translatedDescs = await resDesc.json();
             }
@@ -260,7 +263,8 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
 
     const handleAdd = async () => {
         // 1. Validation Logic
-        if (!formData.title) return alert('Введите название объекта');
+        const currentTitle = formData.title[langTab as keyof typeof formData.title] || formData.title.ru;
+        if (!currentTitle) return alert('Введите название объекта');
         
         if (formData.is_sale && !formData.price_sale) {
             return alert('Укажите цену продажи');
@@ -274,10 +278,13 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
         
         try {
             // Auto-translate title and description in parallel
+            const sourceTitle = formData.title[langTab as keyof typeof formData.title] || formData.title.ru;
+            const sourceDesc = formData.description[langTab as keyof typeof formData.description] || formData.description.ru;
+
             const [transTitle, transDesc] = await Promise.all([
-                fetch('/api/translate', { method: 'POST', body: JSON.stringify({ text: formData.title }) }).then(r => r.json()),
-                formData.description 
-                    ? fetch('/api/translate', { method: 'POST', body: JSON.stringify({ text: formData.description }) }).then(r => r.json())
+                fetch('/api/translate', { method: 'POST', body: JSON.stringify({ text: sourceTitle }) }).then(r => r.json()),
+                sourceDesc 
+                    ? fetch('/api/translate', { method: 'POST', body: JSON.stringify({ text: sourceDesc }) }).then(r => r.json())
                     : Promise.resolve({})
             ]);
 
@@ -302,6 +309,10 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                 area: formData.area ? parseFloat(formData.area) : null,
                 floor: formData.floor ? parseInt(formData.floor) : null,
                 total_floors: formData.total_floors ? parseInt(formData.total_floors) : null,
+                ada: formData.ada || null,
+                parsel: formData.parsel || null,
+                density: formData.density ? parseFloat(formData.density) : null,
+                height_limit: formData.height_limit ? parseFloat(formData.height_limit) : null,
                 tags: formData.tags,
                 photos: formData.photos,
                 is_active: true,
