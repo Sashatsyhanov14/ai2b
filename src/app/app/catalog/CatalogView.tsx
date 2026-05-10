@@ -115,7 +115,7 @@ const AMENITIES = [
     { id: 'pool', icon: 'pool', labels: { ru: 'Бассейн', en: 'Pool', tr: 'Havuz', de: 'Pool', es: 'Piscina', ar: 'مسبح', fr: 'Piscine' } },
     { id: 'gym', icon: 'fitness_center', labels: { ru: 'Спортзал', en: 'Gym', tr: 'Spor Salonu', de: 'Fitness', es: 'Gimnasio', ar: 'نادي رياضي', fr: 'Salle de sport' } },
     { id: 'parking', icon: 'local_parking', labels: { ru: 'Парковка', en: 'Parking', tr: 'Otopark', de: 'Parkplatz', es: 'Parking', ar: 'موقف سيارات', fr: 'Parking' } },
-    { id: 'sea_view', icon: 'waves', labels: { ru: 'Вид на море', en: 'Sea View', tr: 'Deniz Manzarası', de: 'Meerblick', es: 'Vista al mar', ar: 'إطلالة на البحر', fr: 'Vue sur mer' } },
+    { id: 'sea_view', icon: 'waves', labels: { ru: 'Вид на море', en: 'Sea View', tr: 'Deniz Manzarası', de: 'Meerblick', es: 'Vista al mar', ar: 'إطلالة على البحر', fr: 'Vue sur mer' } },
     { id: 'garden', icon: 'yard', labels: { ru: 'Сад', en: 'Garden', tr: 'Bahçe', de: 'Garten', es: 'Jardín', ar: 'حديقة', fr: 'Jardin' } },
     { id: 'security', icon: 'security', labels: { ru: 'Охрана', en: 'Security', tr: 'Güvenlik', de: 'Sicherheit', es: 'Seguridad', ar: 'أمن', fr: 'Sécurité' } },
     { id: 'furniture', icon: 'chair', labels: { ru: 'Мебель', en: 'Furniture', tr: 'Mobilya', de: 'Möbel', es: 'Muebles', ar: 'أثاث', fr: 'Meubles' } },
@@ -125,14 +125,29 @@ const AMENITIES = [
     { id: 'sauna', icon: 'hot_tub', labels: { ru: 'Сауна', en: 'Sauna', tr: 'Sauna', de: 'Sauna', es: 'Sauna', ar: 'سونا', fr: 'Sauna' } },
     { id: 'hamam', icon: 'bathtub', labels: { ru: 'Хамам', en: 'Hamam', tr: 'Hamam', de: 'Hamam', es: 'Hamam', ar: 'حمام تركي', fr: 'Hamman' } },
     { id: 'playground', icon: 'child_care', labels: { ru: 'Детская площадка', en: 'Playground', tr: 'Çocuk Parkı', de: 'Spielplatz', es: 'Parque infantil', ar: 'ملعب أطفال', fr: 'Aire de jeux' } },
-    { id: 'bbq', icon: 'outdoor_grill', labels: { ru: 'Барбекю', en: 'BBQ', tr: 'Mangal', de: 'Grillplatz', es: 'Barbacoa', ar: 'شواء', fr: 'Barbecue' } },
+    { id: 'bbq', icon: 'outdoor_grill', labels: { ru: 'Барбекю', en: 'BBQ', tr: 'Mangal', de: 'Grillplatz', es: 'Barbacoa', ar: 'шواء', fr: 'Barbecue' } },
     { id: 'elevator', icon: 'elevator', labels: { ru: 'Лифт', en: 'Elevator', tr: 'Asansör', de: 'Aufzug', es: 'Ascensor', ar: 'مصعد', fr: 'Ascenseur' } },
     { id: 'heating', icon: 'thermostat', labels: { ru: 'Отопление', en: 'Heating', tr: 'Isıtma', de: 'Heizung', es: 'Calefacción', ar: 'تدفئة', fr: 'Chauffage' } },
-    { id: 'dishwasher', icon: 'dishwasher_gen', labels: { ru: 'Посудомойка', en: 'Dishwasher', tr: 'Bulaşık Makinesi', de: 'Spülmaschine', es: 'Lavavajillas', ar: 'غсالة أطباق', fr: 'Lave-vaisselle' } },
-    { id: 'washing_machine', icon: 'local_laundry_service', labels: { ru: 'Стиральная машина', en: 'Washing Machine', tr: 'Чamaшыр Makinesi', de: 'Waschmaschine', es: 'Lavadora', ar: 'غсالة ملابس', fr: 'Lave-linge' } },
-    { id: 'smart_home', icon: 'smart_toy', labels: { ru: 'Умный дом', en: 'Smart Home', tr: 'Akıllı Ev', de: 'Smart Home', es: 'Casa inteligente', ar: 'منزل ذки', fr: 'Maison intelligente' } },
+    { id: 'dishwasher', icon: 'dishwasher_gen', labels: { ru: 'Посудомойка', en: 'Dishwasher', tr: 'Bulaşık Makinesi', de: 'Spülmaschine', es: 'Lavavajillas', ar: 'غسالة أطباق', fr: 'Lave-vaisselle' } },
+    { id: 'washing_machine', icon: 'local_laundry_service', labels: { ru: 'Стиральная машина', en: 'Washing Machine', tr: 'Çamaшыр Makinesi', de: 'Waschmaschine', es: 'Lavadora', ar: 'غسالة ملابس', fr: 'Lave-linge' } },
+    { id: 'smart_home', icon: 'smart_toy', labels: { ru: 'Умный дом', en: 'Smart Home', tr: 'Akıllı Ev', de: 'Smart Home', es: 'Casa intelligente', ar: 'منزل ذكي', fr: 'Maison intelligente' } },
     { id: 'terrace', icon: 'deck', labels: { ru: 'Терраса', en: 'Terrace', tr: 'Teras', de: 'Terrasse', es: 'Terraza', ar: 'تراس', fr: 'Terrasse' } },
 ];
+
+const LAND_AMENITIES = [
+    { id: 'electricity', icon: 'bolt', labels: { ru: 'Электричество', en: 'Electricity', tr: 'Elektrik', de: 'Strom', es: 'Electricidad', ar: 'كهرباء', fr: 'Électricité' } },
+    { id: 'water', icon: 'water_drop', labels: { ru: 'Вода', en: 'Water', tr: 'Su', de: 'Wasser', es: 'Agua', ar: 'ماء', fr: 'Eau' } },
+    { id: 'gas', icon: 'mode_fan', labels: { ru: 'Газ', en: 'Gas', tr: 'Gaz', de: 'Gas', es: 'Gas', ar: 'غاز', fr: 'Gaz' } },
+    { id: 'road', icon: 'add_road', labels: { ru: 'Дорога', en: 'Road', tr: 'Yol', de: 'Straße', es: 'Camino', ar: 'طريق', fr: 'Route' } },
+    { id: 'sea_view', icon: 'waves', labels: { ru: 'Вид на море', en: 'Sea View', tr: 'Deniz Manzarası', de: 'Meerblick', es: 'Vista al mar', ar: 'إطلالة на البحر', fr: 'Vue sur mer' } },
+    { id: 'mountain_view', icon: 'terrain', labels: { ru: 'Вид на горы', en: 'Mountain View', tr: 'Dağ Manzarası', de: 'Bergblick', es: 'Vista a la montaña', ar: 'إطلالة на الجبال', fr: 'Vue sur montagne' } },
+    { id: 'forest', icon: 'park', labels: { ru: 'Рядом лес', en: 'Near Forest', tr: 'Orman Yakını', de: 'Waldnähe', es: 'Cerca del bosque', ar: 'قرب الغابة', fr: 'Près de la forêt' } },
+    { id: 'fence', icon: 'fence', labels: { ru: 'Забор', en: 'Fence', tr: 'Çit', de: 'Zaun', es: 'Valla', ar: 'سياج', fr: 'Clôture' } },
+    { id: 'permit', icon: 'description', labels: { ru: 'Разрешение', en: 'Permit', tr: 'İmar İzni', de: 'Baugenehmigung', es: 'Permiso', ar: 'تصريح بناء', fr: 'Permis' } },
+    { id: 'fruit_trees', icon: 'nature', labels: { ru: 'Сад/Деревья', en: 'Fruit Trees', tr: 'Meyve Ağaçları', de: 'Obstbäume', es: 'Frutales', ar: 'أشجار فاكهة', fr: 'Verger' } },
+];
+
+const ALL_AMENITIES = [...AMENITIES, ...LAND_AMENITIES];
 
 export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
     const tr = t[lang] || t['ru'];
@@ -151,7 +166,6 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
         setLoading(true);
         let allUnits: any[] = [];
 
-        // Fetch from consolidated 'units' table
         const { data: dbUnits, error } = await supabase
             .from('units')
             .select('*')
@@ -183,7 +197,7 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
     };
 
     const submitLead = () => {
-        const tg = window.Telegram?.WebApp;
+        const tg = (window as any).Telegram?.WebApp;
         if (!phone) {
             tg?.showAlert(lang === 'ru' ? 'Пожалуйста, введите номер телефона' : 'Please enter your phone number');
             return;
@@ -203,7 +217,7 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
 
     return (
         <div className="space-y-5">
-            {/* Search Bar - MD3 Style */}
+            {/* Search Bar */}
             <div className="relative group">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors">
                     <span className="material-symbols-outlined text-[20px] font-black">search</span>
@@ -238,7 +252,7 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
                 ))}
             </div>
 
-            {/* Intent Filter (Sale/Rent) */}
+            {/* Intent Filter */}
             <div className="flex justify-center">
                 <div className="inline-flex p-1 bg-white/[0.01] rounded-xl border border-white/5">
                     {[
@@ -260,9 +274,9 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
                 </div>
             </div>
 
-            {/* Quick Amenity Filters */}
+            {/* Amenity Filters */}
             <div className="flex overflow-x-auto gap-2 pb-2 no-scrollbar px-1">
-                {AMENITIES.map((item) => {
+                {(filter === 'apartment' ? AMENITIES : LAND_AMENITIES).map((item) => {
                     const isSelected = selectedTags.includes(item.id);
                     return (
                         <button
@@ -287,7 +301,6 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
                 })}
             </div>
 
-            {/* Loading Skeletons */}
             {loading ? (
                 <div className="space-y-4">
                     {[1, 2, 3].map(i => (
@@ -300,7 +313,6 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
                     <p className="text-[10px] font-black uppercase tracking-[0.3em] text-center max-w-[200px] leading-loose">{tr.noResults}</p>
                 </div>
             ) : (
-                /* Property Cards */
                 <div className="space-y-6">
                     {units.filter(u => {
                         const q = searchQuery.toLowerCase();
@@ -316,22 +328,19 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
                         const districtStr = (u.i18n?.[lang]?.district || u.district || '').toString();
                         const addrStr = (u.i18n?.[lang]?.address || u.address || '').toString();
                         
-                        // Tags search: Check if any tag label matches the query
                         const tagMatch = u.tags?.some((tagId: string) => {
-                            const amenity = AMENITIES.find(a => a.id === tagId);
+                            const amenity = ALL_AMENITIES.find(a => a.id === tagId);
                             if (!amenity) return false;
                             const label = amenity.labels[lang as keyof typeof amenity.labels] || amenity.labels.ru;
                             return label.toLowerCase().includes(q) || tagId.toLowerCase().includes(q);
                         });
 
-                        // Combined search logic
                         const searchMatch = cityStr.toLowerCase().includes(q) || 
                                districtStr.toLowerCase().includes(q) || 
                                addrStr.toLowerCase().includes(q) || 
                                titleStr.toLowerCase().includes(q) ||
                                tagMatch;
 
-                        // Filter by selected amenity chips (if any)
                         const amenityFilterMatch = selectedTags.length === 0 || 
                                selectedTags.every(tagId => u.tags?.includes(tagId));
 
@@ -349,7 +358,7 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
                 </div>
             )}
 
-            {/* Lead Generation Modal */}
+            {/* Lead Modal */}
             {bookingUnit && (
                 <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-background/80 backdrop-blur-md" onClick={() => setBookingUnit(null)} />
@@ -359,34 +368,23 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
                                 <span className="material-symbols-outlined text-primary text-[32px]">contact_phone</span>
                             </div>
                             <h4 className="text-xl font-black text-on-background">{lang === 'ru' ? 'Контактные данные' : 'Contact Details'}</h4>
-                            <p className="text-[10px] text-outline font-bold uppercase tracking-widest">{lang === 'ru' ? 'Введите ваш номер телефона для связи' : 'Enter your phone number for contact'}</p>
                         </div>
 
                         <div className="space-y-4">
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-outline uppercase tracking-widest pl-1">{lang === 'ru' ? 'Телефон (WhatsApp)' : 'Phone (WhatsApp)'}</label>
-                                <input
-                                    type="tel"
-                                    placeholder="+7 (___) ___-__-__"
-                                    value={phone}
-                                    onChange={e => setPhone(e.target.value)}
-                                    autoFocus
-                                    className="input-field text-center text-lg tracking-wider"
-                                />
-                            </div>
+                            <input
+                                type="tel"
+                                placeholder="+7 (___) ___-__-__"
+                                value={phone}
+                                onChange={e => setPhone(e.target.value)}
+                                className="input-field text-center text-lg tracking-wider"
+                            />
                         </div>
 
                         <div className="flex gap-3 pt-2">
-                            <button
-                                onClick={() => setBookingUnit(null)}
-                                className="btn-secondary flex-1"
-                            >
+                            <button onClick={() => setBookingUnit(null)} className="btn-secondary flex-1">
                                 {lang === 'ru' ? 'ОТМЕНА' : 'CANCEL'}
                             </button>
-                            <button
-                                onClick={submitLead}
-                                className="btn-primary flex-1 shadow-[0_10px_20px_rgba(208,188,255,0.3)]"
-                            >
+                            <button onClick={submitLead} className="btn-primary flex-1">
                                 {lang === 'ru' ? 'ОТПРАВИТЬ' : 'SEND'}
                             </button>
                         </div>
@@ -410,33 +408,18 @@ function PropertyCard({ unit, tr, lang, onAskBot, onBookNow }: any) {
 
     const title = unit.i18n?.[lang]?.title || getLocalized(unit.title, lang) || 'Property';
     const city = unit.i18n?.[lang]?.city || getLocalized(unit.city, lang) || 'Alanya';
-    const description = unit.i18n?.[lang]?.description || getLocalized(unit.description, lang);
-    const price = unit.price;
-    const isRent = unit.intent?.includes('rent');
-    const isSale = unit.intent?.includes('sale');
-    const isInvest = unit.unit_type === 'invest';
-
+    
     return (
         <div className="group glass-card rounded-2xl !p-0 overflow-hidden animate-fade-in shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
-            {/* Image */}
             <div className="relative h-64 w-full overflow-hidden">
-                <img
-                    src={photo}
-                    alt={title}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                />
-                {/* Gradient overlay */}
+                <img src={photo} alt={title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                 <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-80" />
-
-                {/* Tags */}
-                <div className="absolute top-5 left-5 flex gap-2">
+                <div className="absolute top-5 left-5">
                     <div className="bg-black/60 backdrop-blur-xl px-4 py-1.5 rounded-2xl flex items-center gap-1.5 border border-white/10">
                         <span className="material-symbols-outlined text-[14px] text-primary">location_on</span>
                         <span className="text-[10px] font-black text-white uppercase tracking-widest">{unit.district ? `${city}, ${unit.district}` : city}</span>
                     </div>
                 </div>
-
-                {/* Price Badge */}
                 <div className="absolute bottom-6 left-6 flex flex-col gap-1">
                     {unit.price_sale && (
                         <div className="flex items-baseline gap-2">
@@ -461,7 +444,6 @@ function PropertyCard({ unit, tr, lang, onAskBot, onBookNow }: any) {
                 </div>
             </div>
 
-            {/* Content */}
             <div className="p-6 space-y-5">
                 <div>
                     <h3 className="text-xl font-black text-on-background leading-tight tracking-tight">{title}</h3>
@@ -470,47 +452,56 @@ function PropertyCard({ unit, tr, lang, onAskBot, onBookNow }: any) {
                     </p>
                 </div>
 
-                {/* Tags Section */}
                 {unit.tags && unit.tags.length > 0 && (
                     <TagsRow tags={unit.tags} lang={lang} />
                 )}
 
-                {/* Quick Stats & CTA */}
                 <div className="flex justify-between items-center pt-4 border-t border-white/5">
                     <div className="flex gap-4">
-                        {(unit.bedrooms != null || unit.living_rooms != null) && (
-                            <div className="flex flex-col items-center">
-                                <span className="material-symbols-outlined text-[20px] text-outline">bed</span>
-                                <span className="text-[10px] font-black text-outline-variant mt-1">
-                                    {unit.bedrooms || 0}+{unit.living_rooms || 0}
-                                </span>
-                            </div>
-                        )}
-                        {unit.bathrooms != null && (
-                            <div className="flex flex-col items-center">
-                                <span className="material-symbols-outlined text-[20px] text-outline">bathtub</span>
-                                <span className="text-[10px] font-black text-outline-variant mt-1">{unit.bathrooms}</span>
-                            </div>
-                        )}
-                        {unit.area != null && (
-                            <div className="flex flex-col items-center">
-                                <span className="material-symbols-outlined text-[20px] text-outline">square_foot</span>
-                                <span className="text-[10px] font-black text-outline-variant mt-1">{unit.area} м²</span>
-                            </div>
+                        {unit.unit_type === 'land' ? (
+                            <>
+                                {unit.area != null && (
+                                    <div className="flex flex-col items-center">
+                                        <span className="material-symbols-outlined text-[20px] text-primary">square_foot</span>
+                                        <span className="text-[10px] font-black text-outline-variant mt-1">{unit.area} м²</span>
+                                    </div>
+                                )}
+                                {unit.ada && (
+                                    <div className="flex flex-col items-center">
+                                        <span className="text-[10px] font-black text-primary">ADA</span>
+                                        <span className="text-[10px] font-black text-outline-variant mt-1">{unit.ada}</span>
+                                    </div>
+                                )}
+                                {unit.parsel && (
+                                    <div className="flex flex-col items-center">
+                                        <span className="text-[10px] font-black text-primary">PARSEL</span>
+                                        <span className="text-[10px] font-black text-outline-variant mt-1">{unit.parsel}</span>
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                {(unit.bedrooms != null || unit.living_rooms != null) && (
+                                    <div className="flex flex-col items-center">
+                                        <span className="material-symbols-outlined text-[20px] text-outline">bed</span>
+                                        <span className="text-[10px] font-black text-outline-variant mt-1">{unit.bedrooms || 0}+{unit.living_rooms || 0}</span>
+                                    </div>
+                                )}
+                                {unit.area != null && (
+                                    <div className="flex flex-col items-center">
+                                        <span className="material-symbols-outlined text-[20px] text-outline">square_foot</span>
+                                        <span className="text-[10px] font-black text-outline-variant mt-1">{unit.area} м²</span>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
 
                     <div className="flex gap-2">
-                        <button
-                            onClick={onAskBot}
-                            className="btn-secondary !p-3"
-                        >
+                        <button onClick={onAskBot} className="btn-secondary !p-3">
                             <span className="material-symbols-outlined text-[18px]">smart_toy</span>
                         </button>
-                        <button
-                            onClick={onBookNow}
-                            className="btn-primary !py-3 !px-5"
-                        >
+                        <button onClick={onBookNow} className="btn-primary !py-3 !px-5">
                             <span className="material-symbols-outlined text-[16px] font-black">shopping_cart_checkout</span>
                             {lang === 'ru' ? 'КУПИТЬ' : 'BOOK'}
                         </button>
@@ -530,32 +521,18 @@ function TagsRow({ tags, lang }: { tags: string[], lang: string }) {
         <div className="space-y-2">
             <div className="flex flex-wrap gap-1.5">
                 {visibleTags.map((tagId: string) => {
-                    const amenity = AMENITIES.find(a => a.id === tagId);
+                    const amenity = ALL_AMENITIES.find(a => a.id === tagId);
                     if (!amenity) return null;
                     return (
-                        <div 
-                            key={tagId} 
-                            className="flex items-center gap-1 px-2 py-1 bg-white/[0.03] border border-white/5 rounded-lg text-[9px] font-bold text-outline-variant uppercase tracking-wider whitespace-nowrap"
-                        >
+                        <div key={tagId} className="flex items-center gap-1 px-2 py-1 bg-white/[0.03] border border-white/5 rounded-lg text-[9px] font-bold text-outline-variant uppercase tracking-wider whitespace-nowrap">
                             <span className="material-symbols-outlined text-[12px]">{amenity.icon}</span>
                             <span>{amenity.labels[lang as keyof typeof amenity.labels] || amenity.labels.ru}</span>
                         </div>
                     );
                 })}
                 {hasMore && !expanded && (
-                    <button 
-                        onClick={(e) => { e.stopPropagation(); setExpanded(true); }}
-                        className="flex items-center gap-1 px-2 py-1 bg-primary/10 border border-primary/20 rounded-lg text-[9px] font-black text-primary uppercase tracking-wider hover:bg-primary/20 transition-all"
-                    >
+                    <button onClick={(e) => { e.stopPropagation(); setExpanded(true); }} className="flex items-center gap-1 px-2 py-1 bg-primary/10 border border-primary/20 rounded-lg text-[9px] font-black text-primary uppercase tracking-wider">
                         +{tags.length - 4}
-                    </button>
-                )}
-                {expanded && (
-                    <button 
-                        onClick={(e) => { e.stopPropagation(); setExpanded(false); }}
-                        className="flex items-center gap-1 px-2 py-1 bg-zinc-800 border border-white/5 rounded-lg text-[9px] font-black text-white uppercase tracking-wider"
-                    >
-                        <span className="material-symbols-outlined text-[12px]">expand_less</span>
                     </button>
                 )}
             </div>
