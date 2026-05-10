@@ -156,7 +156,6 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
     const [filter, setFilter] = useState<'apartment' | 'land'>('apartment');
     const [intentFilter, setIntentFilter] = useState<'sale' | 'rent'>('sale');
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
     useEffect(() => {
         fetchUnits();
@@ -274,32 +273,6 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
                 </div>
             </div>
 
-            {/* Amenity Filters */}
-            <div className="flex overflow-x-auto gap-2 pb-2 no-scrollbar px-1">
-                {(filter === 'apartment' ? AMENITIES : LAND_AMENITIES).map((item) => {
-                    const isSelected = selectedTags.includes(item.id);
-                    return (
-                        <button
-                            key={item.id}
-                            onClick={() => {
-                                setSelectedTags(prev => 
-                                    isSelected ? prev.filter(id => id !== item.id) : [...prev, item.id]
-                                );
-                            }}
-                            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border whitespace-nowrap transition-all active:scale-95 ${
-                                isSelected
-                                    ? 'bg-primary/20 border-primary text-primary'
-                                    : 'bg-white/[0.02] border-white/5 text-outline hover:border-white/10'
-                            }`}
-                        >
-                            <span className="material-symbols-outlined text-[16px]">{item.icon}</span>
-                            <span className="text-[9px] font-black uppercase tracking-widest">
-                                {item.labels[lang as keyof typeof item.labels] || item.labels.ru}
-                            </span>
-                        </button>
-                    );
-                })}
-            </div>
 
             {loading ? (
                 <div className="space-y-4">
@@ -323,28 +296,24 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
                             }
                             return '';
                         };
-                        const titleStr = getTitle(u.i18n?.[lang]?.title || u.title);
-                        const cityStr = (u.i18n?.[lang]?.city || u.city || '').toString();
-                        const districtStr = (u.i18n?.[lang]?.district || u.district || '').toString();
-                        const addrStr = (u.i18n?.[lang]?.address || u.address || '').toString();
+                        const keywords = q.split(' ').filter(k => k.length > 0);
+                        if (keywords.length === 0) return true;
+
+                        const titleStr = getTitle(u.i18n?.[lang]?.title || u.title).toLowerCase();
+                        const cityStr = (u.i18n?.[lang]?.city || u.city || '').toString().toLowerCase();
+                        const addrStr = (u.i18n?.[lang]?.address || u.address || '').toString().toLowerCase();
                         
-                        const tagMatch = u.tags?.some((tagId: string) => {
+                        const unitTags = (u.tags || []).map((tagId: string) => {
                             const amenity = ALL_AMENITIES.find(a => a.id === tagId);
-                            if (!amenity) return false;
-                            const label = amenity.labels[lang as keyof typeof amenity.labels] || amenity.labels.ru;
-                            return label.toLowerCase().includes(q) || tagId.toLowerCase().includes(q);
+                            return amenity ? (amenity.labels[lang as keyof typeof amenity.labels] || amenity.labels.ru).toLowerCase() : '';
                         });
 
-                        const searchMatch = cityStr.toLowerCase().includes(q) || 
-                               districtStr.toLowerCase().includes(q) || 
-                               addrStr.toLowerCase().includes(q) || 
-                               titleStr.toLowerCase().includes(q) ||
-                               tagMatch;
-
-                        const amenityFilterMatch = selectedTags.length === 0 || 
-                               selectedTags.every(tagId => u.tags?.includes(tagId));
-
-                        return searchMatch && amenityFilterMatch;
+                        return keywords.every(kw => 
+                            titleStr.includes(kw) || 
+                            cityStr.includes(kw) || 
+                            addrStr.includes(kw) ||
+                            unitTags.some((t: string) => t.includes(kw))
+                        );
                     }).map((unit) => (
                         <PropertyCard
                             key={unit.id}

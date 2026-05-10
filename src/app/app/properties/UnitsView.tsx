@@ -225,37 +225,28 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
     };
 
     const handleAutoTranslate = async () => {
-        const sourceTitle = formData.title[langTab as keyof typeof formData.title] || formData.title.ru;
-        const sourceDesc = formData.description[langTab as keyof typeof formData.description] || formData.description.ru;
-        
-        if (!sourceTitle) return;
+        const sourceText = formData.address;
+        if (!sourceText) return alert(lang === 'ru' ? 'Введите адрес для перевода' : 'Enter address to translate');
+
         setTranslating(true);
         try {
-            // Translate Title
-            const resTitle = await fetch('/api/translate', {
+            const res = await fetch('/api/translate', {
                 method: 'POST',
-                body: JSON.stringify({ text: sourceTitle })
+                body: JSON.stringify({ text: sourceText }),
             });
-            const translatedTitles = await resTitle.json();
-
-            // Translate Description
-            let translatedDescs = formData.description;
-            if (sourceDesc) {
-                const resDesc = await fetch('/api/translate', {
-                    method: 'POST',
-                    body: JSON.stringify({ text: sourceDesc })
+            const data = await res.json();
+            if (data && typeof data === 'object') {
+                setFormData({ 
+                    ...formData, 
+                    title: data,
+                    description: Object.keys(data).reduce((acc: any, l) => {
+                        acc[l] = ''; 
+                        return acc;
+                    }, {})
                 });
-                translatedDescs = await resDesc.json();
             }
-
-            setFormData({
-                ...formData,
-                title: { ...formData.title, ...translatedTitles },
-                description: { ...formData.description, ...translatedDescs }
-            });
         } catch (err) {
-            console.error('Auto-translate failed:', err);
-            alert('AI Translation failed. Please try again.');
+            console.error('Translation failed:', err);
         } finally {
             setTranslating(false);
         }
@@ -263,42 +254,31 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
 
     const handleAdd = async () => {
         // 1. Validation Logic
-        const currentTitle = formData.title[langTab as keyof typeof formData.title] || formData.title.ru;
-        if (!currentTitle) return alert('Введите название объекта');
+        if (!formData.address) return alert(lang === 'ru' ? 'Укажите местоположение' : 'Specify location');
         
         if (formData.is_sale && !formData.price_sale) {
-            return alert('Укажите цену продажи');
+            return alert(lang === 'ru' ? 'Укажите цену продажи' : 'Specify sale price');
         }
         if (formData.is_rent && !formData.price_month && !formData.price_day) {
-            return alert('Укажите цену аренды (в месяц или сутки)');
+            return alert(lang === 'ru' ? 'Укажите цену аренды' : 'Specify rent price');
         }
         
         setPublishing(true);
-        setPublishStatus('Перевод контента...');
+        setPublishStatus('Подготовка данных...');
         
         try {
-            // Auto-translate title and description in parallel
-            const sourceTitle = formData.title[langTab as keyof typeof formData.title] || formData.title.ru;
-            const sourceDesc = formData.description[langTab as keyof typeof formData.description] || formData.description.ru;
+            // If title is not translated yet, use current address as RU title
+            let finalTitle = formData.title;
+            if (!finalTitle.ru) {
+                finalTitle = { ...finalTitle, ru: formData.address };
+            }
 
-            const [transTitle, transDesc] = await Promise.all([
-                fetch('/api/translate', { method: 'POST', body: JSON.stringify({ text: sourceTitle }) }).then(r => r.json()),
-                sourceDesc 
-                    ? fetch('/api/translate', { method: 'POST', body: JSON.stringify({ text: sourceDesc }) }).then(r => r.json())
-                    : Promise.resolve({})
-            ]);
-
-            setPublishStatus('Сохранение в базу...');
-
-            const finalTitle = transTitle && Object.keys(transTitle).length > 0 ? transTitle : formData.title;
-            const finalDesc = transDesc && Object.keys(transDesc).length > 0 ? transDesc : formData.description;
-
-            const payload = {
+            const payload: any = {
                 title: finalTitle,
-                description: finalDesc,
+                description: formData.description,
                 city: formData.city,
-                district: formData.district || '',
                 address: formData.address,
+                district: formData.district || '',
                 unit_type: formData.unit_type,
                 intent: [formData.is_sale && 'sale', formData.is_rent && 'rent'].filter(Boolean).join(','),
                 price: parseFloat(formData.price_sale || formData.price_month || formData.price_day || '0'),
@@ -322,7 +302,7 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                 i18n: Object.keys(finalTitle).reduce((acc: any, l) => {
                     acc[l] = { 
                         title: finalTitle[l as keyof typeof finalTitle], 
-                        description: finalDesc[l as keyof typeof finalDesc] || '' 
+                        description: formData.description[l as keyof typeof formData.description] || '' 
                     };
                     return acc;
                 }, {})
@@ -562,10 +542,10 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                         </div>
                     </div>
 
-                    {/* 4. Details Section */}
+                    {/* 4. Details Section (Auto-translation of Location) */}
                     <div className="space-y-4">
                         <div className="flex justify-between items-center px-1">
-                            <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">{t.details}</p>
+                            <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">{lang === 'ru' ? 'Перевод местоположения' : 'Location Translation'}</p>
                             <div className="flex bg-white/[0.02] p-1 rounded-xl border border-white/5">
                                 {['ru', 'en', 'tr'].map(l => (
                                     <button 
@@ -580,32 +560,17 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                         </div>
                         
                         <div className="space-y-3">
-                            <input
-                                placeholder={t.titleField}
-                                className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-4 text-sm text-white outline-none focus:border-primary/30 transition-all font-black"
-                                value={formData.title[langTab as keyof typeof formData.title] || ''}
-                                onChange={e => setFormData({ 
-                                    ...formData, 
-                                    title: { ...formData.title, [langTab]: e.target.value } 
-                                })}
-                            />
-                            <textarea
-                                placeholder={lang === 'ru' ? 'Описание объекта...' : 'Property description...'}
-                                className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-4 text-sm text-white outline-none focus:border-primary/30 transition-all font-medium min-h-[120px] resize-none"
-                                value={formData.description[langTab as keyof typeof formData.description] || ''}
-                                onChange={e => setFormData({ 
-                                    ...formData, 
-                                    description: { ...formData.description, [langTab]: e.target.value } 
-                                })}
-                            />
                             <button 
                                 onClick={handleAutoTranslate}
-                                disabled={translating || !formData.title.ru}
-                                className="w-full py-3 rounded-2xl bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-30"
+                                disabled={translating || !formData.address}
+                                className="w-full py-4 rounded-2xl bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-30"
                             >
                                 <span className="material-symbols-outlined text-[18px]">{translating ? 'sync' : 'translate'}</span>
-                                {translating ? (lang === 'ru' ? 'ПЕРЕВОД...' : 'TRANSLATING...') : (lang === 'ru' ? 'АВТОПЕРЕВОД НА ВСЕ ЯЗЫКИ' : 'AUTO-TRANSLATE ALL')}
+                                {translating ? (lang === 'ru' ? 'ПЕРЕВОД...' : 'TRANSLATING...') : (lang === 'ru' ? 'ПЕРЕВЕСТИ АДРЕС НА ВСЕ ЯЗЫКИ' : 'TRANSLATE ADDRESS TO ALL LANGUAGES')}
                             </button>
+                            <p className="text-[8px] text-center text-zinc-600 font-bold uppercase tracking-wider">
+                                {lang === 'ru' ? 'Название и описание теперь формируются автоматически' : 'Title and description are now generated automatically'}
+                            </p>
                         </div>
                     </div>
 
@@ -662,57 +627,21 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                                 </div>
                             </>
                         ) : (
-                            <>
-                                <div className="grid grid-cols-3 gap-2">
-                                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-3 flex flex-col items-center gap-1">
-                                        <span className="text-[8px] font-black text-zinc-600 uppercase">М² (Площадь)</span>
-                                        <input
-                                            type="number"
-                                            className="w-full bg-transparent text-center text-sm font-black text-primary outline-none"
-                                            value={formData.area}
-                                            onChange={e => setFormData({ ...formData, area: e.target.value })}
-                                        />
+                            <div className="grid grid-cols-1 gap-2">
+                                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <span className="material-symbols-outlined text-[24px] text-primary">square_foot</span>
+                                        <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">{lang === 'ru' ? 'Общая площадь (м²)' : 'Total Area (m²)'}</span>
                                     </div>
-                                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-3 flex flex-col items-center gap-1">
-                                        <span className="text-[8px] font-black text-zinc-600 uppercase">ADA (Остров)</span>
-                                        <input
-                                            type="text"
-                                            className="w-full bg-transparent text-center text-sm font-black text-white outline-none"
-                                            value={formData.ada}
-                                            onChange={e => setFormData({ ...formData, ada: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-3 flex flex-col items-center gap-1">
-                                        <span className="text-[8px] font-black text-zinc-600 uppercase">PARSEL</span>
-                                        <input
-                                            type="text"
-                                            className="w-full bg-transparent text-center text-sm font-black text-white outline-none"
-                                            value={formData.parsel}
-                                            onChange={e => setFormData({ ...formData, parsel: e.target.value })}
-                                        />
-                                    </div>
+                                    <input
+                                        type="number"
+                                        className="w-24 bg-transparent text-right text-lg font-black text-primary outline-none"
+                                        placeholder="0"
+                                        value={formData.area}
+                                        onChange={e => setFormData({ ...formData, area: e.target.value })}
+                                    />
                                 </div>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-3 flex items-center justify-between">
-                                        <span className="text-[10px] font-black text-zinc-500 uppercase">Плотность (%)</span>
-                                        <input
-                                            type="number"
-                                            className="w-16 bg-transparent text-right text-sm font-black text-white outline-none"
-                                            value={formData.density}
-                                            onChange={e => setFormData({ ...formData, density: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-3 flex items-center justify-between">
-                                        <span className="text-[10px] font-black text-zinc-500 uppercase">Высота (м)</span>
-                                        <input
-                                            type="number"
-                                            className="w-16 bg-transparent text-right text-sm font-black text-white outline-none"
-                                            value={formData.height_limit}
-                                            onChange={e => setFormData({ ...formData, height_limit: e.target.value })}
-                                        />
-                                    </div>
-                                </div>
-                            </>
+                            </div>
                         )}
                     </div>
 
