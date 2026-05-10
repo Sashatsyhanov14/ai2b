@@ -203,14 +203,30 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
         }
 
         const title = bookingUnit.title?.ru || bookingUnit.title || 'Property';
-        if (tg) {
-            tg.sendData(JSON.stringify({ 
-                action: bookingAction, 
-                unit_id: bookingUnit.id, 
-                title,
-                phone: phone
-            }));
-            tg.close();
+        
+        try {
+            const res = await fetch('/api/leads', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    action: bookingAction, 
+                    unit_id: bookingUnit.id, 
+                    title,
+                    phone: phone,
+                    user: tg?.initDataUnsafe?.user
+                })
+            });
+
+            if (res.ok) {
+                tg?.showAlert(lang === 'ru' ? '✅ Заявка отправлена! Менеджер скоро свяжется с вами.' : '✅ Request sent! A manager will contact you soon.');
+                setBookingUnit(null);
+                setTimeout(() => tg?.close(), 1500);
+            } else {
+                throw new Error('Failed to send lead');
+            }
+        } catch (err) {
+            console.error('Submit lead error:', err);
+            tg?.showAlert(lang === 'ru' ? '❌ Ошибка отправки. Попробуйте позже.' : '❌ Error sending request. Please try again later.');
         }
     };
 

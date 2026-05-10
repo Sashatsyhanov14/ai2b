@@ -41,7 +41,7 @@ export async function handleMessage(
                     text = `Я интересуюсь объектом: ${data.title} (ID: ${data.unit_id}). ${data.action === 'book_now' ? 'ХОЧУ КУПИТЬ/ЗАБРОНИРОВАТЬ!' : 'Расскажи подробнее.'}${phoneSuffix}`;
                     
                     // Pre-fetch unit to ensure it's in context
-                    const { data: unit } = await supabase.from('units').select('*').eq('id', data.unit_id).single();
+                    const { data: unit } = await supabase.from('units').select('*').eq('id', data.unit_id).maybeSingle();
                     if (unit) unitsFound = [unit];
                 }
             } catch (e) {
