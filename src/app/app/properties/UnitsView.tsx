@@ -405,9 +405,29 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
             </div>
 
             {/* Add Form */}
-            {isAdding && (
-                <div className="p-6 space-y-8 pb-32">
-                    {/* 1. Location Section (TOP) */}
+            {isAdding && <div className="p-6 space-y-8 pb-32">
+                        {/* 0. Unit Type Section */}
+                        <div className="space-y-4">
+                            <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">{lang === 'ru' ? 'Тип объекта' : 'Property Type'}</p>
+                            <div className="flex bg-zinc-900/50 p-1 rounded-2xl border border-white/5">
+                                <button 
+                                    onClick={() => setFormData({ ...formData, unit_type: 'apartment' })}
+                                    className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${formData.unit_type === 'apartment' ? 'bg-white/10 text-white shadow-lg' : 'text-zinc-600'}`}
+                                >
+                                    <span className="material-symbols-outlined text-[16px]">apartment</span>
+                                    {lang === 'ru' ? 'КВАРТИРА' : 'APARTMENT'}
+                                </button>
+                                <button 
+                                    onClick={() => setFormData({ ...formData, unit_type: 'land' })}
+                                    className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${formData.unit_type === 'land' ? 'bg-white/10 text-white shadow-lg' : 'text-zinc-600'}`}
+                                >
+                                    <span className="material-symbols-outlined text-[16px]">landscape</span>
+                                    {lang === 'ru' ? 'УЧАСТОК' : 'LAND'}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* 1. Location Section (TOP) */}
                     <div className="space-y-4">
                         <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">{t.locationField}</p>
                         <div className="grid grid-cols-2 gap-2">
