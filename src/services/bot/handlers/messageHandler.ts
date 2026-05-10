@@ -268,21 +268,25 @@ export async function handleMessage(
                 interested_units = [`${u.city}, ${u.address}`];
             }
 
-            handleSaveLead({ 
-                phone: manualPhone || ext.client_phone || userInfo.phone || "Unknown", 
-                name: ext.client_name || userInfo.fullName || userInfo.username || "Client", 
-                info: ext.client_profile || "Аналитика диалога", 
-                budget: ext.budget, 
-                temperature: ext.lead_temperature || "warm", 
-                language: userInfo.language_code || "ru", 
-                purpose: "НЕДВИЖИМОСТЬ",
-                unit_id: unitsFound.length > 0 ? unitsFound[0].id : undefined,
-                interested_units: interested_units.length > 0 ? interested_units : undefined,
-                referrer_id: referrer_id || undefined
-            } as any, chatId, userInfo.username).then(() => {
+            try {
+                await handleSaveLead({ 
+                    phone: manualPhone || ext.client_phone || userInfo.phone || "Unknown", 
+                    name: ext.client_name || userInfo.fullName || userInfo.username || "Client", 
+                    info: ext.client_profile || "Аналитика диалога", 
+                    budget: ext.budget, 
+                    temperature: ext.lead_temperature || "warm", 
+                    language: userInfo.language_code || "ru", 
+                    purpose: "НЕДВИЖИМОСТЬ",
+                    unit_id: unitsFound.length > 0 ? unitsFound[0].id : undefined,
+                    interested_units: interested_units.length > 0 ? interested_units : undefined,
+                    referrer_id: referrer_id || undefined
+                } as any, chatId, userInfo.username);
+                
                 // Schedule follow-up advertising message (2 min)
                 scheduleFollowup(chatId, token, userInfo.language_code || 'ru').catch(() => {});
-            }).catch(e => console.error("[Bot] Save Lead Error:", e));
+            } catch (e) {
+                console.error("[Bot] Save Lead Error:", e);
+            }
         }
 
         // C. NOTIFIER AGENT
@@ -310,7 +314,7 @@ export async function handleMessage(
                 const recipients = staffMembers.filter(r => 
                     r.role === 'founder' || 
                     r.role === 'admin' || 
-                    (r.role === 'manager' && String(r.telegram_id) === String(referrer_id))
+                    (r.role === 'manager' && (forceLead || String(r.telegram_id) === String(referrer_id)))
                 );
 
                 for (const recipient of recipients) {

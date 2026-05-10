@@ -32,6 +32,12 @@ Text: "${text}"`;
         });
 
         const data = await response.json();
+        
+        if (!data.choices || data.choices.length === 0) {
+            console.error('OpenRouter error or empty choices:', data);
+            throw new Error(data.error?.message || 'Failed to get translation from AI');
+        }
+
         const content = data.choices[0].message.content;
         const translations = JSON.parse(content);
 
