@@ -404,133 +404,233 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                 </button>
             </div>
 
-            {/* Add Form - eSIM Inspired */}
+            {/* Add Form */}
             {isAdding && (
-                <div className="glass-card bg-[#121214] p-5 rounded-[32px] border border-primary/20 space-y-5 animate-in fade-in slide-in-from-top-4 duration-300">
+                <div className="p-6 space-y-8 pb-32">
+                    {/* 1. Location Section (TOP) */}
                     <div className="space-y-4">
-                        <div className="space-y-2">
-                            <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">{t.details}</p>
+                        <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">{t.locationField}</p>
+                        <div className="grid grid-cols-2 gap-2">
+                            <input
+                                placeholder={t.city}
+                                className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-primary/30 transition-all font-medium"
+                                value={formData.city}
+                                onChange={e => setFormData({ ...formData, city: e.target.value })}
+                            />
+                            <input
+                                placeholder={t.locationPlaceholder}
+                                className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-primary/30 transition-all font-medium col-span-2"
+                                value={formData.address}
+                                onChange={e => setFormData({ ...formData, address: e.target.value, district: '' })}
+                            />
+                        </div>
+                    </div>
+
+                    {/* 2. Photo Section (Below Location) */}
+                    <div className="space-y-4">
+                        <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">{lang === 'ru' ? 'Фотографии' : 'Photos'}</p>
+                        <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                            <label className="flex-shrink-0 w-20 h-20 bg-white/[0.03] border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-white/5 transition-all">
+                                <span className="material-symbols-outlined text-outline">add_a_photo</span>
+                                <input 
+                                    type="file" 
+                                    multiple 
+                                    className="hidden" 
+                                    onChange={handlePhotoUpload} 
+                                />
+                            </label>
+                            {formData.photos.map((p: string, i: number) => (
+                                <div key={i} className="relative flex-shrink-0 w-20 h-20 rounded-2xl overflow-hidden group">
+                                    <img src={p} className="w-full h-full object-cover" />
+                                    <button 
+                                        onClick={() => setFormData({ ...formData, photos: formData.photos.filter((_:any,idx:any) => idx !== i)})}
+                                        className="absolute top-1 right-1 w-6 h-6 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center text-white"
+                                    >
+                                        <span className="material-symbols-outlined text-[14px]">close</span>
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 3. Intent & Prices Section */}
+                    <div className="space-y-4 p-5 bg-white/[0.02] rounded-[32px] border border-white/5">
+                        <div className="flex bg-zinc-900/50 p-1 rounded-2xl border border-white/5">
+                            <button 
+                                onClick={() => setFormData({ ...formData, is_sale: true, is_rent: false })}
+                                className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${formData.is_sale ? 'bg-primary text-on-primary shadow-lg' : 'text-outline'}`}
+                            >
+                                {t.sale}
+                            </button>
+                            <button 
+                                onClick={() => setFormData({ ...formData, is_sale: false, is_rent: true })}
+                                className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${formData.is_rent ? 'bg-primary text-on-primary shadow-lg' : 'text-outline'}`}
+                            >
+                                {t.rent}
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-3">
+                            {formData.is_sale && (
+                                <div className="space-y-1">
+                                    <p className="text-[8px] font-black text-outline uppercase tracking-widest px-1">{lang === 'ru' ? 'Цена продажи' : 'Sale Price'}</p>
+                                    <input
+                                        type="number"
+                                        placeholder="€ 0.00"
+                                        className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-lg font-black text-white outline-none focus:border-primary/30"
+                                        value={formData.price_sale}
+                                        onChange={e => setFormData({ ...formData, price_sale: e.target.value })}
+                                    />
+                                </div>
+                            )}
+                            {formData.is_rent && (
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <p className="text-[8px] font-black text-outline uppercase tracking-widest px-1">{lang === 'ru' ? 'Месяц' : 'Monthly'}</p>
+                                        <input
+                                            type="number"
+                                            placeholder="€ /мес"
+                                            className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm font-bold text-white outline-none focus:border-primary/30"
+                                            value={formData.price_month}
+                                            onChange={e => setFormData({ ...formData, price_month: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[8px] font-black text-outline uppercase tracking-widest px-1">{lang === 'ru' ? 'День' : 'Daily'}</p>
+                                        <input
+                                            type="number"
+                                            placeholder="€ /день"
+                                            className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm font-bold text-white outline-none focus:border-primary/30"
+                                            value={formData.price_day}
+                                            onChange={e => setFormData({ ...formData, price_day: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* 4. Details Section */}
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center px-1">
+                            <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">{t.details}</p>
+                            <div className="flex bg-white/[0.02] p-1 rounded-xl border border-white/5">
+                                {['ru', 'en', 'tr'].map(l => (
+                                    <button 
+                                        key={l}
+                                        onClick={() => setLangTab(l)}
+                                        className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all ${langTab === l ? 'bg-white/10 text-white' : 'text-zinc-600'}`}
+                                    >
+                                        {l}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        
+                        <div className="space-y-3">
                             <input
                                 placeholder={t.titleField}
-                                className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-primary/30 transition-all font-medium"
-                                value={formData.title}
-                                onChange={e => setFormData({ ...formData, title: e.target.value })}
+                                className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-4 text-sm text-white outline-none focus:border-primary/30 transition-all font-black"
+                                value={formData.title[langTab as keyof typeof formData.title] || ''}
+                                onChange={e => setFormData({ 
+                                    ...formData, 
+                                    title: { ...formData.title, [langTab]: e.target.value } 
+                                })}
                             />
                             <textarea
-                                placeholder="Описание объекта..."
-                                className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-primary/30 transition-all font-medium min-h-[100px] resize-none"
-                                value={formData.description}
-                                onChange={e => setFormData({ ...formData, description: e.target.value })}
-                            />
-                            <div className="grid grid-cols-2 gap-2">
-                                <div className="relative">
-                                    <select
-                                        className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-xs font-bold text-white outline-none focus:border-primary/30 appearance-none uppercase tracking-wider"
-                                        value={formData.unit_type}
-                                        onChange={e => setFormData({ ...formData, unit_type: e.target.value })}
-                                    >
-                                        <option value="apartment" className="bg-[#121214]">Квартира</option>
-                                        <option value="land" className="bg-[#121214]">Участок</option>
-                                    </select>
-                                    <span className="material-symbols-outlined absolute right-3 top-3.5 text-zinc-600 pointer-events-none text-[18px]">expand_more</span>
-                                </div>
-                                <div className="flex gap-2">
-                                    <button 
-                                        type="button"
-                                        onClick={() => setFormData({ ...formData, is_sale: !formData.is_sale })}
-                                        className={`flex-1 flex items-center justify-center gap-2 rounded-2xl border transition-all text-[10px] font-black uppercase tracking-widest ${formData.is_sale ? 'bg-blue-500/20 border-blue-500/30 text-blue-400' : 'bg-white/5 border-white/5 text-zinc-600'}`}
-                                    >
-                                        <span className="material-symbols-outlined text-[16px]">{formData.is_sale ? 'check_circle' : 'circle'}</span>
-                                        {t.sale}
-                                    </button>
-                                    <button 
-                                        type="button"
-                                        onClick={() => setFormData({ ...formData, is_rent: !formData.is_rent })}
-                                        className={`flex-1 flex items-center justify-center gap-2 rounded-2xl border transition-all text-[10px] font-black uppercase tracking-widest ${formData.is_rent ? 'bg-amber-500/20 border-amber-500/30 text-amber-400' : 'bg-white/5 border-white/5 text-zinc-600'}`}
-                                    >
-                                        <span className="material-symbols-outlined text-[16px]">{formData.is_rent ? 'check_circle' : 'circle'}</span>
-                                        {t.rent}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="space-y-4">
-                            <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">{t.locationField}</p>
-                            <div className="grid grid-cols-2 gap-2">
-                                <input
-                                    placeholder={t.city}
-                                    className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-primary/30 transition-all font-medium"
-                                    value={formData.city}
-                                    onChange={e => setFormData({ ...formData, city: e.target.value })}
-                                />
-                                <input
-                                    placeholder={t.locationPlaceholder}
-                                    className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-primary/30 transition-all font-medium col-span-2"
-                                    value={formData.address}
-                                    onChange={e => setFormData({ ...formData, address: e.target.value, district: '' })}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Features / Tags */}
-                        <div className="space-y-4">
-                            <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">Характеристики</p>
-                            <div className="grid grid-cols-4 gap-2">
-                                <div className="space-y-1">
-                                    <label className="text-[8px] text-zinc-500 uppercase font-black pl-1">Спальни</label>
-                                    <input type="number" placeholder="0" className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2.5 text-xs text-white outline-none" value={formData.bedrooms} onChange={e => setFormData({...formData, bedrooms: e.target.value})} />
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-[8px] text-zinc-500 uppercase font-black pl-1">Гостиные</label>
-                                    <input type="number" placeholder="0" className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2.5 text-xs text-white outline-none" value={formData.living_rooms} onChange={e => setFormData({...formData, living_rooms: e.target.value})} />
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-[8px] text-zinc-500 uppercase font-black pl-1">Ванные</label>
-                                    <input type="number" placeholder="0" className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2.5 text-xs text-white outline-none" value={formData.bathrooms} onChange={e => setFormData({...formData, bathrooms: e.target.value})} />
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-[8px] text-zinc-500 uppercase font-black pl-1">Площадь (м²)</label>
-                                    <input type="number" placeholder="0" className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2.5 text-xs text-white outline-none font-bold text-primary" value={formData.area} onChange={e => setFormData({...formData, area: e.target.value})} />
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-[8px] text-zinc-500 uppercase font-black pl-1">Этаж</label>
-                                    <input type="number" placeholder="0" className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2.5 text-xs text-white outline-none" value={formData.floor} onChange={e => setFormData({...formData, floor: e.target.value})} />
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-[8px] text-zinc-500 uppercase font-black pl-1">Всего эт.</label>
-                                    <input type="number" placeholder="0" className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2.5 text-xs text-white outline-none" value={formData.total_floors} onChange={e => setFormData({...formData, total_floors: e.target.value})} />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Amenities Tags Selection */}
-                        <div className="space-y-3">
-                            <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">Удобства (Теги)</p>
-                            <div className="flex flex-wrap gap-2">
-                                {AMENITIES.map((item) => {
-                                    const isSelected = formData.tags.includes(item.id);
-                                    return (
-                                        <button
-                                            key={item.id}
-                                            onClick={() => {
-                                                const newTags = isSelected
-                                                    ? formData.tags.filter((t: string) => t !== item.id)
-                                                    : [...formData.tags, item.id];
-                                                setFormData({ ...formData, tags: newTags });
-                                            }}
-                                            className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-[10px] font-bold uppercase transition-all ${
-                                                isSelected 
-                                                    ? 'bg-primary/20 border-primary text-primary shadow-[0_0_15px_rgba(139,92,246,0.2)]' 
-                                                    : 'bg-white/[0.02] border-white/5 text-zinc-500 hover:border-white/10'
-                                            }`}
-                                        >
-                                            <span className="material-symbols-outlined text-[14px]">{item.icon}</span>
-                                            {item.labels[lang as keyof typeof item.labels] || item.labels.ru}
-                                        </button>
-                                    );
+                                placeholder={lang === 'ru' ? 'Описание объекта...' : 'Property description...'}
+                                className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-4 text-sm text-white outline-none focus:border-primary/30 transition-all font-medium min-h-[120px] resize-none"
+                                value={formData.description[langTab as keyof typeof formData.description] || ''}
+                                onChange={e => setFormData({ 
+                                    ...formData, 
+                                    description: { ...formData.description, [langTab]: e.target.value } 
                                 })}
+                            />
+                            <button 
+                                onClick={handleAutoTranslate}
+                                disabled={translating || !formData.title.ru}
+                                className="w-full py-3 rounded-2xl bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-30"
+                            >
+                                <span className="material-symbols-outlined text-[18px]">{translating ? 'sync' : 'translate'}</span>
+                                {translating ? (lang === 'ru' ? 'ПЕРЕВОД...' : 'TRANSLATING...') : (lang === 'ru' ? 'АВТОПЕРЕВОД НА ВСЕ ЯЗЫКИ' : 'AUTO-TRANSLATE ALL')}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* 5. Characteristics Section */}
+                    <div className="space-y-4">
+                        <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">{lang === 'ru' ? 'Характеристики' : 'Characteristics'}</p>
+                        <div className="grid grid-cols-4 gap-2">
+                            {[
+                                { label: lang === 'ru' ? 'Спальни' : 'Beds', key: 'bedrooms', icon: 'bed' },
+                                { label: lang === 'ru' ? 'Гостиные' : 'Living', key: 'living_rooms', icon: 'chair' },
+                                { label: lang === 'ru' ? 'Ванные' : 'Baths', key: 'bathrooms', icon: 'bathtub' },
+                                { label: lang === 'ru' ? 'М²' : 'M²', key: 'area', icon: 'square_foot' }
+                            ].map((item) => (
+                                <div key={item.key} className="bg-white/[0.02] border border-white/5 rounded-2xl p-2 flex flex-col items-center gap-1">
+                                    <span className="material-symbols-outlined text-[16px] text-outline">{item.icon}</span>
+                                    <span className="text-[8px] font-black text-zinc-600 uppercase">{item.label}</span>
+                                    <input
+                                        type="number"
+                                        className="w-full bg-transparent text-center text-xs font-black text-white outline-none"
+                                        value={formData[item.key as keyof typeof formData]}
+                                        onChange={e => setFormData({ ...formData, [item.key]: e.target.value })}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-3 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-[18px] text-outline">layers</span>
+                                    <span className="text-[10px] font-black text-zinc-500 uppercase">{lang === 'ru' ? 'Этаж' : 'Floor'}</span>
+                                </div>
+                                <input
+                                    type="number"
+                                    className="w-12 bg-transparent text-right text-sm font-black text-white outline-none"
+                                    value={formData.floor}
+                                    onChange={e => setFormData({ ...formData, floor: e.target.value })}
+                                />
                             </div>
+                            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-3 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-[18px] text-outline">apartment</span>
+                                    <span className="text-[10px] font-black text-zinc-500 uppercase">{lang === 'ru' ? 'Всего эт.' : 'Total Floors'}</span>
+                                </div>
+                                <input
+                                    type="number"
+                                    className="w-12 bg-transparent text-right text-sm font-black text-white outline-none"
+                                    value={formData.total_floors}
+                                    onChange={e => setFormData({ ...formData, total_floors: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 6. Amenities Section */}
+                    <div className="space-y-4">
+                        <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">{lang === 'ru' ? 'Удобства (теги)' : 'Amenities (tags)'}</p>
+                        <div className="flex flex-wrap gap-1.5">
+                            {AMENITIES.map((item) => {
+                                const isSelected = formData.tags.includes(item.id);
+                                return (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => {
+                                            const newTags = isSelected
+                                                ? formData.tags.filter((t: string) => t !== item.id)
+                                                : [...formData.tags, item.id];
+                                            setFormData({ ...formData, tags: newTags });
+                                        }}
+                                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl border transition-all active:scale-95 ${
+                                            isSelected
+                                                ? 'bg-primary/20 border-primary text-primary shadow-lg'
+                                                : 'bg-white/[0.02] border-white/5 text-zinc-500 hover:border-white/10'
+                                        }`}
+                                    >
+                                        <span className="material-symbols-outlined text-[14px]">{item.icon}</span>
+                                        <span className="text-[9px] font-bold uppercase tracking-wider">
+                                            {item.labels[lang as keyof typeof item.labels] || item.labels.ru}
                         </div>
 
                         <div className="space-y-4">
