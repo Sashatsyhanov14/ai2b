@@ -381,7 +381,7 @@ function PropertyCard({ unit, tr, lang, onAskBot, onBookNow }: any) {
     return (
         <div className="group glass-card rounded-2xl !p-0 overflow-hidden animate-fade-in shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
             <div className="relative h-64 w-full overflow-hidden">
-                <img src={photo} alt={title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                <img src={photo} alt={title} loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                 <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-80" />
                 <div className="absolute top-5 left-5">
                     <div className="bg-black/60 backdrop-blur-xl px-4 py-1.5 rounded-2xl flex items-center gap-1.5 border border-white/10">

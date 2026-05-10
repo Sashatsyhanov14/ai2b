@@ -5,9 +5,9 @@ const path = require('path');
 dotenv.config({ path: path.resolve(__dirname, '../.env.local') });
 
 const client = new Client({
-  host: 'db.dqlhdiuufqtsblkhhlnk.supabase.co',
-  port: 5432,
-  user: 'postgres',
+  host: 'aws-0-eu-central-1.pooler.supabase.com',
+  port: 6543,
+  user: 'postgres.dqlhdiuufqtsblkhhlnk',
   password: 'm3dmA23bg9uOcgDm',
   database: 'postgres',
   ssl: { rejectUnauthorized: false }
