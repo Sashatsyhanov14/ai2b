@@ -191,6 +191,7 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
     });
 
     const [publishing, setPublishing] = useState(false);
+    const [translating, setTranslating] = useState(false);
     const [publishStatus, setPublishStatus] = useState('');
 
     useEffect(() => { fetchUnits(); }, []);
