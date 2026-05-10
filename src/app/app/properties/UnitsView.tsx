@@ -25,7 +25,7 @@ const i18n: Record<string, Record<string, string>> = {
     },
     en: {
         title: 'Property Manager',
-        subtitle: 'Real estate database',
+        subtitle: 'Emedeo',
         addBtn: 'Add',
         titleField: 'Property Title',
         city: 'City',
@@ -44,7 +44,7 @@ const i18n: Record<string, Record<string, string>> = {
     },
     tr: {
         title: 'Mülk Yönetimi',
-        subtitle: 'Emlak veritabanı',
+        subtitle: 'Emedeo',
         addBtn: 'Ekle',
         titleField: 'Mülk Başlığı',
         city: 'Şehir',

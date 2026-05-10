@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabaseClient';
 const t: Record<string, Record<string, string>> = {
     ru: {
         title: 'Каталог',
-        subtitle: 'Премиальная Недвижимость',
+        subtitle: 'Emedeo',
         all: 'Все',
         rent: 'Аренда',
         sale: 'Продажа',
@@ -21,7 +21,7 @@ const t: Record<string, Record<string, string>> = {
     },
     en: {
         title: 'Catalog',
-        subtitle: 'Premium Real Estate',
+        subtitle: 'Emedeo',
         all: 'All',
         rent: 'Rent',
         sale: 'Sale',
@@ -36,7 +36,7 @@ const t: Record<string, Record<string, string>> = {
     },
     tr: {
         title: 'Katalog',
-        subtitle: 'Premium Emlak',
+        subtitle: 'Emedeo',
         all: 'Tümü',
         rent: 'Kiralık',
         sale: 'Satılık',
@@ -51,7 +51,7 @@ const t: Record<string, Record<string, string>> = {
     },
     de: {
         title: 'Katalog',
-        subtitle: 'Premium-Immobilien',
+        subtitle: 'Emedeo',
         all: 'Alle',
         rent: 'Miete',
         sale: 'Kauf',
@@ -66,7 +66,7 @@ const t: Record<string, Record<string, string>> = {
     },
     es: {
         title: 'Catálogo',
-        subtitle: 'Inmuebles Premium',
+        subtitle: 'Emedeo',
         all: 'Todos',
         rent: 'Alquiler',
         sale: 'Venta',
@@ -81,7 +81,7 @@ const t: Record<string, Record<string, string>> = {
     },
     ar: {
         title: 'الكتالوج',
-        subtitle: 'عقارات فاخرة',
+        subtitle: 'Emedeo',
         all: 'الكل',
         rent: 'إيجار',
         sale: 'بيع',
@@ -96,7 +96,7 @@ const t: Record<string, Record<string, string>> = {
     },
     fr: {
         title: 'Catalogue',
-        subtitle: 'Immobilier de Prestige',
+        subtitle: 'Emedeo',
         all: 'Tous',
         rent: 'Location',
         sale: 'Vente',

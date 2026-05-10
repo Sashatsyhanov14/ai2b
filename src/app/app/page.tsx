@@ -389,7 +389,7 @@ export default function MiniAppDispatcher() {
                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[100px] -z-10" />
                 <div>
                     <h1 className="text-3xl font-black text-on-background tracking-tighter uppercase">
-                        Real Estate
+                        Emedeo
                     </h1>
                 </div>
                 

@@ -3,7 +3,7 @@ import { I18nProvider } from '@/i18n';
 
 import Script from 'next/script';
 
-export const metadata = { title: 'AI2B — Real Estate Mini App' };
+export const metadata = { title: 'Emedeo — AI Assistant' };
 
 export default function MiniAppLayout({ children }: { children: React.ReactNode }) {
   return (
