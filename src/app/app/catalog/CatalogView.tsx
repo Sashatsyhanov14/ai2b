@@ -111,6 +111,29 @@ const t: Record<string, Record<string, string>> = {
     },
 };
 
+const AMENITIES = [
+    { id: 'pool', icon: 'pool', labels: { ru: 'Бассейн', en: 'Pool', tr: 'Havuz', de: 'Pool', es: 'Piscina', ar: 'مسبح', fr: 'Piscine' } },
+    { id: 'gym', icon: 'fitness_center', labels: { ru: 'Спортзал', en: 'Gym', tr: 'Spor Salonu', de: 'Fitness', es: 'Gimnasio', ar: 'نادي رياضي', fr: 'Salle de sport' } },
+    { id: 'parking', icon: 'local_parking', labels: { ru: 'Парковка', en: 'Parking', tr: 'Otopark', de: 'Parkplatz', es: 'Parking', ar: 'موقف سيارات', fr: 'Parking' } },
+    { id: 'sea_view', icon: 'waves', labels: { ru: 'Вид на море', en: 'Sea View', tr: 'Deniz Manzarası', de: 'Meerblick', es: 'Vista al mar', ar: 'إطلالة на البحر', fr: 'Vue sur mer' } },
+    { id: 'garden', icon: 'yard', labels: { ru: 'Сад', en: 'Garden', tr: 'Bahçe', de: 'Garten', es: 'Jardín', ar: 'حديقة', fr: 'Jardin' } },
+    { id: 'security', icon: 'security', labels: { ru: 'Охрана', en: 'Security', tr: 'Güvenlik', de: 'Sicherheit', es: 'Seguridad', ar: 'أمن', fr: 'Sécurité' } },
+    { id: 'furniture', icon: 'chair', labels: { ru: 'Мебель', en: 'Furniture', tr: 'Mobilya', de: 'Möbel', es: 'Muebles', ar: 'أثاث', fr: 'Meubles' } },
+    { id: 'ac', icon: 'ac_unit', labels: { ru: 'Кондиционер', en: 'AC', tr: 'Klima', de: 'Klimaanlage', es: 'Aire acondicionado', ar: 'تكييف', fr: 'Climatisation' } },
+    { id: 'wifi', icon: 'wifi', labels: { ru: 'Wi-Fi', en: 'Wi-Fi', tr: 'Wi-Fi', de: 'WLAN', es: 'Wi-Fi', ar: 'واي فاي', fr: 'Wi-Fi' } },
+    { id: 'balcony', icon: 'balcony', labels: { ru: 'Балкон', en: 'Balcony', tr: 'Balkon', de: 'Balkon', es: 'Balcón', ar: 'شرفة', fr: 'Balcon' } },
+    { id: 'sauna', icon: 'hot_tub', labels: { ru: 'Сауна', en: 'Sauna', tr: 'Sauna', de: 'Sauna', es: 'Sauna', ar: 'سونا', fr: 'Sauna' } },
+    { id: 'hamam', icon: 'bathtub', labels: { ru: 'Хамам', en: 'Hamam', tr: 'Hamam', de: 'Hamam', es: 'Hamam', ar: 'حمام تركي', fr: 'Hamman' } },
+    { id: 'playground', icon: 'child_care', labels: { ru: 'Детская площадка', en: 'Playground', tr: 'Çocuk Parkı', de: 'Spielplatz', es: 'Parque infantil', ar: 'ملعب أطفال', fr: 'Aire de jeux' } },
+    { id: 'bbq', icon: 'outdoor_grill', labels: { ru: 'Барбекю', en: 'BBQ', tr: 'Mangal', de: 'Grillplatz', es: 'Barbacoa', ar: 'شواء', fr: 'Barbecue' } },
+    { id: 'elevator', icon: 'elevator', labels: { ru: 'Лифт', en: 'Elevator', tr: 'Asansör', de: 'Aufzug', es: 'Ascensor', ar: 'مصعد', fr: 'Ascenseur' } },
+    { id: 'heating', icon: 'thermostat', labels: { ru: 'Отопление', en: 'Heating', tr: 'Isıtma', de: 'Heizung', es: 'Calefacción', ar: 'تدفئة', fr: 'Chauffage' } },
+    { id: 'dishwasher', icon: 'dishwasher_gen', labels: { ru: 'Посудомойка', en: 'Dishwasher', tr: 'Bulaşık Makinesi', de: 'Spülmaschine', es: 'Lavavajillas', ar: 'غсالة أطباق', fr: 'Lave-vaisselle' } },
+    { id: 'washing_machine', icon: 'local_laundry_service', labels: { ru: 'Стиральная машина', en: 'Washing Machine', tr: 'Чamaшыр Makinesi', de: 'Waschmaschine', es: 'Lavadora', ar: 'غсالة ملابس', fr: 'Lave-linge' } },
+    { id: 'smart_home', icon: 'smart_toy', labels: { ru: 'Умный дом', en: 'Smart Home', tr: 'Akıllı Ev', de: 'Smart Home', es: 'Casa inteligente', ar: 'منزل ذки', fr: 'Maison intelligente' } },
+    { id: 'terrace', icon: 'deck', labels: { ru: 'Терраса', en: 'Terrace', tr: 'Teras', de: 'Terrasse', es: 'Terraza', ar: 'تراس', fr: 'Terrasse' } },
+];
+
 export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
     const tr = t[lang] || t['ru'];
     const [units, setUnits] = useState<any[]>([]);
@@ -118,6 +141,7 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
     const [filter, setFilter] = useState<'apartment' | 'land'>('apartment');
     const [intentFilter, setIntentFilter] = useState<'sale' | 'rent'>('sale');
     const [searchQuery, setSearchQuery] = useState('');
+    const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
     useEffect(() => {
         fetchUnits();
@@ -236,6 +260,33 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
                 </div>
             </div>
 
+            {/* Quick Amenity Filters */}
+            <div className="flex overflow-x-auto gap-2 pb-2 no-scrollbar px-1">
+                {AMENITIES.map((item) => {
+                    const isSelected = selectedTags.includes(item.id);
+                    return (
+                        <button
+                            key={item.id}
+                            onClick={() => {
+                                setSelectedTags(prev => 
+                                    isSelected ? prev.filter(id => id !== item.id) : [...prev, item.id]
+                                );
+                            }}
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border whitespace-nowrap transition-all active:scale-95 ${
+                                isSelected
+                                    ? 'bg-primary/20 border-primary text-primary'
+                                    : 'bg-white/[0.02] border-white/5 text-outline hover:border-white/10'
+                            }`}
+                        >
+                            <span className="material-symbols-outlined text-[16px]">{item.icon}</span>
+                            <span className="text-[9px] font-black uppercase tracking-widest">
+                                {item.labels[lang as keyof typeof item.labels] || item.labels.ru}
+                            </span>
+                        </button>
+                    );
+                })}
+            </div>
+
             {/* Loading Skeletons */}
             {loading ? (
                 <div className="space-y-4">
@@ -265,10 +316,26 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
                         const districtStr = (u.i18n?.[lang]?.district || u.district || '').toString();
                         const addrStr = (u.i18n?.[lang]?.address || u.address || '').toString();
                         
-                        return cityStr.toLowerCase().includes(q) || 
+                        // Tags search: Check if any tag label matches the query
+                        const tagMatch = u.tags?.some((tagId: string) => {
+                            const amenity = AMENITIES.find(a => a.id === tagId);
+                            if (!amenity) return false;
+                            const label = amenity.labels[lang as keyof typeof amenity.labels] || amenity.labels.ru;
+                            return label.toLowerCase().includes(q) || tagId.toLowerCase().includes(q);
+                        });
+
+                        // Combined search logic
+                        const searchMatch = cityStr.toLowerCase().includes(q) || 
                                districtStr.toLowerCase().includes(q) || 
                                addrStr.toLowerCase().includes(q) || 
-                               titleStr.toLowerCase().includes(q);
+                               titleStr.toLowerCase().includes(q) ||
+                               tagMatch;
+
+                        // Filter by selected amenity chips (if any)
+                        const amenityFilterMatch = selectedTags.length === 0 || 
+                               selectedTags.every(tagId => u.tags?.includes(tagId));
+
+                        return searchMatch && amenityFilterMatch;
                     }).map((unit) => (
                         <PropertyCard
                             key={unit.id}
@@ -403,6 +470,11 @@ function PropertyCard({ unit, tr, lang, onAskBot, onBookNow }: any) {
                     </p>
                 </div>
 
+                {/* Tags Section */}
+                {unit.tags && unit.tags.length > 0 && (
+                    <TagsRow tags={unit.tags} lang={lang} />
+                )}
+
                 {/* Quick Stats & CTA */}
                 <div className="flex justify-between items-center pt-4 border-t border-white/5">
                     <div className="flex gap-4">
@@ -444,6 +516,48 @@ function PropertyCard({ unit, tr, lang, onAskBot, onBookNow }: any) {
                         </button>
                     </div>
                 </div>
+            </div>
+        </div>
+    );
+}
+
+function TagsRow({ tags, lang }: { tags: string[], lang: string }) {
+    const [expanded, setExpanded] = useState(false);
+    const visibleTags = expanded ? tags : tags.slice(0, 4);
+    const hasMore = tags.length > 4;
+
+    return (
+        <div className="space-y-2">
+            <div className="flex flex-wrap gap-1.5">
+                {visibleTags.map((tagId: string) => {
+                    const amenity = AMENITIES.find(a => a.id === tagId);
+                    if (!amenity) return null;
+                    return (
+                        <div 
+                            key={tagId} 
+                            className="flex items-center gap-1 px-2 py-1 bg-white/[0.03] border border-white/5 rounded-lg text-[9px] font-bold text-outline-variant uppercase tracking-wider whitespace-nowrap"
+                        >
+                            <span className="material-symbols-outlined text-[12px]">{amenity.icon}</span>
+                            <span>{amenity.labels[lang as keyof typeof amenity.labels] || amenity.labels.ru}</span>
+                        </div>
+                    );
+                })}
+                {hasMore && !expanded && (
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); setExpanded(true); }}
+                        className="flex items-center gap-1 px-2 py-1 bg-primary/10 border border-primary/20 rounded-lg text-[9px] font-black text-primary uppercase tracking-wider hover:bg-primary/20 transition-all"
+                    >
+                        +{tags.length - 4}
+                    </button>
+                )}
+                {expanded && (
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); setExpanded(false); }}
+                        className="flex items-center gap-1 px-2 py-1 bg-zinc-800 border border-white/5 rounded-lg text-[9px] font-black text-white uppercase tracking-wider"
+                    >
+                        <span className="material-symbols-outlined text-[12px]">expand_less</span>
+                    </button>
+                )}
             </div>
         </div>
     );

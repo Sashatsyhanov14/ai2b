@@ -20,6 +20,8 @@ const i18n: Record<string, Record<string, string>> = {
         untitled: 'Без названия',
         details: 'Детали объекта',
         location: 'Локация',
+        locationField: 'Местоположение',
+        locationPlaceholder: 'Район, улица, дом...',
     },
     en: {
         title: 'Property Manager',
@@ -37,6 +39,8 @@ const i18n: Record<string, Record<string, string>> = {
         untitled: 'Untitled',
         details: 'Property Details',
         location: 'Location',
+        locationField: 'Location',
+        locationPlaceholder: 'District, street, house...',
     },
     tr: {
         title: 'Mülk Yönetimi',
@@ -54,6 +58,8 @@ const i18n: Record<string, Record<string, string>> = {
         untitled: 'İsimsiz',
         details: 'Mülk Detayları',
         location: 'Konum',
+        locationField: 'Konum',
+        locationPlaceholder: 'Mahalle, sokak, no...',
     },
     de: {
         title: 'Objektverwaltung',
@@ -71,6 +77,8 @@ const i18n: Record<string, Record<string, string>> = {
         untitled: 'Unbenannt',
         details: 'Objektdetails',
         location: 'Standort',
+        locationField: 'Standort',
+        locationPlaceholder: 'Stadtteil, Straße, Haus...',
     },
     es: {
         title: 'Gestión de Propiedades',
@@ -88,6 +96,8 @@ const i18n: Record<string, Record<string, string>> = {
         untitled: 'Sin título',
         details: 'Detalles de la Propiedad',
         location: 'Ubicación',
+        locationField: 'Ubicación',
+        locationPlaceholder: 'Distrito, calle, casa...',
     },
     ar: {
         title: 'إدارة العقارات',
@@ -105,6 +115,8 @@ const i18n: Record<string, Record<string, string>> = {
         untitled: 'بدون عنوان',
         details: 'تفاصيل العقار',
         location: 'الموقع',
+        locationField: 'الموقع',
+        locationPlaceholder: 'المنطقة، الشارع، المنزل...',
     },
     fr: {
         title: 'Gestion des Biens',
@@ -122,8 +134,33 @@ const i18n: Record<string, Record<string, string>> = {
         untitled: 'Sans titre',
         details: 'Détails du bien',
         location: 'Localisation',
+        locationField: 'Emplacement',
+        locationPlaceholder: 'Quartier, rue, maison...',
     },
 };
+
+const AMENITIES = [
+    { id: 'pool', icon: 'pool', labels: { ru: 'Бассейн', en: 'Pool', tr: 'Havuz', de: 'Pool', es: 'Piscina', ar: 'مسبح', fr: 'Piscine' } },
+    { id: 'gym', icon: 'fitness_center', labels: { ru: 'Спортзал', en: 'Gym', tr: 'Spor Salonu', de: 'Fitness', es: 'Gimnasio', ar: 'نادي رياضي', fr: 'Salle de sport' } },
+    { id: 'parking', icon: 'local_parking', labels: { ru: 'Парковка', en: 'Parking', tr: 'Otopark', de: 'Parkplatz', es: 'Parking', ar: 'موقف سيارات', fr: 'Parking' } },
+    { id: 'sea_view', icon: 'waves', labels: { ru: 'Вид на море', en: 'Sea View', tr: 'Deniz Manzarası', de: 'Meerblick', es: 'Vista al mar', ar: 'إطلالة على البحر', fr: 'Vue sur mer' } },
+    { id: 'garden', icon: 'yard', labels: { ru: 'Сад', en: 'Garden', tr: 'Bahçe', de: 'Garten', es: 'Jardín', ar: 'حديقة', fr: 'Jardin' } },
+    { id: 'security', icon: 'security', labels: { ru: 'Охрана', en: 'Security', tr: 'Güvenlik', de: 'Sicherheit', es: 'Seguridad', ar: 'أمن', fr: 'Sécurité' } },
+    { id: 'furniture', icon: 'chair', labels: { ru: 'Мебель', en: 'Furniture', tr: 'Mobilya', de: 'Möbel', es: 'Muebles', ar: 'أثاث', fr: 'Meubles' } },
+    { id: 'ac', icon: 'ac_unit', labels: { ru: 'Кондиционер', en: 'AC', tr: 'Klima', de: 'Klimaanlage', es: 'Aire acondicionado', ar: 'تكييف', fr: 'Climatisation' } },
+    { id: 'wifi', icon: 'wifi', labels: { ru: 'Wi-Fi', en: 'Wi-Fi', tr: 'Wi-Fi', de: 'WLAN', es: 'Wi-Fi', ar: 'واي فاي', fr: 'Wi-Fi' } },
+    { id: 'balcony', icon: 'balcony', labels: { ru: 'Балкон', en: 'Balcony', tr: 'Balkon', de: 'Balkon', es: 'Balcón', ar: 'شرفة', fr: 'Balcon' } },
+    { id: 'sauna', icon: 'hot_tub', labels: { ru: 'Сауна', en: 'Sauna', tr: 'Sauna', de: 'Sauna', es: 'Sauna', ar: 'سونا', fr: 'Sauna' } },
+    { id: 'hamam', icon: 'bathtub', labels: { ru: 'Хамам', en: 'Hamam', tr: 'Hamam', de: 'Hamam', es: 'Hamam', ar: 'حمام تركي', fr: 'Hamman' } },
+    { id: 'playground', icon: 'child_care', labels: { ru: 'Детская площадка', en: 'Playground', tr: 'Çocuk Parkı', de: 'Spielplatz', es: 'Parque infantil', ar: 'ملعب أطفال', fr: 'Aire de jeux' } },
+    { id: 'bbq', icon: 'outdoor_grill', labels: { ru: 'Барбекю', en: 'BBQ', tr: 'Mangal', de: 'Grillplatz', es: 'Barbacoa', ar: 'شواء', fr: 'Barbecue' } },
+    { id: 'elevator', icon: 'elevator', labels: { ru: 'Лифт', en: 'Elevator', tr: 'Asansör', de: 'Aufzug', es: 'Ascensor', ar: 'مصعد', fr: 'Ascenseur' } },
+    { id: 'heating', icon: 'thermostat', labels: { ru: 'Отопление', en: 'Heating', tr: 'Isıtma', de: 'Heizung', es: 'Calefacción', ar: 'تدفئة', fr: 'Chauffage' } },
+    { id: 'dishwasher', icon: 'dishwasher_gen', labels: { ru: 'Посудомойка', en: 'Dishwasher', tr: 'Bulaşık Makinesi', de: 'Spülmaschine', es: 'Lavavajillas', ar: 'غسالة أطباق', fr: 'Lave-vaisselle' } },
+    { id: 'washing_machine', icon: 'local_laundry_service', labels: { ru: 'Стиральная машина', en: 'Washing Machine', tr: 'Çamaşır Makinesi', de: 'Waschmaschine', es: 'Lavadora', ar: 'غسالة ملابس', fr: 'Lave-linge' } },
+    { id: 'smart_home', icon: 'smart_toy', labels: { ru: 'Умный дом', en: 'Smart Home', tr: 'Akıllı Ev', de: 'Smart Home', es: 'Casa inteligente', ar: 'منزل ذки', fr: 'Maison intelligente' } },
+    { id: 'terrace', icon: 'deck', labels: { ru: 'Терраса', en: 'Terrace', tr: 'Teras', de: 'Terrasse', es: 'Terraza', ar: 'تراس', fr: 'Terrasse' } },
+];
 
 export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
     const t = i18n[lang] || i18n['ru'];
@@ -146,11 +183,15 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
         living_rooms: '',
         bathrooms: '',
         area: '',
+        floor: '',
+        total_floors: '',
+        tags: [],
         photos: [],
         description: '',
     });
 
-    const [translating, setTranslating] = useState(false);
+    const [publishing, setPublishing] = useState(false);
+    const [publishStatus, setPublishStatus] = useState('');
 
     useEffect(() => { fetchUnits(); }, []);
 
@@ -200,9 +241,19 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
     };
 
     const handleAdd = async () => {
-        if (!formData.title || !formData.price) return;
+        // 1. Validation Logic
+        if (!formData.title) return alert('Введите название объекта');
         
-        setTranslating(true);
+        if (formData.is_sale && !formData.price_sale) {
+            return alert('Укажите цену продажи');
+        }
+        if (formData.is_rent && !formData.price_month && !formData.price_day) {
+            return alert('Укажите цену аренды (в месяц или сутки)');
+        }
+        
+        setPublishing(true);
+        setPublishStatus('Перевод контента...');
+        
         try {
             // Auto-translate title and description in parallel
             const [transTitle, transDesc] = await Promise.all([
@@ -212,9 +263,12 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                     : Promise.resolve({})
             ]);
 
+            setPublishStatus('Сохранение в базу...');
+
             const payload = {
                 title: transTitle.ru || formData.title,
                 city: formData.city,
+                district: formData.district,
                 address: formData.address,
                 description: transDesc.ru || formData.description,
                 unit_type: formData.unit_type,
@@ -223,11 +277,14 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                 price_sale: formData.is_sale ? parseFloat(formData.price_sale || '0') : null,
                 price_month: formData.is_rent ? parseFloat(formData.price_month || '0') : null,
                 price_day: formData.is_rent ? parseFloat(formData.price_day || '0') : null,
-                price_period: formData.is_rent && !formData.is_sale ? 'month' : 'total',
+                price_period: formData.is_rent && !formData.is_sale ? (formData.price_month ? 'month' : 'day') : 'total',
                 bedrooms: formData.bedrooms ? parseInt(formData.bedrooms) : null,
                 living_rooms: formData.living_rooms ? parseInt(formData.living_rooms) : null,
                 bathrooms: formData.bathrooms ? parseInt(formData.bathrooms) : null,
                 area: formData.area ? parseFloat(formData.area) : null,
+                floor: formData.floor ? parseInt(formData.floor) : null,
+                total_floors: formData.total_floors ? parseInt(formData.total_floors) : null,
+                tags: formData.tags,
                 photos: formData.photos,
                 is_active: true,
                 i18n: Object.keys(transTitle).reduce((acc: any, l) => {
@@ -261,6 +318,9 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                     living_rooms: '',
                     bathrooms: '',
                     area: '',
+                    floor: '',
+                    total_floors: '',
+                    tags: [],
                     photos: [],
                     description: '' 
                 });
@@ -270,7 +330,8 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
             console.error('Save failed:', err);
             alert('Save failed');
         } finally {
-            setTranslating(false);
+            setPublishing(false);
+            setPublishStatus('');
         }
     };
 
@@ -278,7 +339,8 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
         const files = e.target.files;
         if (!files || files.length === 0) return;
 
-        setTranslating(true); // Reuse translating as loading state for simplicity
+        setPublishing(true);
+        setPublishStatus('Загрузка фото...');
         const newPhotos = [...formData.photos];
 
         for (let i = 0; i < files.length; i++) {
@@ -304,7 +366,8 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
         }
 
         setFormData({ ...formData, photos: newPhotos });
-        setTranslating(false);
+        setPublishing(false);
+        setPublishStatus('');
     };
 
     const removePhoto = (url: string) => {
@@ -392,7 +455,7 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                         </div>
 
                         <div className="space-y-4">
-                            <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">{t.location}</p>
+                            <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">{t.locationField}</p>
                             <div className="grid grid-cols-2 gap-2">
                                 <input
                                     placeholder={t.city}
@@ -401,16 +464,10 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                                     onChange={e => setFormData({ ...formData, city: e.target.value })}
                                 />
                                 <input
-                                    placeholder="Район / Махалле"
-                                    className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-primary/30 transition-all font-medium"
-                                    value={formData.district}
-                                    onChange={e => setFormData({ ...formData, district: e.target.value })}
-                                />
-                                <input
-                                    placeholder={t.address}
+                                    placeholder={t.locationPlaceholder}
                                     className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-primary/30 transition-all font-medium col-span-2"
                                     value={formData.address}
-                                    onChange={e => setFormData({ ...formData, address: e.target.value })}
+                                    onChange={e => setFormData({ ...formData, address: e.target.value, district: '' })}
                                 />
                             </div>
                         </div>
@@ -435,6 +492,43 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                                     <label className="text-[8px] text-zinc-500 uppercase font-black pl-1">Площадь (м²)</label>
                                     <input type="number" placeholder="0" className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2.5 text-xs text-white outline-none font-bold text-primary" value={formData.area} onChange={e => setFormData({...formData, area: e.target.value})} />
                                 </div>
+                                <div className="space-y-1">
+                                    <label className="text-[8px] text-zinc-500 uppercase font-black pl-1">Этаж</label>
+                                    <input type="number" placeholder="0" className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2.5 text-xs text-white outline-none" value={formData.floor} onChange={e => setFormData({...formData, floor: e.target.value})} />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[8px] text-zinc-500 uppercase font-black pl-1">Всего эт.</label>
+                                    <input type="number" placeholder="0" className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2.5 text-xs text-white outline-none" value={formData.total_floors} onChange={e => setFormData({...formData, total_floors: e.target.value})} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Amenities Tags Selection */}
+                        <div className="space-y-3">
+                            <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">Удобства (Теги)</p>
+                            <div className="flex flex-wrap gap-2">
+                                {AMENITIES.map((item) => {
+                                    const isSelected = formData.tags.includes(item.id);
+                                    return (
+                                        <button
+                                            key={item.id}
+                                            onClick={() => {
+                                                const newTags = isSelected
+                                                    ? formData.tags.filter((t: string) => t !== item.id)
+                                                    : [...formData.tags, item.id];
+                                                setFormData({ ...formData, tags: newTags });
+                                            }}
+                                            className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-[10px] font-bold uppercase transition-all ${
+                                                isSelected 
+                                                    ? 'bg-primary/20 border-primary text-primary shadow-[0_0_15px_rgba(139,92,246,0.2)]' 
+                                                    : 'bg-white/[0.02] border-white/5 text-zinc-500 hover:border-white/10'
+                                            }`}
+                                        >
+                                            <span className="material-symbols-outlined text-[14px]">{item.icon}</span>
+                                            {item.labels[lang as keyof typeof item.labels] || item.labels.ru}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
 
@@ -505,9 +599,17 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                     </div>
                     <button
                         onClick={handleAdd}
-                        className="w-full bg-primary text-black font-black py-4 rounded-2xl shadow-[0_10px_30px_rgba(139,92,246,0.3)] active:scale-95 transition-all uppercase tracking-[0.2em] text-xs"
+                        disabled={publishing}
+                        className="w-full bg-primary text-black font-black py-4 rounded-2xl shadow-[0_10px_30px_rgba(139,92,246,0.3)] active:scale-95 transition-all uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-3 disabled:opacity-50"
                     >
-                        {t.publish}
+                        {publishing ? (
+                            <>
+                                <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                                <span>{publishStatus || 'Загрузка...'}</span>
+                            </>
+                        ) : (
+                            t.publish
+                        )}
                     </button>
                 </div>
             )}
@@ -573,6 +675,11 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                                             </div>
                                         )}
                                     </div>
+                                    {unit.tags && unit.tags.length > 0 && (
+                                        <div className="mt-2">
+                                            <TagsRow tags={unit.tags} lang={lang} />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             
@@ -595,6 +702,38 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                         </div>
                     ))}
                 </div>
+            )}
+        </div>
+    );
+}
+
+function TagsRow({ tags, lang }: { tags: string[], lang: string }) {
+    const [expanded, setExpanded] = useState(false);
+    const visibleTags = expanded ? tags : tags.slice(0, 3); // Even more compact for admin list
+    const hasMore = tags.length > 3;
+
+    return (
+        <div className="flex flex-wrap gap-1">
+            {visibleTags.map((tagId: string) => {
+                const amenity = AMENITIES.find(a => a.id === tagId);
+                if (!amenity) return null;
+                return (
+                    <div 
+                        key={tagId} 
+                        className="flex items-center gap-1 px-1.5 py-0.5 bg-white/[0.03] border border-white/5 rounded-md text-[8px] font-bold text-zinc-500 uppercase tracking-wider"
+                    >
+                        <span className="material-symbols-outlined text-[10px]">{amenity.icon}</span>
+                        <span>{amenity.labels[lang as keyof typeof amenity.labels] || amenity.labels.ru}</span>
+                    </div>
+                );
+            })}
+            {hasMore && !expanded && (
+                <button 
+                    onClick={(e) => { e.stopPropagation(); setExpanded(true); }}
+                    className="px-1.5 py-0.5 bg-primary/10 border border-primary/20 rounded-md text-[8px] font-black text-primary uppercase"
+                >
+                    +{tags.length - 3}
+                </button>
             )}
         </div>
     );
