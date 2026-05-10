@@ -290,12 +290,15 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
 
             setPublishStatus('Сохранение в базу...');
 
+            const finalTitle = transTitle && Object.keys(transTitle).length > 0 ? transTitle : formData.title;
+            const finalDesc = transDesc && Object.keys(transDesc).length > 0 ? transDesc : formData.description;
+
             const payload = {
-                title: transTitle.ru || formData.title,
+                title: finalTitle,
+                description: finalDesc,
                 city: formData.city,
-                district: formData.district,
+                district: formData.district || '',
                 address: formData.address,
-                description: transDesc.ru || formData.description,
                 unit_type: formData.unit_type,
                 intent: [formData.is_sale && 'sale', formData.is_rent && 'rent'].filter(Boolean).join(','),
                 price: parseFloat(formData.price_sale || formData.price_month || formData.price_day || '0'),
@@ -316,10 +319,10 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                 tags: formData.tags,
                 photos: formData.photos,
                 is_active: true,
-                i18n: Object.keys(transTitle).reduce((acc: any, l) => {
+                i18n: Object.keys(finalTitle).reduce((acc: any, l) => {
                     acc[l] = { 
-                        title: transTitle[l], 
-                        description: transDesc[l] || '' 
+                        title: finalTitle[l as keyof typeof finalTitle], 
+                        description: finalDesc[l as keyof typeof finalDesc] || '' 
                     };
                     return acc;
                 }, {})
@@ -333,7 +336,7 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
             } else {
                 setIsAdding(false);
                 setFormData({ 
-                    title: '',
+                    title: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' },
                     city: 'Alanya', 
                     district: '',
                     address: '', 
@@ -351,7 +354,7 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                     total_floors: '',
                     tags: [],
                     photos: [],
-                    description: '' 
+                    description: { ru: '', en: '', tr: '', de: '', es: '', ar: '', fr: '' }
                 });
                 fetchUnits();
             }
@@ -485,7 +488,7 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                                     type="file" 
                                     multiple 
                                     className="hidden" 
-                                    onChange={handlePhotoUpload} 
+                                    onChange={handleFileUpload} 
                                 />
                             </label>
                             {formData.photos.map((p: string, i: number) => (
