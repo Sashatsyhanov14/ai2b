@@ -184,6 +184,7 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
     const [bookingUnit, setBookingUnit] = useState<any>(null);
     const [bookingAction, setBookingAction] = useState<'book_now' | 'ask_about'>('book_now');
     const [phone, setPhone] = useState('');
+    const [submitting, setSubmitting] = useState(false);
 
     const handleAskBot = (unit: any) => {
         setBookingAction('ask_about');
@@ -196,12 +197,14 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
     };
 
     const submitLead = async () => {
+        if (submitting) return;
         const tg = (window as any).Telegram?.WebApp;
         if (!phone) {
             tg?.showAlert(lang === 'ru' ? 'Пожалуйста, введите номер телефона' : 'Please enter your phone number');
             return;
         }
 
+        setSubmitting(true);
         const title = bookingUnit.title?.ru || bookingUnit.title || 'Property';
         
         try {
@@ -227,6 +230,8 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
         } catch (err) {
             console.error('Submit lead error:', err);
             tg?.showAlert(lang === 'ru' ? '❌ Ошибка отправки. Попробуйте позже.' : '❌ Error sending request. Please try again later.');
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -369,8 +374,12 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
                             <button onClick={() => setBookingUnit(null)} className="btn-secondary flex-1">
                                 {lang === 'ru' ? 'ОТМЕНА' : 'CANCEL'}
                             </button>
-                            <button onClick={submitLead} className="btn-primary flex-1">
-                                {lang === 'ru' ? 'ОТПРАВИТЬ' : 'SEND'}
+                            <button 
+                                onClick={submitLead} 
+                                disabled={submitting}
+                                className={`btn-primary flex-1 ${submitting ? 'opacity-50 grayscale' : ''}`}
+                            >
+                                {submitting ? '...' : (lang === 'ru' ? 'ОТПРАВИТЬ' : 'SEND')}
                             </button>
                         </div>
                     </div>
