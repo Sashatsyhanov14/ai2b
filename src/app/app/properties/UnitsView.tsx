@@ -139,6 +139,19 @@ const i18n: Record<string, Record<string, string>> = {
     },
 };
 
+const LAND_AMENITIES = [
+    { id: 'electricity', icon: 'bolt', labels: { ru: 'Электричество', en: 'Electricity', tr: 'Elektrik', de: 'Strom', es: 'Electricidad', ar: 'كهرباء', fr: 'Électricité' } },
+    { id: 'water', icon: 'water_drop', labels: { ru: 'Вода', en: 'Water', tr: 'Su', de: 'Wasser', es: 'Agua', ar: 'ماء', fr: 'Eau' } },
+    { id: 'gas', icon: 'mode_fan', labels: { ru: 'Газ', en: 'Gas', tr: 'Gaz', de: 'Gas', es: 'Gas', ar: 'غاز', fr: 'Gaz' } },
+    { id: 'road', icon: 'add_road', labels: { ru: 'Дорога', en: 'Road', tr: 'Yol', de: 'Straße', es: 'Camino', ar: 'طريق', fr: 'Route' } },
+    { id: 'sea_view', icon: 'waves', labels: { ru: 'Вид на море', en: 'Sea View', tr: 'Deniz Manzarası', de: 'Meerblick', es: 'Vista al mar', ar: 'إطلالة на البحر', fr: 'Vue sur mer' } },
+    { id: 'mountain_view', icon: 'terrain', labels: { ru: 'Вид на горы', en: 'Mountain View', tr: 'Dağ Manzarası', de: 'Bergblick', es: 'Vista a la montaña', ar: 'إطلالة على الجبال', fr: 'Vue sur montagne' } },
+    { id: 'forest', icon: 'park', labels: { ru: 'Рядом лес', en: 'Near Forest', tr: 'Orman Yakını', de: 'Waldnähe', es: 'Cerca del bosque', ar: 'قرب الغابة', fr: 'Près de la forêt' } },
+    { id: 'fence', icon: 'fence', labels: { ru: 'Забор', en: 'Fence', tr: 'Çit', de: 'Zaun', es: 'Valla', ar: 'سياج', fr: 'Clôture' } },
+    { id: 'permit', icon: 'description', labels: { ru: 'Разрешение', en: 'Permit', tr: 'İmar İzni', de: 'Baugenehmigung', es: 'Permiso', ar: 'تصريح بناء', fr: 'Permis' } },
+    { id: 'fruit_trees', icon: 'nature', labels: { ru: 'Сад/Деревья', en: 'Fruit Trees', tr: 'Meyve Ağaçları', de: 'Obstbäume', es: 'Frutales', ar: 'أшجار فاكهة', fr: 'Verger' } },
+];
+
 const AMENITIES = [
     { id: 'pool', icon: 'pool', labels: { ru: 'Бассейн', en: 'Pool', tr: 'Havuz', de: 'Pool', es: 'Piscina', ar: 'مسبح', fr: 'Piscine' } },
     { id: 'gym', icon: 'fitness_center', labels: { ru: 'Спортзал', en: 'Gym', tr: 'Spor Salonu', de: 'Fitness', es: 'Gimnasio', ar: 'نادي رياضي', fr: 'Salle de sport' } },
@@ -185,6 +198,10 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
         area: '',
         floor: '',
         total_floors: '',
+        ada: '',
+        parsel: '',
+        density: '',
+        height_limit: '',
         tags: [],
         photos: [],
         description: '',
@@ -405,29 +422,29 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
             </div>
 
             {/* Add Form */}
-            {isAdding && <div className="p-6 space-y-8 pb-32">
-                        {/* 0. Unit Type Section */}
-                        <div className="space-y-4">
-                            <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">{lang === 'ru' ? 'Тип объекта' : 'Property Type'}</p>
-                            <div className="flex bg-zinc-900/50 p-1 rounded-2xl border border-white/5">
-                                <button 
-                                    onClick={() => setFormData({ ...formData, unit_type: 'apartment' })}
-                                    className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${formData.unit_type === 'apartment' ? 'bg-white/10 text-white shadow-lg' : 'text-zinc-600'}`}
-                                >
-                                    <span className="material-symbols-outlined text-[16px]">apartment</span>
-                                    {lang === 'ru' ? 'КВАРТИРА' : 'APARTMENT'}
-                                </button>
-                                <button 
-                                    onClick={() => setFormData({ ...formData, unit_type: 'land' })}
-                                    className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${formData.unit_type === 'land' ? 'bg-white/10 text-white shadow-lg' : 'text-zinc-600'}`}
-                                >
-                                    <span className="material-symbols-outlined text-[16px]">landscape</span>
-                                    {lang === 'ru' ? 'УЧАСТОК' : 'LAND'}
-                                </button>
-                            </div>
+            {isAdding && <div className="p-0 space-y-0 pb-32">
+                        {/* 0. Tabs Section (Top Screen Switcher) */}
+                        <div className="flex bg-zinc-900 border-b border-white/5 sticky top-0 z-20">
+                            <button 
+                                onClick={() => setFormData({ ...formData, unit_type: 'apartment' })}
+                                className={`flex-1 py-4 text-[11px] font-black uppercase tracking-[0.2em] transition-all flex flex-col items-center gap-1 ${formData.unit_type === 'apartment' ? 'text-primary bg-primary/5' : 'text-zinc-600'}`}
+                            >
+                                <span className="material-symbols-outlined text-[20px]">apartment</span>
+                                {lang === 'ru' ? 'КВАРТИРА' : 'APARTMENT'}
+                                {formData.unit_type === 'apartment' && <div className="absolute bottom-0 w-12 h-0.5 bg-primary rounded-full shadow-[0_0_10px_rgba(208,188,255,0.5)]" />}
+                            </button>
+                            <button 
+                                onClick={() => setFormData({ ...formData, unit_type: 'land' })}
+                                className={`flex-1 py-4 text-[11px] font-black uppercase tracking-[0.2em] transition-all flex flex-col items-center gap-1 ${formData.unit_type === 'land' ? 'text-primary bg-primary/5' : 'text-zinc-600'}`}
+                            >
+                                <span className="material-symbols-outlined text-[20px]">landscape</span>
+                                {lang === 'ru' ? 'УЧАСТОК' : 'LAND'}
+                                {formData.unit_type === 'land' && <div className="absolute bottom-0 w-12 h-0.5 bg-primary rounded-full shadow-[0_0_10px_rgba(208,188,255,0.5)]" />}
+                            </button>
                         </div>
 
-                        {/* 1. Location Section (TOP) */}
+                        <div className="p-6 space-y-8">
+                            {/* 1. Location Section */}
                     <div className="space-y-4">
                         <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">{t.locationField}</p>
                         <div className="grid grid-cols-2 gap-2">
@@ -580,58 +597,115 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                     {/* 5. Characteristics Section */}
                     <div className="space-y-4">
                         <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">{lang === 'ru' ? 'Характеристики' : 'Characteristics'}</p>
-                        <div className="grid grid-cols-4 gap-2">
-                            {[
-                                { label: lang === 'ru' ? 'Спальни' : 'Beds', key: 'bedrooms', icon: 'bed' },
-                                { label: lang === 'ru' ? 'Гостиные' : 'Living', key: 'living_rooms', icon: 'chair' },
-                                { label: lang === 'ru' ? 'Ванные' : 'Baths', key: 'bathrooms', icon: 'bathtub' },
-                                { label: lang === 'ru' ? 'М²' : 'M²', key: 'area', icon: 'square_foot' }
-                            ].map((item) => (
-                                <div key={item.key} className="bg-white/[0.02] border border-white/5 rounded-2xl p-2 flex flex-col items-center gap-1">
-                                    <span className="material-symbols-outlined text-[16px] text-outline">{item.icon}</span>
-                                    <span className="text-[8px] font-black text-zinc-600 uppercase">{item.label}</span>
-                                    <input
-                                        type="number"
-                                        className="w-full bg-transparent text-center text-xs font-black text-white outline-none"
-                                        value={formData[item.key as keyof typeof formData]}
-                                        onChange={e => setFormData({ ...formData, [item.key]: e.target.value })}
-                                    />
+                        
+                        {formData.unit_type === 'apartment' ? (
+                            <>
+                                <div className="grid grid-cols-4 gap-2">
+                                    {[
+                                        { label: lang === 'ru' ? 'Спальни' : 'Beds', key: 'bedrooms', icon: 'bed' },
+                                        { label: lang === 'ru' ? 'Гостиные' : 'Living', key: 'living_rooms', icon: 'chair' },
+                                        { label: lang === 'ru' ? 'Ванные' : 'Baths', key: 'bathrooms', icon: 'bathtub' },
+                                        { label: lang === 'ru' ? 'М²' : 'M²', key: 'area', icon: 'square_foot' }
+                                    ].map((item) => (
+                                        <div key={item.key} className="bg-white/[0.02] border border-white/5 rounded-2xl p-2 flex flex-col items-center gap-1">
+                                            <span className="material-symbols-outlined text-[16px] text-outline">{item.icon}</span>
+                                            <span className="text-[8px] font-black text-zinc-600 uppercase">{item.label}</span>
+                                            <input
+                                                type="number"
+                                                className="w-full bg-transparent text-center text-xs font-black text-white outline-none"
+                                                value={formData[item.key as keyof typeof formData]}
+                                                onChange={e => setFormData({ ...formData, [item.key]: e.target.value })}
+                                            />
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-3 flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-[18px] text-outline">layers</span>
-                                    <span className="text-[10px] font-black text-zinc-500 uppercase">{lang === 'ru' ? 'Этаж' : 'Floor'}</span>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-3 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span className="material-symbols-outlined text-[18px] text-outline">layers</span>
+                                            <span className="text-[10px] font-black text-zinc-500 uppercase">{lang === 'ru' ? 'Этаж' : 'Floor'}</span>
+                                        </div>
+                                        <input
+                                            type="number"
+                                            className="w-12 bg-transparent text-right text-sm font-black text-white outline-none"
+                                            value={formData.floor}
+                                            onChange={e => setFormData({ ...formData, floor: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-3 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span className="material-symbols-outlined text-[18px] text-outline">apartment</span>
+                                            <span className="text-[10px] font-black text-zinc-500 uppercase">{lang === 'ru' ? 'Всего эт.' : 'Total Floors'}</span>
+                                        </div>
+                                        <input
+                                            type="number"
+                                            className="w-12 bg-transparent text-right text-sm font-black text-white outline-none"
+                                            value={formData.total_floors}
+                                            onChange={e => setFormData({ ...formData, total_floors: e.target.value })}
+                                        />
+                                    </div>
                                 </div>
-                                <input
-                                    type="number"
-                                    className="w-12 bg-transparent text-right text-sm font-black text-white outline-none"
-                                    value={formData.floor}
-                                    onChange={e => setFormData({ ...formData, floor: e.target.value })}
-                                />
-                            </div>
-                            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-3 flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-[18px] text-outline">apartment</span>
-                                    <span className="text-[10px] font-black text-zinc-500 uppercase">{lang === 'ru' ? 'Всего эт.' : 'Total Floors'}</span>
+                            </>
+                        ) : (
+                            <>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-3 flex flex-col items-center gap-1">
+                                        <span className="text-[8px] font-black text-zinc-600 uppercase">М² (Площадь)</span>
+                                        <input
+                                            type="number"
+                                            className="w-full bg-transparent text-center text-sm font-black text-primary outline-none"
+                                            value={formData.area}
+                                            onChange={e => setFormData({ ...formData, area: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-3 flex flex-col items-center gap-1">
+                                        <span className="text-[8px] font-black text-zinc-600 uppercase">ADA (Остров)</span>
+                                        <input
+                                            type="text"
+                                            className="w-full bg-transparent text-center text-sm font-black text-white outline-none"
+                                            value={formData.ada}
+                                            onChange={e => setFormData({ ...formData, ada: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-3 flex flex-col items-center gap-1">
+                                        <span className="text-[8px] font-black text-zinc-600 uppercase">PARSEL</span>
+                                        <input
+                                            type="text"
+                                            className="w-full bg-transparent text-center text-sm font-black text-white outline-none"
+                                            value={formData.parsel}
+                                            onChange={e => setFormData({ ...formData, parsel: e.target.value })}
+                                        />
+                                    </div>
                                 </div>
-                                <input
-                                    type="number"
-                                    className="w-12 bg-transparent text-right text-sm font-black text-white outline-none"
-                                    value={formData.total_floors}
-                                    onChange={e => setFormData({ ...formData, total_floors: e.target.value })}
-                                />
-                            </div>
-                        </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-3 flex items-center justify-between">
+                                        <span className="text-[10px] font-black text-zinc-500 uppercase">Плотность (%)</span>
+                                        <input
+                                            type="number"
+                                            className="w-16 bg-transparent text-right text-sm font-black text-white outline-none"
+                                            value={formData.density}
+                                            onChange={e => setFormData({ ...formData, density: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-3 flex items-center justify-between">
+                                        <span className="text-[10px] font-black text-zinc-500 uppercase">Высота (м)</span>
+                                        <input
+                                            type="number"
+                                            className="w-16 bg-transparent text-right text-sm font-black text-white outline-none"
+                                            value={formData.height_limit}
+                                            onChange={e => setFormData({ ...formData, height_limit: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     {/* 6. Amenities Section */}
                     <div className="space-y-4">
                         <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">{lang === 'ru' ? 'Удобства (теги)' : 'Amenities (tags)'}</p>
                         <div className="flex flex-wrap gap-1.5">
-                            {AMENITIES.map((item) => {
+                            {(formData.unit_type === 'apartment' ? AMENITIES : LAND_AMENITIES).map((item) => {
                                 const isSelected = formData.tags.includes(item.id);
                                 return (
                                     <button
@@ -651,7 +725,12 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                                         <span className="material-symbols-outlined text-[14px]">{item.icon}</span>
                                         <span className="text-[9px] font-bold uppercase tracking-wider">
                                             {item.labels[lang as keyof typeof item.labels] || item.labels.ru}
+                                        </span>
+                                    </button>
+                                );
+                            })}
                         </div>
+                    </div>
 
                         <div className="space-y-4">
                             <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">Стоимость (€)</p>
