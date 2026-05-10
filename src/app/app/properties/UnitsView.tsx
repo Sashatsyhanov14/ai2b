@@ -422,7 +422,8 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
             </div>
 
             {/* Add Form */}
-            {isAdding && <div className="p-0 space-y-0 pb-32">
+            {isAdding && (
+                <div className="p-0 space-y-0 pb-32">
                         {/* 0. Tabs Section (Top Screen Switcher) */}
                         <div className="flex bg-zinc-900 border-b border-white/5 sticky top-0 z-20">
                             <button 
@@ -731,71 +732,6 @@ export default function UnitsView({ lang = 'ru' }: { lang?: string }) {
                             })}
                         </div>
                     </div>
-
-                        <div className="space-y-4">
-                            <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">Стоимость (€)</p>
-                            <div className="space-y-2">
-                                {formData.is_sale && (
-                                    <div className="relative">
-                                        <input
-                                            placeholder="Цена продажи"
-                                            type="number"
-                                            className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm text-emerald-400 font-black outline-none focus:border-primary/30 transition-all pl-12"
-                                            value={formData.price_sale}
-                                            onChange={e => setFormData({ ...formData, price_sale: e.target.value })}
-                                        />
-                                        <span className="material-symbols-outlined absolute left-4 top-3 text-zinc-600 text-[18px]">sell</span>
-                                    </div>
-                                )}
-                                {formData.is_rent && (
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <div className="relative">
-                                            <input
-                                                placeholder="Цена / мес"
-                                                type="number"
-                                                className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm text-amber-400 font-black outline-none focus:border-primary/30 transition-all pl-12"
-                                                value={formData.price_month}
-                                                onChange={e => setFormData({ ...formData, price_month: e.target.value })}
-                                            />
-                                            <span className="material-symbols-outlined absolute left-4 top-3 text-zinc-600 text-[18px]">calendar_month</span>
-                                        </div>
-                                        <div className="relative">
-                                            <input
-                                                placeholder="Цена / сут"
-                                                type="number"
-                                                className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3.5 text-sm text-amber-400 font-black outline-none focus:border-primary/30 transition-all pl-12"
-                                                value={formData.price_day}
-                                                onChange={e => setFormData({ ...formData, price_day: e.target.value })}
-                                            />
-                                            <span className="material-symbols-outlined absolute left-4 top-3 text-zinc-600 text-[18px]">today</span>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Photo Upload Section */}
-                        <div className="space-y-3">
-                            <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">Фотографии объекта</p>
-                            <div className="grid grid-cols-4 gap-2">
-                                {formData.photos.map((p: string) => (
-                                    <div key={p} className="relative aspect-square rounded-xl overflow-hidden border border-white/10">
-                                        <img src={p} className="w-full h-full object-cover" alt="" />
-                                        <button 
-                                            onClick={() => removePhoto(p)}
-                                            className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5"
-                                        >
-                                            <span className="material-symbols-outlined text-[14px]">close</span>
-                                        </button>
-                                    </div>
-                                ))}
-                                <label className="aspect-square rounded-xl border border-dashed border-white/20 flex flex-col items-center justify-center cursor-pointer hover:bg-white/5 transition-all">
-                                    <input type="file" multiple accept="image/*" onChange={handleFileUpload} className="hidden" />
-                                    <span className="material-symbols-outlined text-zinc-500 text-[20px]">add_a_photo</span>
-                                    <span className="text-[8px] text-zinc-600 font-bold uppercase mt-1">Добавить</span>
-                                </label>
-                            </div>
-                        </div>
                     </div>
                     <button
                         onClick={handleAdd}
