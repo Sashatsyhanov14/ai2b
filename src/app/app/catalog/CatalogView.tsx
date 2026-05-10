@@ -195,7 +195,7 @@ export default function CatalogView({ lang = 'ru' }: { lang?: string }) {
         setBookingUnit(unit);
     };
 
-    const submitLead = () => {
+    const submitLead = async () => {
         const tg = (window as any).Telegram?.WebApp;
         if (!phone) {
             tg?.showAlert(lang === 'ru' ? 'Пожалуйста, введите номер телефона' : 'Please enter your phone number');
