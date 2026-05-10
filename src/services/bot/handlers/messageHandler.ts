@@ -20,6 +20,7 @@ export async function handleMessage(
     userInfo: { username?: string | null; fullName?: string | null; phone?: string | null; language_code?: string | null },
     update?: any
 ) {
+    const supabase = getServerClient();
     try {
         console.log(`[Bot] Message from ${chatId}: ${text}`);
 
@@ -49,14 +50,13 @@ export async function handleMessage(
         }
 
         // 0. REGISTER / UPDATE USER in Supabase (with Referral support)
-        const supabase = getServerClient();
         
         // 0a. Check if user already exists to preserve role and referrer
         const { data: existingUser } = await supabase
             .from('users')
             .select('role, referrer_id, lang_code, manager_contact_id, is_support_mode')
             .eq('telegram_id', parseInt(chatId))
-            .single();
+            .maybeSingle();
 
         let referrer_id: number | null = existingUser?.referrer_id || null;
         let roleToSet = existingUser?.role || 'client';
@@ -315,7 +315,7 @@ export async function handleMessage(
 
                 for (const recipient of recipients) {
                     if (recipient.telegram_id) {
-                        const { data: lastLead } = await supabase.from('leads').select('id').eq('user_id', parseInt(chatId)).order('created_at', { ascending: false }).limit(1).single();
+                        const { data: lastLead } = await supabase.from('leads').select('id').eq('user_id', parseInt(chatId)).order('created_at', { ascending: false }).limit(1).maybeSingle();
                         
                         const buttons: any = {
                             inline_keyboard: [
