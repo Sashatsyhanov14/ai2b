@@ -432,14 +432,12 @@ export default function MiniAppDispatcher() {
                 {activeTab === 'faq' && (isAdmin ? <FaqView lang={lang} /> : <ClientFaqView lang={lang} />)}
             </main>
 
-            {/* Premium Nav Bar */}
-            <nav className="fixed bottom-0 inset-x-0 z-[100] px-4 pb-8 pt-4">
-                <div className="max-w-md mx-auto glass-card border border-white/5 rounded-[32px] p-2 flex justify-around items-center shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+            {/* Rectangular Nav Bar at the absolute bottom */}
+            <nav className="fixed bottom-0 inset-x-0 z-[100]">
+                <div className="w-full bg-surface-container-high/80 backdrop-blur-2xl border-t border-white/5 p-2 flex justify-around items-center shadow-[0_-10px_30px_rgba(0,0,0,0.3)]">
                     <NavTab icon="explore" label={t.tabCatalog} active={activeTab === 'catalog'} onClick={() => setActiveTab('catalog')} color={isStaff ? 'zinc' : 'primary'} />
                     <NavTab icon="redeem" label={t.tabBonuses} active={activeTab === 'bonuses'} onClick={() => setActiveTab('bonuses')} color={isStaff ? 'zinc' : 'primary'} />
                     
-
-
                     {isStaff && (
                         <NavTab icon="analytics" label={t.tabStats} active={activeTab === 'stats'} onClick={() => setActiveTab('stats')} color="primary" />
                     )}
@@ -450,6 +448,8 @@ export default function MiniAppDispatcher() {
                     
                     <NavTab icon="help" label={t.tabFaq} active={activeTab === 'faq'} onClick={() => setActiveTab('faq')} color={isStaff ? 'primary' : 'zinc'} />
                 </div>
+                {/* Safe area padding for modern iPhones */}
+                <div className="h-[env(safe-area-inset-bottom)] bg-surface-container-high/80 backdrop-blur-2xl" />
             </nav>
         </div>
     );
@@ -461,7 +461,7 @@ function NavTab({ icon, label, active, onClick, color = 'primary' }: any) {
             onClick={onClick}
             className={`flex flex-col items-center gap-1 py-1 rounded-2xl transition-all duration-300 flex-1 ${active ? '' : 'opacity-40 hover:opacity-100'}`}
         >
-            <div className={`w-full max-w-[56px] h-8 rounded-full flex items-center justify-center transition-all ${active ? (color === 'primary' ? 'bg-primary text-black shadow-[0_0_15px_rgba(208,188,255,0.4)]' : 'bg-white text-black') : 'text-zinc-500'}`}>
+            <div className={`w-full max-w-[56px] h-8 rounded-xl flex items-center justify-center transition-all ${active ? (color === 'primary' ? 'bg-primary text-black shadow-[0_0_15px_rgba(208,188,255,0.4)]' : 'bg-white text-black') : 'text-zinc-500'}`}>
                 <span className="material-symbols-outlined text-[20px] font-black" style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}>
                     {icon}
                 </span>
